@@ -1,0 +1,335 @@
+/* Figma: Input/Text, Input/Password (368:902, 368:948), Input/Select (368:978), Input/Search (368:992),
+   Checkbox / Toggle / Radio masters (Web UI Components). All sizes ÷ 2. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.label {
+  font: var(--tl-font-label);
+  color: var(--tl-text-ink);
+}
+
+.required {
+  color: var(--tl-danger-text);
+}
+
+.hint {
+  font: var(--tl-font-caption);
+  color: var(--tl-text-muted);
+}
+
+.error {
+  font: var(--tl-font-caption-medium);
+  color: var(--tl-danger-text);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--tl-input-height);
+  padding: 0 14px;
+  border: 1px solid var(--tl-border-control);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-surface);
+  color: var(--tl-text-subtle);
+}
+
+/* AUTH-01 sign-in inputs (10:3): 120px → 60px tall, radius 24 → 12, border #dde5dc, 18px text. */
+.control[data-appearance='auth'] {
+  height: 60px;
+  border-color: #dde5dc;
+  border-radius: 12px;
+  color: var(--tl-text-subtle);
+}
+
+.control[data-appearance='auth'] .input {
+  font: 400 18px/1.2 var(--tl-font-family);
+}
+
+/* Focused mirrors the real search focus style (60:75): 4px → 2px primary stroke. */
+.control:focus-within {
+  border-color: var(--tl-primary-500);
+  box-shadow: 0 0 0 1px var(--tl-primary-500);
+}
+
+.control[data-invalid='true'] {
+  border-color: var(--tl-danger-solid);
+  box-shadow: 0 0 0 1px var(--tl-danger-solid);
+}
+
+.control[data-disabled='true'] {
+  background: var(--tl-bg-disabled);
+  color: var(--tl-text-disabled);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: var(--tl-font-input);
+  color: var(--tl-text-ink);
+}
+
+.input::placeholder {
+  color: var(--tl-text-subtle);
+}
+
+.input:disabled {
+  color: var(--tl-text-disabled);
+}
+
+.input:focus-visible {
+  box-shadow: none;
+}
+
+.revealButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tl-text-muted);
+}
+
+/* Select: bg/subtle fill, 80 → 40px, label 25 → 12.5px. */
+.selectLabel {
+  font: 600 12.5px/1.21 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.selectControl {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.select {
+  width: 100%;
+  height: 40px;
+  padding: 0 36px 0 12px;
+  border: 1px solid var(--tl-border-control);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-subtle);
+  font: 400 14px/1.21 var(--tl-font-family);
+  color: var(--tl-text-ink);
+  appearance: none;
+}
+
+.select:focus-visible {
+  border-color: var(--tl-primary-500);
+  box-shadow: 0 0 0 1px var(--tl-primary-500);
+}
+
+.select[aria-invalid='true'] {
+  border-color: var(--tl-danger-solid);
+}
+
+.select:disabled {
+  background: var(--tl-bg-disabled);
+  color: var(--tl-text-disabled);
+}
+
+.selectIcon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--tl-text-muted);
+}
+
+/* Search: pill variant (top bar, 680×80 → 340×40) and box variant (table toolbars). */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  color: var(--tl-text-muted);
+}
+
+.searchPill {
+  border-radius: var(--tl-radius-pill);
+  background: var(--tl-bg-subtle);
+}
+
+.searchBox {
+  border: 1px solid var(--tl-border-control);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-surface);
+}
+
+.search:focus-within {
+  box-shadow: 0 0 0 2px var(--tl-primary-500);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: 400 13px/1.21 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.searchInput::placeholder {
+  color: var(--tl-text-muted);
+}
+
+.searchInput:focus-visible {
+  box-shadow: none;
+}
+
+/* Checkbox / Radio / Toggle */
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 500 14px/1.21 var(--tl-font-family);
+  color: var(--tl-text-ink);
+  cursor: pointer;
+}
+
+.choice[data-disabled='true'] {
+  color: var(--tl-text-disabled);
+  cursor: not-allowed;
+}
+
+.nativeChoice {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.checkboxBox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--tl-text-disabled);
+  border-radius: 5px;
+  background: var(--tl-bg-surface);
+  color: var(--tl-text-on-primary);
+}
+
+.nativeChoice:checked + .checkboxBox {
+  border-color: var(--tl-primary-500);
+  background: var(--tl-primary-500);
+}
+
+.nativeChoice:focus-visible + .checkboxBox,
+.nativeChoice:focus-visible + .radioDot,
+.nativeChoice:focus-visible + .toggleTrack {
+  box-shadow: var(--tl-focus-ring);
+}
+
+.radioDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--tl-text-disabled);
+  border-radius: 50%;
+  background: var(--tl-bg-surface);
+}
+
+.nativeChoice:checked + .radioDot {
+  border-color: var(--tl-primary-500);
+}
+
+.nativeChoice:checked + .radioDot::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tl-primary-500);
+}
+
+/* Toggle: 88×48 → 44×24. */
+.toggleTrack {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--tl-border-control-strong);
+  transition: background-color 120ms ease;
+}
+
+.toggleTrack::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--tl-bg-surface);
+  transition: transform 120ms ease;
+}
+
+.nativeChoice:checked + .toggleTrack {
+  background: var(--tl-primary-500);
+}
+
+.nativeChoice:checked + .toggleTrack::after {
+  transform: translateX(20px);
+}
+
+.nativeChoice:disabled + .checkboxBox,
+.nativeChoice:disabled + .radioDot,
+.nativeChoice:disabled + .toggleTrack {
+  opacity: 0.5;
+}
+
+.choiceText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.choiceDescription {
+  font: var(--tl-font-caption);
+  color: var(--tl-text-muted);
+}
+
+/* Multi-line input; same stroke, radius and focus treatment as Input/Text. */
+.textarea {
+  width: 100%;
+  min-height: 76px;
+  padding: 10px 14px;
+  border: 1px solid var(--tl-border-control);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-surface);
+  font: var(--tl-font-input);
+  color: var(--tl-text-ink);
+  resize: vertical;
+}
+
+.textarea:focus-visible {
+  outline: none;
+  border-color: var(--tl-primary-500);
+  box-shadow: 0 0 0 1px var(--tl-primary-500);
+}
+
+.textarea[data-invalid='true'] {
+  border-color: var(--tl-danger-solid);
+  box-shadow: 0 0 0 1px var(--tl-danger-solid);
+}

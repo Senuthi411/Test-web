@@ -1,0 +1,63 @@
+TeaLeaf
+Field Scout
+MENU
+Dashboard
+Review Queue
+Correction Queue
+Expert Referrals
+Quarantine Queue
+Decision History
+Evidence Viewer
+Fieldwork Assignments
+Malini Fernando
+Supervisor
+MF
+Demonstration data · UI design only
+Malini Fernando
+Supervisor
+Capture Web Evidence
+ASG-001
+MF
+Switch Demo Role
+Search observations and records
+Demo data
+ASG-001 · Inspect East Hills block C
+Fieldwork assignment · EST-002 › DIV-005 East Hills · illustrative timeline, created 12 Oct 2026
+Back to list
+Prototype branch: ASG-001 cancelled before field work started. Reason: duplicate of a planned survey.
+✓
+Draft
+12 Oct 2026
+✓
+Assigned
+12 Oct 2026
+×
+Cancelled
+12 Oct 2026
+Assignment details
+Assignment ID
+Estate
+Division
+Field Worker
+Assigned by
+Priority
+Due date
+Instructions
+Progress
+Cancelled
+ASG-001 · Cancelled
+EST-002 · Riverbend Tea Estate
+DIV-005 · East Hills
+Hiruni Nadeesha (USR-009)
+Malini Fernando (USR-003) · Supervisor
+High
+16 Oct 2026
+Inspect the reported leaf discolouration in East Hills block C. Photograph 
+affected leaves from three angles and submit one observation per distinct area. 
+Record location at division level only.
+Submitted observations
+No observations submitted yet. Submissions arrive from the Field Worker’s mobile app and appear here linked to this assignment.
+The Field Worker no longer sees this task in the mobile app.
+Activity
+12 Oct 2026 · Assigned to Hiruni Nadeesha (USR-009)
+12 Oct 2026 · Cancelled by Malini Fernando (reason recorded)

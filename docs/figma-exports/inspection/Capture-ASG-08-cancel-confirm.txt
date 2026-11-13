@@ -1,0 +1,80 @@
+TeaLeaf
+Field Scout
+MENU
+Dashboard
+Review Queue
+Correction Queue
+Expert Referrals
+Quarantine Queue
+Decision History
+Evidence Viewer
+Fieldwork Assignments
+Malini Fernando
+Supervisor
+MF
+Demonstration data · UI design only
+Malini Fernando
+Supervisor
+Capture Web Evidence
+ASG-001
+MF
+Switch Demo Role
+Search observations and records
+Demo data
+ASG-001 · Inspect East Hills block C
+Fieldwork assignment · EST-002 › DIV-005 East Hills · illustrative timeline, created 12 Oct 2026
+Cancel assignment
+Edit / reassign
+Back to list
+✓
+Draft
+12 Oct 2026
+2
+Assigned
+12 Oct 2026
+3
+In progress
+ 
+4
+Submitted
+ 
+5
+Completed
+ 
+Assignment details
+Assignment ID
+Estate
+Division
+Field Worker
+Assigned by
+Priority
+Due date
+Instructions
+Progress
+Not started
+ASG-001
+EST-002 · Riverbend Tea Estate
+Cancel ASG-001?
+DIV-005 · East Hills
+Hiruni Nadeesha (USR-009)
+The Field Worker will no longer see this task in the mobile app. Cancelling does not delete the 
+assignment record, and no evidence has been submitted for it.
+Waiting for Hiruni Nadeesha to open the task in the mobile app.
+Activity
+12 Oct 2026 · Draft created by Malini Fernando
+12 Oct 2026 · Assigned to Hiruni Nadeesha (USR-009)
+Malini Fernando (USR-003) · Supervisor
+Reason (required)
+High
+Duplicate of a planned survey
+16 Oct 2026
+Inspect the reported leaf discolouration in East Hills block C. Photograph 
+affected leaves from three angles and submit one observation per distinct area. 
+Record location at division level only.
+Keep assignment
+Cancel assignment
+Submitted observations
+No observations submitted yet. Submissions arrive from the Field Worker’s mobile app and appear here linked to this assignment.
+Mobile work is external. Simulate the Field Worker starting this task in the mobile app (no mobile screens are part of this prototype).
+Simulate: Field Worker starts task
+Prototype simulation

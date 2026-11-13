@@ -1,0 +1,16 @@
+import { lazy } from 'react'
+
+const load = () => import('@/features/review/pages')
+export const ReviewDashboardPage = lazy(() => load().then((module) => ({ default: module.ReviewDashboardPage })))
+export const ReviewQueuePage = lazy(() => load().then((module) => ({ default: module.ReviewQueuePage })))
+export const ObservationReviewPage = lazy(() => load().then((module) => ({ default: module.ObservationReviewPage })))
+export const ObservationDecisionPage = lazy(() => load().then((module) => ({ default: module.ObservationDecisionPage })))
+export const CorrectionQueuePage = lazy(() => load().then((module) => ({ default: module.CorrectionQueuePage })))
+export const CorrectionDetailPage = lazy(() => load().then((module) => ({ default: module.CorrectionDetailPage })))
+export const CorrectionComparePage = lazy(() => load().then((module) => ({ default: module.CorrectionComparePage })))
+export const CorrectionDecisionPage = lazy(() => load().then((module) => ({ default: module.CorrectionDecisionPage })))
+export const ReferralsPage = lazy(() => load().then((module) => ({ default: module.ReferralsPage })))
+export const QuarantineQueuePage = lazy(() => load().then((module) => ({ default: module.QuarantineQueuePage })))
+export const QuarantineRecordPage = lazy(() => load().then((module) => ({ default: module.QuarantineRecordPage })))
+export const QuarantineDecisionPage = lazy(() => load().then((module) => ({ default: module.QuarantineDecisionPage })))
+export const DecisionHistoryPage = lazy(() => load().then((module) => ({ default: module.DecisionHistoryPage })))

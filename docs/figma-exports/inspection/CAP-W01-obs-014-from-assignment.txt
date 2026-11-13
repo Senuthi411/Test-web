@@ -1,0 +1,52 @@
+TeaLeaf
+Field Scout
+MENU
+Dashboard
+Review Queue
+Correction Queue
+Expert Referrals
+Quarantine Queue
+Decision History
+Evidence Viewer
+Fieldwork Assignments
+Malini Fernando
+Supervisor
+MF
+Demonstration data · UI design only
+Review
+Observation OBS-014
+Evidence
+Back to assignment
+Observation Evidence Viewer
+OBS-014 · East Hills (DIV-005) · Riverbend Tea Estate
+Original preserved · immutable
+IMG-014 · original.jpg
+IMG-014
+Revision 1 · original
+Switch Demo Role
+Search observations and records
+100%
+Malini Fernando
+Supervisor
+MF
+Demo data
+Open original
+Evidence provenance
+Original evidence is immutable. Revisions never 
+replace the original image.
+Image ID
+IMG-014
+Captured by
+Hiruni Nadeesha (USR-009)
+Received
+15 Oct 2026 · 16:05
+Mobile sync
+Synced
+MIME type
+image/jpeg
+Captured
+15 Oct 2026 · 14:15
+GPS
+7.106, 80.734 · ±19 m
+Review status
+In review

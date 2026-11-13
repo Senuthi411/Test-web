@@ -1,0 +1,36 @@
+/* Figma: Navigation/Tabs (368:1577) — gap 56 → 28px, label 28 → 14px, active underline 6 → 3px. */
+.tabList {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--tl-border-default);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tab {
+  flex: none;
+  margin-bottom: -1px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  font: var(--tl-font-tab);
+  color: var(--tl-text-muted);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--tl-text-ink);
+}
+
+.tab[aria-selected='true'] {
+  border-bottom-color: var(--tl-primary-500);
+  font: var(--tl-font-tab-active);
+  color: var(--tl-forest-600);
+}
+
+.count {
+  margin-left: 6px;
+  font-weight: 500;
+  color: var(--tl-text-subtle);
+}

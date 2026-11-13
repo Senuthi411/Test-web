@@ -1,0 +1,540 @@
+/*
+ * Review screens (REV-01–REV-17). Figma frames are 1920px wide at 1×; layouts use
+ * flexible grids so they reflow at 1440, 1366, 1280 and 390px.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* REV-01 KPI row: five cards. */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.kpiRow4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.kpiLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--tl-radius-card-lg);
+}
+
+.kpiLink:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+}
+
+.row3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.wideBars {
+  /* REV-01 shows full labels ("Correction requested", "West Terrace (DIV-006)"). */
+  --tl-bar-label-width: 165px;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* REV-03: evidence · observation/history · decision (810 / 565 / 440 in Figma). */
+.reviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(280px, 0.78fr);
+  gap: 24px;
+  align-items: start;
+}
+
+/* REV-04–06, REV-10–12: summary column + form column (650 / 1190 in Figma). */
+.decisionGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.55fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+/* REV-07: table + lifecycle side card. */
+.withSide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 16px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 24px;
+  margin: 0;
+}
+
+.fields > div {
+  min-width: 0;
+}
+
+.fields dt {
+  font: 400 13px/1.3 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.fields dd {
+  margin: 4px 0 0;
+  font: 600 15px/1.35 var(--tl-font-family);
+  color: var(--tl-text-ink);
+  overflow-wrap: anywhere;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.note {
+  margin: 14px 0 0;
+  font: 400 14px/1.45 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.caption {
+  margin: 12px 0 0;
+  font: 400 13px/1.4 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.muted {
+  color: var(--tl-text-muted);
+}
+
+.idLink {
+  font-weight: 600;
+  color: var(--tl-primary-500);
+  text-decoration: none;
+}
+
+.idLink:hover {
+  text-decoration: underline;
+}
+
+.idLink:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: var(--tl-focus-ring);
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--tl-primary-500);
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+.linkButton:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: var(--tl-focus-ring);
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.decisionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.evidenceMeta {
+  margin-top: 16px;
+}
+
+.resulting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font: 400 14px/1.3 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fieldset legend {
+  margin-bottom: 8px;
+  font: 600 14px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.fieldError {
+  margin: 0;
+  font: 500 13px/1.3 var(--tl-font-family);
+  color: var(--tl-danger-600, #b42318);
+}
+
+/* "What happens next" numbered steps (REV-06, REV-10, REV-12). */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tl-primary-50, #e8f3e6);
+  color: var(--tl-primary-500);
+  font: 700 13px/1 var(--tl-font-family);
+}
+
+.stepTitle {
+  display: block;
+  font: 600 14px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.stepDetail {
+  display: block;
+  font: 400 13px/1.35 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+/* REV-08 stepper. */
+.stepper {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepper li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.stepCircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #c9d3c9;
+  border-radius: 50%;
+  background: var(--tl-bg-surface, #fff);
+  color: var(--tl-text-muted);
+  font: 600 14px/1 var(--tl-font-family);
+}
+
+.stepDone .stepCircle {
+  border-color: var(--tl-primary-500);
+  background: var(--tl-primary-500);
+  color: #fff;
+}
+
+.stepCurrent .stepCircle {
+  border-color: var(--tl-primary-500);
+  color: var(--tl-primary-500);
+}
+
+.stepRejected .stepCircle {
+  border-color: #c62828;
+  background: #c62828;
+  color: #fff;
+}
+
+.stepLabel {
+  font: 600 15px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.stepTodo .stepLabel {
+  color: var(--tl-text-muted);
+}
+
+.reason {
+  margin: 8px 0 0;
+  padding: 12px 14px;
+  min-height: 84px;
+  border: 1px solid var(--tl-border-control);
+  border-radius: 10px;
+  background: #f2f4f1;
+  font: 400 14px/1.45 var(--tl-font-family);
+  color: var(--tl-text-muted);
+  white-space: pre-wrap;
+}
+
+.subheading {
+  margin: 16px 0 0;
+  font: 600 14px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+/* Field / change table (REV-08, REV-09). */
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.changeTable {
+  width: 100%;
+  margin-top: 16px;
+  border: 1px solid var(--tl-border-subtle, #e3e8e2);
+  border-radius: 10px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  font: 400 14px/1.4 var(--tl-font-family);
+}
+
+.changeTable th {
+  padding: 12px 16px;
+  background: #f2f6f0;
+  font: 600 12px/1.2 var(--tl-font-family);
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--tl-text-muted);
+}
+
+.changeTable td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--tl-border-subtle, #e3e8e2);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.changeTable th[scope='row'] {
+  background: none;
+  font: 600 14px/1.3 var(--tl-font-family);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tl-primary-500);
+}
+
+.compareGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+/* REV-01 attention list. */
+.attention {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attentionLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--tl-border-subtle, #e3e8e2);
+  border-radius: 10px;
+  background: #fafbf9;
+  color: inherit;
+  text-decoration: none;
+}
+
+.attentionLink:hover {
+  border-color: var(--tl-border-control-strong, #b9c4b8);
+}
+
+.attentionLink:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+}
+
+.attentionTitle {
+  display: block;
+  font: 600 15px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.attentionDetail {
+  display: block;
+  font: 400 13px/1.35 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.lifecycle {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lifecycle li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.count {
+  font: 700 15px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--tl-text-muted);
+}
+
+.actionsInline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.unavailable {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  padding: 24px;
+  border: 1px dashed var(--tl-border-control);
+  border-radius: 12px;
+  background: #f4f6f3;
+  color: var(--tl-text-muted);
+  text-align: center;
+}
+
+@media (max-width: 1439px) {
+  .kpiRow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .reviewGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .reviewGrid > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1279px) {
+  .kpiRow4,
+  .row3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .withSide,
+  .decisionGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 899px) {
+  .kpiRow,
+  .row3,
+  .split,
+  .reviewGrid,
+  .compareGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stepper {
+    grid-auto-flow: row;
+    gap: 12px;
+  }
+
+  .stepper li {
+    flex-direction: row;
+    text-align: left;
+  }
+}
+
+@media (max-width: 599px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kpiRow,
+  .kpiRow4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

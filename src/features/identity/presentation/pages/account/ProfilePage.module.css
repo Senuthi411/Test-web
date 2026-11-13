@@ -1,0 +1,19 @@
+/* ID-14 My Profile (Figma 17:934). */
+.readOnly {
+  color: var(--tl-text-muted);
+}
+
+.success {
+  margin: 0;
+  font: 500 13px/1.4 var(--tl-font-family);
+  color: var(--tl-forest-600);
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

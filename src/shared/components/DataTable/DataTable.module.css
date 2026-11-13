@@ -1,0 +1,115 @@
+/* Figma: Table/Standard (368:1877) — radius 24 → 12px, header 84 → 42px, row 92 → 46px, padding 32 → 16px. */
+.wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-card);
+  background: var(--tl-bg-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--tl-font-table-cell);
+}
+
+.table th {
+  height: 42px;
+  padding: 0 8px;
+  background: var(--tl-bg-table-header);
+  font: var(--tl-font-table-header);
+  color: var(--tl-text-muted);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.table td {
+  height: 46px;
+  padding: 0 8px;
+  border-top: 1px solid var(--tl-border-default);
+  color: var(--tl-text-ink);
+  vertical-align: middle;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 16px;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 16px;
+}
+
+.alignEnd {
+  text-align: right !important;
+}
+
+.clickableRow {
+  cursor: pointer;
+}
+.clickableRow:hover td {
+  background: var(--tl-bg-subtle);
+}
+
+.emptyCell {
+  padding: 0 !important;
+}
+
+/* Figma: Table/Pagination (368:1916) — buttons 68 → 34px, radius 16 → 8px. */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.paginationSummary {
+  font: 400 13px/1.21 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.pages {
+  display: flex;
+  gap: 6px;
+}
+
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-surface);
+  font: var(--tl-font-button);
+  color: var(--tl-text-ink);
+}
+
+.pageButton[aria-current='page'] {
+  border-color: var(--tl-primary-500);
+  background: var(--tl-primary-500);
+  color: var(--tl-text-on-primary);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.sortButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+}
+

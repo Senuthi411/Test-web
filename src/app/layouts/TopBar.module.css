@@ -1,0 +1,146 @@
+/* Figma: Header master (144 → 72px). */
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: var(--tl-topbar-height);
+  padding: 0 var(--tl-page-padding-x);
+  border-bottom: 1px solid var(--tl-border-default);
+  background: var(--tl-bg-surface);
+}
+
+.crumbs {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search {
+  width: 340px;
+}
+
+.bell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tl-bg-subtle);
+  color: var(--tl-text-ink);
+}
+
+.profile {
+  position: relative;
+}
+
+.profileTrigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 4px 4px;
+  border: 0;
+  border-radius: var(--tl-radius-pill);
+  background: transparent;
+  text-align: left;
+  color: var(--tl-text-muted);
+}
+
+.profileTrigger:hover {
+  background: var(--tl-bg-subtle);
+}
+
+.profileText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profileName {
+  font: 600 13.5px/1.21 var(--tl-font-family);
+  color: var(--tl-text-ink);
+  white-space: nowrap;
+}
+
+.profileRole {
+  font: 400 12px/1.21 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-card);
+  background: var(--tl-bg-surface);
+  box-shadow: var(--tl-shadow-dropdown);
+}
+
+.menuList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--tl-radius-control);
+  background: transparent;
+  font: var(--tl-font-body-medium);
+  color: var(--tl-text-ink);
+  text-align: left;
+  text-decoration: none;
+}
+
+.menuItem:hover {
+  background: var(--tl-mint-100);
+}
+
+.menuDanger {
+  color: var(--tl-danger-text);
+}
+
+@media (max-width: 1279px) {
+  .search {
+    width: 240px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .search,
+  .profileText {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .topBar {
+    padding: 0 16px;
+    gap: 10px;
+  }
+  .actions {
+    gap: 10px;
+  }
+}

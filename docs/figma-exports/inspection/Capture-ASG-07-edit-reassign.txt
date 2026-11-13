@@ -1,0 +1,82 @@
+TeaLeaf
+Field Scout
+MENU
+Dashboard
+Review Queue
+Correction Queue
+Expert Referrals
+Quarantine Queue
+Decision History
+Evidence Viewer
+Fieldwork Assignments
+Malini Fernando
+Supervisor
+MF
+Demonstration data · UI design only
+Malini Fernando
+Supervisor
+Capture Web Evidence
+Edit / reassign ASG-001
+MF
+Switch Demo Role
+Search observations and records
+Demo data
+Edit / reassign ASG-001
+Change task details or reassign to another eligible Field Worker · Riverbend Tea Estate (EST-002)
+Cancel
+Assignment summary
+ASG-001
+ID
+Assigned
+Status
+EST-002 Riverbend
+Estate
+DIV-005 East Hills
+Division
+Hiruni Nadeesha
+Field Worker
+High
+Priority
+16 Oct 2026
+Due date
+Malini Fernando (USR-003)
+Created by
+1 · Location
+Estate
+EST-002 · Riverbend Tea Estate
+Your scope
+Division
+DIV-004 · Riverbank
+DIV-005 · East Hills
+DIV-006 · West Terrace
+2 · Field Worker
+Only Field Workers with active scope on the selected division are eligible (scope is managed by an Administrator in Identity).
+Hiruni Nadeesha · USR-009
+Field worker · Scope: DIV-004, DIV-005
+Current · eligible
+Ravindu Kumara · USR-010
+Field worker · Scope: DIV-006 only
+Reassignment unavailable: no other Field Worker has DIV-005 scope. An Administrator must grant scope in Identity first. Ineligible workers cannot be selected.
+3 · Task
+Title
+Inspect East Hills block C for suspected blight
+Not in DIV-005 scope
+How this works
+Assigned tasks appear in the Field Worker’s mobile app.
+Field work is captured and submitted in the mobile app, not on the web.
+Submitting does not complete the task: you accept it after reviewing the 
+evidence.
+Observations stay linked through Estate → Division only.
+Instructions
+Inspect the reported leaf discolouration in East Hills block C. Photograph affected leaves from three angles and submit one observation per 
+distinct area. Record location at division level only.
+Priority
+Low
+Due date
+16 Oct 2026
+Medium
+High
+Reason for change (required)
+Task details clarified after site walk
+Save changes
+Discard

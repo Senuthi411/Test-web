@@ -1,0 +1,49 @@
+TeaLeaf
+Field Scout
+MENU
+Dashboard
+Review Queue
+Correction Queue
+Expert Referrals
+Quarantine Queue
+Decision History
+Evidence Viewer
+Fieldwork Assignments
+Malini Fernando
+Supervisor
+MF
+Demonstration data · UI design only
+Malini Fernando
+Supervisor
+Capture Web Evidence
+ASG-004
+MF
+Switch Demo Role
+Search observations and records
+Demo data
+ASG-004 · Walk Riverbank lower boundary
+Fieldwork assignment · EST-002 › DIV-004 Riverbank
+Back to list
+Summary record. Full lifecycle history, progress and evidence are modelled only for ASG-001 in this prototype.
+Assignment details
+Assignment ID
+Estate
+Division
+Field Worker
+Assigned by
+Priority
+Due date
+Status
+Linked observations
+Status
+Draft
+Draft only. No Field Worker has been assigned, so nothing is visible in the mobile app.
+ASG-004
+EST-002 · Riverbend Tea Estate
+DIV-004 · Riverbank
+Not assigned
+Malini Fernando (USR-003) · Supervisor
+Low
+30 Oct 2026
+Draft
+—

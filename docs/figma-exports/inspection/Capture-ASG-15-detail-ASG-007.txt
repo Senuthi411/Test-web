@@ -1,0 +1,49 @@
+TeaLeaf
+Field Scout
+MENU
+Dashboard
+Review Queue
+Correction Queue
+Expert Referrals
+Quarantine Queue
+Decision History
+Evidence Viewer
+Fieldwork Assignments
+Malini Fernando
+Supervisor
+MF
+Demonstration data · UI design only
+Malini Fernando
+Supervisor
+Capture Web Evidence
+ASG-007
+MF
+Switch Demo Role
+Search observations and records
+Demo data
+ASG-007 · Boundary check West Terrace
+Fieldwork assignment · EST-002 › DIV-006 West Terrace
+Back to list
+Summary record. Full lifecycle history, progress and evidence are modelled only for ASG-001 in this prototype.
+Assignment details
+Assignment ID
+Estate
+Division
+Field Worker
+Assigned by
+Priority
+Due date
+Status
+Linked observations
+Status
+Cancelled
+Cancelled. The Field Worker no longer sees this task in the mobile app.
+ASG-007
+EST-002 · Riverbend Tea Estate
+DIV-006 · West Terrace
+Ravindu Kumara (USR-010)
+Malini Fernando (USR-003) · Supervisor
+Low
+22 Oct 2026
+Cancelled
+—

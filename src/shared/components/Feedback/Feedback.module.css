@@ -1,0 +1,236 @@
+/* Figma: State/Loading, State/Empty (GS-07), Banner and Toast masters. Sizes ÷ 2. */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.skeleton {
+  display: block;
+  border-radius: var(--tl-radius-sm);
+  background: var(--tl-bg-skeleton);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeletonRow td {
+  padding: 14px 16px;
+}
+
+/* Banner: radius 20 → 10, padding 24/32 → 12/16. */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--tl-radius-card-sm);
+  font: var(--tl-font-body);
+}
+
+.bannerBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bannerTitle {
+  font: var(--tl-font-body-strong);
+}
+
+.info {
+  background: var(--tl-info-bg);
+  color: var(--tl-info-text);
+}
+.warning {
+  background: var(--tl-warning-bg);
+  color: var(--tl-warning-text);
+}
+.success {
+  background: var(--tl-mint-100);
+  color: var(--tl-forest-600);
+}
+.error {
+  background: var(--tl-danger-bg);
+  color: var(--tl-danger-text);
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+}
+
+.bannerAction {
+  align-self: center;
+}
+
+/* Empty / error state (GS-07): centred mint circle, title, message, action. */
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.stateIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--tl-mint-100);
+  color: var(--tl-forest-600);
+}
+
+.stateIconError {
+  background: var(--tl-danger-bg);
+  color: var(--tl-danger-text);
+}
+
+.stateTitle {
+  font: var(--tl-font-section);
+  color: var(--tl-text-ink);
+}
+
+.stateMessage {
+  max-width: 420px;
+  font: var(--tl-font-body);
+  color: var(--tl-text-muted);
+}
+
+.stateMeta {
+  font: var(--tl-font-caption);
+  color: var(--tl-text-subtle);
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Toast: 1.5px tone border, radius 12, 32px icon circle. */
+.toastRegion {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  border: 1.5px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-card);
+  background: var(--tl-bg-surface);
+  box-shadow: var(--tl-shadow-dropdown);
+  pointer-events: auto;
+}
+
+.toastSuccess {
+  border-color: var(--tl-primary-500);
+}
+.toastInfo {
+  border-color: var(--tl-info-text);
+}
+.toastWarning {
+  border-color: var(--tl-warning-stroke);
+}
+.toastError {
+  border-color: var(--tl-danger-solid);
+}
+
+.toastIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.toastSuccess .toastIcon {
+  background: var(--tl-mint-100);
+  color: var(--tl-primary-500);
+}
+.toastInfo .toastIcon {
+  background: var(--tl-info-bg);
+  color: var(--tl-info-text);
+}
+.toastWarning .toastIcon {
+  background: var(--tl-warning-bg);
+  color: var(--tl-warning-text);
+}
+.toastError .toastIcon {
+  background: var(--tl-danger-bg);
+  color: var(--tl-danger-text);
+}
+
+.toastBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toastTitle {
+  font: 600 14px/1.21 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.toastMessage {
+  font: 400 13px/1.3 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.toastDismiss {
+  color: var(--tl-text-muted);
+}
+
+.demoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--tl-radius-chip);
+  background: var(--tl-warning-bg);
+  color: var(--tl-warning-text);
+  font: var(--tl-font-chip);
+  white-space: nowrap;
+}
+
+.demoDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tl-warning-stroke);
+}

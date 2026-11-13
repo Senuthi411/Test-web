@@ -1,0 +1,19 @@
+/* Figma avatar: initials on mint-100, text forest-600, 72 → 36px. */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  background: var(--tl-mint-100);
+  color: var(--tl-forest-600);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  user-select: none;
+}
+
+.onDark {
+  background: var(--tl-forest-700);
+  color: var(--tl-lime-300);
+}

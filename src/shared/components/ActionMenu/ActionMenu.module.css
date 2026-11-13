@@ -1,0 +1,69 @@
+/* Row "more" control. The menu reuses the Overlay/Dropdown styling (ID-03 Role dropdown). */
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--tl-radius-control);
+  background: transparent;
+  color: var(--tl-text-muted);
+  cursor: pointer;
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  background: var(--tl-bg-subtle);
+  color: var(--tl-text-ink);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 4px 0;
+  border: 1px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-card);
+  background: var(--tl-bg-surface);
+  box-shadow: var(--tl-shadow-dropdown);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 37px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  font: 500 14px/1.21 var(--tl-font-family);
+  color: var(--tl-text-ink);
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.item:hover,
+.item:focus-visible {
+  outline: none;
+  background: #f1f7ec;
+}
+
+.item:disabled {
+  color: var(--tl-text-disabled);
+  cursor: not-allowed;
+}
+
+.danger {
+  color: var(--tl-danger-solid);
+}

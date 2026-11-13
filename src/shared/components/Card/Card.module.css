@@ -1,0 +1,77 @@
+/* Figma: Card/Base (368:1653) — radius 28 → 14px, padding 36/40 → 18/20px, border 2 → 1px. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-card-lg);
+  background: var(--tl-bg-surface);
+  box-shadow: var(--tl-shadow-card);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
+}
+
+.title {
+  font: var(--tl-font-card-title);
+  color: var(--tl-text-ink);
+}
+
+/* Figma: Card/KPI (368:1617) — 774×292 → 387×146. */
+.kpi {
+  gap: 8px;
+}
+
+.kpiTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpiLabel {
+  font: 500 13px/1.21 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.kpiChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--tl-radius-card-sm);
+}
+
+.kpiValue {
+  font: var(--tl-font-hero-kpi);
+  color: var(--tl-text-ink);
+}
+
+.kpiCaption {
+  font: 400 12.5px/1.21 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.toneSuccess {
+  background: var(--tl-mint-100);
+  color: var(--tl-primary-500);
+}
+.toneInfo {
+  background: var(--tl-info-bg);
+  color: var(--tl-info-text);
+}
+.toneWarning {
+  background: var(--tl-warning-bg);
+  color: #9a6700;
+}
+.tonePurple {
+  background: var(--tl-purple-bg);
+  color: var(--tl-purple-text);
+}

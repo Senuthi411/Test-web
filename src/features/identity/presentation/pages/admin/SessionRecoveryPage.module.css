@@ -1,0 +1,59 @@
+/* Controlled recovery (Figma 166:972): numbered recovery steps. */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--tl-border-default);
+}
+
+.step:first-child {
+  border-top: 0;
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--tl-border-control-strong);
+  border-radius: 50%;
+  background: var(--tl-bg-surface);
+  font: 600 13px/1 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.marker[data-done='true'] {
+  border-color: var(--tl-primary-500);
+  background: var(--tl-primary-500);
+  color: var(--tl-text-on-primary);
+}
+
+.stepText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stepTitle {
+  font: 600 14px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.warning {
+  margin: 0;
+  font: 500 13px/1.4 var(--tl-font-family);
+  color: var(--tl-warning-text);
+}

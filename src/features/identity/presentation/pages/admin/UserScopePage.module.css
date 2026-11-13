@@ -1,0 +1,62 @@
+/* ID-08 scope tree (Figma 16:335). */
+.userName {
+  font: 700 15px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group {
+  overflow: hidden;
+  border: 1px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-card-sm);
+}
+
+.estateRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fafbfa;
+}
+
+.estateRow[data-assigned='true'] {
+  background: #f1f7ec;
+}
+
+.estateName {
+  font: 600 14px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.estateMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.divisions {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.divisionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px 10px 40px;
+  border-top: 1px solid var(--tl-border-default);
+}

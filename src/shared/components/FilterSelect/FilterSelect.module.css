@@ -1,0 +1,82 @@
+/* Figma: Filter/Dropdown — 80px → 40px trigger "Label: Value ▾", menu radius 24 → 12,
+   options padding 22/32 → 11/16, selected bg #f1f7ec (approximated by bg-subtle). */
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--tl-filter-height);
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--tl-border-control);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-surface);
+  font: var(--tl-font-filter);
+  color: var(--tl-text-ink);
+  white-space: nowrap;
+}
+
+.trigger:hover:not(:disabled) {
+  background: var(--tl-mint-100);
+}
+
+.trigger:disabled {
+  background: var(--tl-bg-disabled);
+  color: var(--tl-text-disabled);
+  cursor: not-allowed;
+}
+
+.triggerLabel {
+  color: var(--tl-text-muted);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 100%;
+  max-height: 320px;
+  overflow: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-card);
+  background: var(--tl-bg-surface);
+  box-shadow: var(--tl-shadow-dropdown);
+}
+
+.menu:focus-visible {
+  box-shadow: var(--tl-shadow-dropdown), var(--tl-focus-ring);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 16px;
+  border-radius: var(--tl-radius-control);
+  font: var(--tl-font-body);
+  color: var(--tl-text-ink);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.option[aria-selected='true'] {
+  background: #f1f7ec;
+  font: var(--tl-font-body-strong);
+  color: var(--tl-forest-600);
+}
+
+.option[data-active='true'] {
+  background: var(--tl-mint-100);
+}
+
+.optionCheck {
+  color: var(--tl-primary-500);
+}

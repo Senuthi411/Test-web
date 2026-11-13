@@ -1,0 +1,27 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  font: var(--tl-font-body);
+}
+
+.meta dt {
+  color: var(--tl-text-muted);
+}
+
+.meta dd {
+  margin: 0;
+  font: var(--tl-font-body-strong);
+}
+
+.metaItem {
+  display: flex;
+  gap: 6px;
+}

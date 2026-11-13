@@ -1,0 +1,48 @@
+/* Figma: Badge/Status (368:2128). 40px pill → 20px; dot 12 → 6px; label Semi Bold 23 → 11.5px. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 9px;
+  border-radius: var(--tl-radius-pill);
+  font: var(--tl-font-badge);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.success {
+  background: var(--tl-mint-100);
+  color: var(--tl-forest-600);
+}
+.warning {
+  background: var(--tl-warning-bg);
+  color: var(--tl-warning-text);
+}
+.info {
+  background: var(--tl-info-bg);
+  color: var(--tl-info-text);
+}
+.purple {
+  background: var(--tl-purple-bg);
+  color: var(--tl-purple-text);
+}
+.neutral {
+  background: var(--tl-bg-neutral-soft);
+  color: var(--tl-text-neutral-badge);
+}
+.danger {
+  background: var(--tl-danger-bg);
+  color: var(--tl-danger-text);
+}
+.lime {
+  background: var(--tl-lime-soft);
+  color: var(--tl-lime-text);
+}

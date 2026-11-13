@@ -1,0 +1,306 @@
+/*
+ * Shared layout for the Identity screens. Figma frames are 3840×2160 at 2× scale; sizes
+ * here are the halved values, laid out with flexible grids so the screens reflow below
+ * the 1920px design width.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* KPI row (ID-02, ID-10, ID-12): four cards, wrapping to two and one column. */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.kpiLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--tl-radius-card-lg);
+}
+
+.kpiLink:hover > * {
+  border-color: var(--tl-border-control-strong);
+}
+
+.kpiLink:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+}
+
+/* Three equal cards (ID-02 middle row, ID-09 charts). */
+.row3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Main column + 420px side panel (ID-05, ID-13). */
+.withSide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+  gap: 16px;
+  align-items: start;
+}
+
+/* 360/380px side column + main column (ID-04, ID-07, ID-08, ID-14). */
+.sideFirst {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterSpacer {
+  flex: 1;
+}
+
+.tableFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.personName {
+  font: 500 13.5px/1.25 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.link {
+  color: var(--tl-forest-600);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: var(--tl-focus-ring);
+}
+
+.idStrong {
+  font: 600 13px/1.25 var(--tl-font-family);
+  color: var(--tl-forest-600);
+}
+
+.muted {
+  font: 400 13px/1.35 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.caption {
+  margin: 0;
+  font: 400 12.5px/1.4 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.sectionTitle {
+  margin: 4px 0 0;
+  font: 600 15px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.textButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tl-forest-600);
+  font: 600 13px/1.3 var(--tl-font-family);
+  cursor: pointer;
+}
+
+.textButton:hover {
+  text-decoration: underline;
+}
+
+.textButton:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: var(--tl-focus-ring);
+}
+
+/* Identity forms use 40px inputs (Figma ID-05/ID-06/ID-14: 80px at 2×). */
+.form {
+  --tl-input-height: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.checkList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--tl-border-control-strong);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-surface);
+}
+
+.checkList[aria-invalid='true'] {
+  border-color: var(--tl-danger-solid);
+}
+
+.fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font: var(--tl-font-label);
+  color: var(--tl-text-ink);
+}
+
+.fieldError {
+  margin: 6px 0 0;
+  font: 500 12.5px/1.3 var(--tl-font-family);
+  color: var(--tl-danger-text-alt);
+}
+
+.permissionList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 400 13px/1.35 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.permissionList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.checkIcon {
+  flex: none;
+  color: var(--tl-primary-500);
+}
+
+.noteList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding-left: 18px;
+  font: 400 13px/1.45 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.profileCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.profileName {
+  margin: 6px 0 0;
+  font: 700 20px/1.25 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  margin: 8px 0;
+  border: 0;
+  background: var(--tl-border-default);
+}
+
+.fullWidth {
+  width: 100%;
+  text-align: start;
+}
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 1279px) {
+  .row3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .withSide,
+  .sideFirst {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  .kpiRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 719px) {
+  .kpiRow,
+  .row3,
+  .formGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

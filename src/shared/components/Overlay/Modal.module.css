@@ -1,0 +1,64 @@
+/* Figma: Modal master — radius 28 → 14, padding 56 → 28, title 44 → 22 bold, modal shadow. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(13 31 20 / 0.45);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 28px;
+  border-radius: var(--tl-radius-card-lg);
+  background: var(--tl-bg-surface);
+  box-shadow: var(--tl-shadow-modal);
+}
+
+.small {
+  max-width: 440px;
+}
+.medium {
+  max-width: 560px;
+}
+.large {
+  max-width: 760px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  font: var(--tl-font-modal-title);
+  color: var(--tl-text-ink);
+}
+
+.description {
+  margin-top: 6px;
+  font: var(--tl-font-subtitle);
+  color: var(--tl-text-muted);
+}
+
+.body {
+  font: var(--tl-font-body);
+  color: var(--tl-text-ink);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}

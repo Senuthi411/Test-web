@@ -1,0 +1,137 @@
+/* Figma: Button (368:867). Height 76 → 38px, radius 16 → 8px, padding 28 → 14px, label 26 → 13px. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--tl-control-height);
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--tl-radius-control);
+  font: var(--tl-font-button);
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.button:disabled,
+.button[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+.primary {
+  background: var(--tl-primary-500);
+  color: var(--tl-text-on-primary);
+}
+.primary:hover:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-forest-600);
+}
+.primary:active:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-forest-800);
+}
+
+.secondary {
+  background: var(--tl-bg-surface);
+  border-color: var(--tl-border-control);
+  color: var(--tl-forest-600);
+}
+.secondary:hover:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-mint-100);
+}
+.secondary:active:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-mint-50);
+  border-color: var(--tl-border-dark-control);
+}
+
+.destructive {
+  background: var(--tl-danger-solid);
+  color: var(--tl-text-on-primary);
+}
+.destructive:hover:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-danger-text);
+}
+.destructive:active:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-danger-text-alt);
+}
+
+.destructiveOutline {
+  background: var(--tl-bg-surface);
+  border-color: var(--tl-danger-outline);
+  color: var(--tl-danger-solid);
+}
+.destructiveOutline:hover:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-danger-bg);
+}
+.destructiveOutline:active:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-danger-bg-alt);
+  color: var(--tl-danger-text);
+}
+
+.ghost {
+  height: auto;
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--tl-forest-600);
+}
+.ghost:hover:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-mint-100);
+}
+.ghost:active:not(:disabled, [aria-busy='true']) {
+  background: var(--tl-mint-50);
+}
+
+/* Disabled: shared filled shape for all but Ghost (Button/disabled 23:833). */
+.button:disabled:not(.ghost) {
+  background: var(--tl-bg-disabled);
+  border-color: transparent;
+  color: var(--tl-text-disabled);
+}
+.ghost:disabled {
+  color: var(--tl-text-disabled);
+}
+
+.busy {
+  opacity: 0.85;
+  cursor: progress;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Round icon button — Figma "bell" (14:80): 80 → 40px circle on bg/subtle. */
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tl-bg-subtle);
+  color: var(--tl-text-ink);
+}
+.iconButton:hover {
+  background: var(--tl-mint-100);
+}
+
+/* Plain icon button for dismiss controls. */
+.plainIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: currentColor;
+}
+.plainIconButton:hover {
+  background: rgb(0 0 0 / 0.06);
+}

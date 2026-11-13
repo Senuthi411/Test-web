@@ -1,0 +1,45 @@
+.shell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--tl-bg-canvas);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 1856px;
+  padding: var(--tl-page-padding-y) var(--tl-page-padding-x) 40px;
+}
+
+.main:focus {
+  outline: none;
+}
+
+.skipLink {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-surface);
+  font: var(--tl-font-body-strong);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus {
+  transform: none;
+}
+
+@media (max-width: 767px) {
+  .main {
+    padding: 16px 16px 32px;
+  }
+}

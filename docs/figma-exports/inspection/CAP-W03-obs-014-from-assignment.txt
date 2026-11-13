@@ -1,0 +1,35 @@
+TeaLeaf
+Field Scout
+MENU
+Dashboard
+Review Queue
+Correction Queue
+Expert Referrals
+Quarantine Queue
+Decision History
+Evidence Viewer
+Fieldwork Assignments
+Malini Fernando
+Supervisor
+MF
+Demonstration data · UI design only
+Review
+Observation OBS-014
+Original image
+Back to evidence viewer
+Original Image Viewer
+IMG-014 · original.jpg · image/jpeg
+Original · read-only
+IMG-014 · original.jpg
+Switch Demo Role
+Search observations and records
+Captured 15 Oct 2026 · 14:15
+GPS ±19 m
+Catalog v2
+Immutable asset: demo/observations/OBS-014/original.jpg
+Demo data
+MF
+Malini Fernando
+Supervisor
+Download original
+100%

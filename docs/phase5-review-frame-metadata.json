@@ -1,0 +1,720 @@
+{
+  "sourceFileKey": "HufgU8zIvhH1huEdeyrL1v",
+  "source": "Previously retrieved Phase 4 Figma metadata cached in this conversation; not a fresh design-context retrieval",
+  "designContextRetrieved": false,
+  "frames": [
+    {
+      "id": "19:2",
+      "name": "WEB / Review / REV-01 / default / 3840x2160",
+      "notableLayerNames": [
+        "OBS-005 · decide approve or "
+      ]
+    },
+    {
+      "id": "19:302",
+      "name": "WEB / Review / REV-02 / default / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "19:785",
+      "name": "WEB / Review / REV-03 / default / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "19:1016",
+      "name": "WEB / Review / REV-04 / default / 3840x2160",
+      "notableLayerNames": [
+        "Button / primary / Confirm verification",
+        "Confirm verification",
+        "Card / Verification checklist",
+        "Verification checklist"
+      ]
+    },
+    {
+      "id": "20:2",
+      "name": "WEB / Review / REV-05 / default / 3840x2160",
+      "notableLayerNames": [
+        "Field / Reason",
+        "Reason *"
+      ]
+    },
+    {
+      "id": "20:186",
+      "name": "WEB / Review / REV-06 / default / 3840x2160",
+      "notableLayerNames": [
+        "Checkbox / Confirm symptom details",
+        "Confirm symptom details",
+        "You approve or reject"
+      ]
+    },
+    {
+      "id": "20:362",
+      "name": "WEB / Review / REV-07 / default / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "20:559",
+      "name": "WEB / Review / REV-08 / default / 3840x2160",
+      "notableLayerNames": [
+        "Button / dangerO / Reject (disabled — COR-005 demonstrates approval; COR-041 demonstrates rejection)",
+        "Reject",
+        "Button / primary / Approve",
+        "Approve",
+        "Approved",
+        "Field / Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "20:759",
+      "name": "WEB / Review / REV-09 / default / 3840x2160",
+      "notableLayerNames": [
+        "Button / dangerO / Reject (disabled — COR-005 demonstrates approval; COR-041 demonstrates rejection)",
+        "Reject",
+        "Button / primary / Approve",
+        "Approve"
+      ]
+    },
+    {
+      "id": "20:953",
+      "name": "WEB / Review / REV-10 / default / 3840x2160",
+      "notableLayerNames": [
+        "Approve",
+        "Approve Correction",
+        "Button / primary / Confirm approval",
+        "Confirm approval",
+        "Badge / Approved",
+        "Approved",
+        "Approved",
+        "You confirm this decision"
+      ]
+    },
+    {
+      "id": "21:2",
+      "name": "WEB / Review / REV-11 / default / 3840x2160",
+      "notableLayerNames": [
+        "Reject",
+        "Reject Correction",
+        "Button / danger / Confirm rejection",
+        "Confirm rejection",
+        "Card / Rejection",
+        "Rejection",
+        "Rejecting leaves the origina",
+        "Field / Reason",
+        "Reason *",
+        "A message is required when r",
+        "Badge / Rejected",
+        "Rejected",
+        "Reason"
+      ]
+    },
+    {
+      "id": "21:167",
+      "name": "WEB / Review / REV-12 / default / 3840x2160",
+      "notableLayerNames": [
+        "Describe why expert confirma",
+        "Confirmed disease recorded"
+      ]
+    },
+    {
+      "id": "21:351",
+      "name": "WEB / Review / REV-13 / default / 3840x2160",
+      "notableLayerNames": [
+        "CONFIRMED",
+        "Badge / Not yet confirmed",
+        "Not yet confirmed",
+        "Diagnosis confirmed: DIAG-00",
+        "Card / Suspected vs confirmed",
+        "Suspected vs confirmed",
+        "Confirmed (expert)"
+      ]
+    },
+    {
+      "id": "21:601",
+      "name": "WEB / Review / REV-14 / default / 3840x2160",
+      "notableLayerNames": [
+        "KPI / Ingest retry required",
+        "Ingest retry required",
+        "KPI / Rejected",
+        "Rejected",
+        "REASON",
+        "Badge / Ingest retry required",
+        "Ingest retry required",
+        "Badge / Rejected",
+        "Rejected"
+      ]
+    },
+    {
+      "id": "21:834",
+      "name": "WEB / Review / REV-15 / default / 3840x2160",
+      "notableLayerNames": [
+        "Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "21:1216",
+      "name": "WEB / Review / REV-17 / default / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:72",
+      "name": "WEB / Review / REV-02 / tab-submitted / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:555",
+      "name": "WEB / Review / REV-02 / tab-in-review / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:1038",
+      "name": "WEB / Review / REV-02 / tab-flagged / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:1521",
+      "name": "WEB / Review / REV-02 / tab-correction-requested / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:2004",
+      "name": "WEB / Review / REV-02 / tab-referred / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:2487",
+      "name": "WEB / Review / REV-02 / tab-verified / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:2970",
+      "name": "WEB / Review / REV-07 / tab-requested / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "52:3167",
+      "name": "WEB / Review / REV-07 / tab-resubmitted / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "52:3364",
+      "name": "WEB / Review / REV-07 / tab-approved / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "52:3562",
+      "name": "WEB / Review / REV-07 / tab-applied / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "52:3760",
+      "name": "WEB / Review / REV-07 / tab-rejected / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "52:3958",
+      "name": "WEB / Review / REV-17 / tab-verification / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:4303",
+      "name": "WEB / Review / REV-17 / tab-flag / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:4648",
+      "name": "WEB / Review / REV-17 / tab-correction / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:4993",
+      "name": "WEB / Review / REV-17 / tab-referral / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:5338",
+      "name": "WEB / Review / REV-17 / tab-quarantine / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "52:7112",
+      "name": "WEB / Review / REV-01 / sidebar-collapsed / 3840x2160",
+      "notableLayerNames": [
+        "OBS-005 · decide approve or "
+      ]
+    },
+    {
+      "id": "123:70",
+      "name": "Review / REV-13 / referral-submitted-pending-link / 3840x2160",
+      "notableLayerNames": [
+        "CONFIRMED",
+        "Badge / Not yet confirmed",
+        "Not yet confirmed",
+        "Badge / Not yet confirmed",
+        "Not yet confirmed",
+        "Diagnosis confirmed: DIAG-00",
+        "Card / Suspected vs confirmed",
+        "Suspected vs confirmed",
+        "Confirmed (expert)",
+        "Not yet confirmed"
+      ]
+    },
+    {
+      "id": "128:74",
+      "name": "Review / REV-08 / cor-041-requested / 3840x2160",
+      "notableLayerNames": [
+        "Button / dangerO / Reject",
+        "Reject",
+        "Button / primary / Approve",
+        "Approve",
+        "Approved",
+        "Field / Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "128:291",
+      "name": "Review / REV-08 / cor-041-rejected / 3840x2160",
+      "notableLayerNames": [
+        "Button / dangerO / Reject",
+        "Reject",
+        "Button / primary / Approve",
+        "Approve",
+        "Rejected",
+        "Approved",
+        "Field / Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "128:511",
+      "name": "WEB / Review / REV-07 / default-after-rejection / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "128:716",
+      "name": "WEB / Review / REV-07 / tab-requested-after-rejection / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "128:900",
+      "name": "WEB / Review / REV-07 / tab-resubmitted-after-rejection / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "128:1084",
+      "name": "WEB / Review / REV-07 / tab-approved-after-rejection / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "128:1248",
+      "name": "WEB / Review / REV-07 / tab-applied-after-rejection / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "128:1412",
+      "name": "WEB / Review / REV-07 / tab-rejected-after-rejection / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Badge / Rejected",
+        "Rejected",
+        "— (rejected)",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "128:1727",
+      "name": "WEB / Review / REV-17 / default-after-rejection / 3840x2160",
+      "notableLayerNames": [
+        "Correction rejected"
+      ]
+    },
+    {
+      "id": "128:2114",
+      "name": "WEB / Review / REV-17 / tab-verification-after-rejection / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "128:2303",
+      "name": "WEB / Review / REV-17 / tab-flag-after-rejection / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "128:2514",
+      "name": "WEB / Review / REV-17 / tab-correction-after-rejection / 3840x2160",
+      "notableLayerNames": [
+        "Correction rejected"
+      ]
+    },
+    {
+      "id": "128:2703",
+      "name": "WEB / Review / REV-17 / tab-referral-after-rejection / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "128:2914",
+      "name": "WEB / Review / REV-17 / tab-quarantine-after-rejection / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "39:1733",
+      "name": "WEB / Review / REV-18 / flag-success / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "39:2225",
+      "name": "WEB / Review / REV-19 / correction-request-sent / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "39:2431",
+      "name": "WEB / Review / REV-20 / correction-approved-awaiting-revision / 3840x2160",
+      "notableLayerNames": [
+        "Button / dangerO / Reject",
+        "Reject",
+        "Button / primary / Approve",
+        "Approve",
+        "Approved",
+        "Field / Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "39:2635",
+      "name": "WEB / Review / REV-21 / revision-applied / 3840x2160",
+      "notableLayerNames": [
+        "Button / dangerO / Reject",
+        "Reject",
+        "Button / primary / Approve",
+        "Approve",
+        "Approved",
+        "Field / Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "39:2839",
+      "name": "WEB / Review / REV-22 / quarantine-ingest-success / 3840x2160",
+      "notableLayerNames": [
+        "Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "39:3042",
+      "name": "WEB / Review / REV-23 / quarantine-ingest-failed-retry / 3840x2160",
+      "notableLayerNames": [
+        "Badge / Ingest retry required",
+        "Ingest retry required",
+        "Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "39:3245",
+      "name": "WEB / Review / REV-24 / quarantine-ingest-success-after-retry / 3840x2160",
+      "notableLayerNames": [
+        "Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "413:272",
+      "name": "WEB / Review / REV-01 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "OBS-005 · decide approve or ",
+        "OBS-011 · diagnosis confirmation pending"
+      ]
+    },
+    {
+      "id": "413:745",
+      "name": "WEB / Review / REV-02 / default / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:1300",
+      "name": "WEB / Review / REV-02 / tab-submitted / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:1543",
+      "name": "WEB / Review / REV-02 / tab-in-review / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:1760",
+      "name": "WEB / Review / REV-02 / tab-flagged / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:2003",
+      "name": "WEB / Review / REV-02 / tab-referred / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:2246",
+      "name": "WEB / Review / REV-02 / tab-verified / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:2463",
+      "name": "WEB / Review / REV-03 / default / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:2705",
+      "name": "WEB / Review / REV-04 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Button / primary / Confirm verification",
+        "Confirm verification",
+        "Card / Verification checklist",
+        "Verification checklist"
+      ]
+    },
+    {
+      "id": "413:2888",
+      "name": "WEB / Review / REV-05 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Field / Reason",
+        "Reason *"
+      ]
+    },
+    {
+      "id": "413:3081",
+      "name": "WEB / Review / REV-06 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Checkbox / Confirm symptom details",
+        "Confirm symptom details",
+        "You approve or reject"
+      ]
+    },
+    {
+      "id": "413:3264",
+      "name": "WEB / Review / REV-12 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Describe why expert confirma",
+        "Confirmed disease recorded"
+      ]
+    },
+    {
+      "id": "413:3453",
+      "name": "WEB / Review / REV-07 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Tab / Approved  0",
+        "Approved  0",
+        "Tab / Rejected  0",
+        "Rejected  0",
+        "Approved",
+        "Approved is not Applied. Onl"
+      ]
+    },
+    {
+      "id": "413:3661",
+      "name": "WEB / Review / REV-21 / revision-applied / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Button / dangerO / Reject",
+        "Reject",
+        "Button / primary / Approve",
+        "Approve",
+        "Approved",
+        "Field / Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "413:3879",
+      "name": "WEB / Review / REV-13 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "CONFIRMED",
+        "Badge / Not yet confirmed",
+        "Not yet confirmed",
+        "Badge / Not yet confirmed",
+        "Not yet confirmed",
+        "Badge / Not yet confirmed",
+        "Not yet confirmed",
+        "Diagnosis confirmed: DIAG-00",
+        "Card / Suspected vs confirmed",
+        "Suspected vs confirmed",
+        "Confirmed (expert)"
+      ]
+    },
+    {
+      "id": "413:4140",
+      "name": "WEB / Review / REV-14 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "KPI / Ingest retry required",
+        "Ingest retry required",
+        "KPI / Rejected",
+        "Rejected",
+        "REASON",
+        "Badge / Rejected",
+        "Rejected"
+      ]
+    },
+    {
+      "id": "413:4384",
+      "name": "WEB / Review / REV-16 / decision-preview / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Reason",
+        "Reason"
+      ]
+    },
+    {
+      "id": "413:4596",
+      "name": "WEB / Review / REV-17 / default / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Badge / Rejected",
+        "Rejected"
+      ]
+    },
+    {
+      "id": "413:4986",
+      "name": "WEB / Review / REV-17 / tab-verification / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:5178",
+      "name": "WEB / Review / REV-17 / tab-flag / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:5392",
+      "name": "WEB / Review / REV-17 / tab-correction / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:5584",
+      "name": "WEB / Review / REV-17 / tab-referral / nimal / 3840x2160",
+      "notableLayerNames": []
+    },
+    {
+      "id": "413:5798",
+      "name": "WEB / Review / REV-17 / tab-quarantine / nimal / 3840x2160",
+      "notableLayerNames": [
+        "Badge / Rejected",
+        "Rejected"
+      ]
+    },
+    {
+      "id": "21:1035",
+      "name": "WEB / Review / REV-16 / default / 3840x2160",
+      "notableLayerNames": [
+        "Radio / Reject",
+        "Reject",
+        "Field / Reason",
+        "Reason *",
+        "Reason held"
+      ]
+    },
+    {
+      "id": "128:3429",
+      "name": "Review / REV-15 / quarantine-rejected / 3840x2160",
+      "notableLayerNames": [
+        "Badge / Rejected",
+        "Rejected",
+        "Reason",
+        "None — rejected items are not ingested",
+        "Reject",
+        "Reason",
+        "Supervisor rejected"
+      ]
+    },
+    {
+      "id": "437:750",
+      "name": "WEB / Review / REV-01 / sidebar-collapsed / nimal / 3840x2160",
+      "notableLayerNames": [
+        "OBS-005 · decide approve or ",
+        "OBS-011 · diagnosis confirmation pending"
+      ]
+    }
+  ]
+}

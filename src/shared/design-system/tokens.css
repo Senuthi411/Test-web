@@ -1,0 +1,131 @@
+/*
+ * TeaLeaf Field Scout design tokens.
+ *
+ * Source: Figma "TeaLeaf Field Scout — Design System" (page 368:237), sections
+ * 01 Foundations and 02 Colours and Typography, plus the component masters in
+ * sections 04–10. Figma frames are 3840×2160, which is 2× a 1920×1080 layout, so
+ * every size below is the Figma value divided by two.
+ */
+:root {
+  /* Brand */
+  --tl-forest-900: #12351f; /* sidebar */
+  --tl-forest-800: #1b4a2b; /* user card, primary pressed */
+  --tl-forest-700: #2a5c38; /* active nav item */
+  --tl-forest-600: #1f5a2e; /* links, secondary text, primary hover */
+  --tl-primary-500: #2e7d32; /* primary button */
+
+  /* Accent */
+  --tl-lime-300: #c5e48b; /* active nav icon, wordmark subtitle */
+  --tl-mint-100: #e3f2da; /* success soft */
+  --tl-mint-50: #e8f5e0;
+  --tl-lime-soft: #f0f7d4;
+  --tl-lime-text: #4c6b10;
+
+  /* Backgrounds */
+  --tl-bg-canvas: #f4f7f3;
+  --tl-bg-surface: #ffffff;
+  --tl-bg-subtle: #f1f5f1;
+  --tl-bg-neutral-soft: #eef1ef;
+  --tl-bg-disabled: #e9eeea;
+  --tl-bg-skeleton: #e6ede7;
+  --tl-bg-table-header: #f4f8f2;
+  --tl-bg-track: #eaf0e7;
+
+  /* Text */
+  --tl-text-ink: #1f2a24;
+  --tl-text-muted: #5b6b62;
+  --tl-text-subtle: #6b7a72;
+  --tl-text-neutral-badge: #46554c;
+  --tl-text-disabled: #8a9a91;
+  --tl-text-on-primary: #ffffff;
+  --tl-text-on-dark: #ffffff;
+  --tl-text-on-dark-muted: #c9dcce;
+  --tl-text-on-dark-subtle: #8fb39a;
+  --tl-icon-on-dark-inactive: #a9c4b0;
+
+  /* Borders */
+  --tl-border-default: #e1e8e2;
+  --tl-border-control: #b8c4bc;
+  --tl-border-control-strong: #c5cec8;
+  --tl-border-dark-control: #a9c4b0;
+
+  /* Status */
+  --tl-warning-bg: #fff1d6;
+  --tl-warning-text: #7a4f00;
+  --tl-warning-stroke: #b7791f;
+  --tl-info-bg: #e1eefb;
+  --tl-info-text: #164f8a;
+  --tl-purple-bg: #ede7f8;
+  --tl-purple-text: #52389a;
+  --tl-danger-bg: #fde4e1;
+  --tl-danger-text: #a8221a;
+  --tl-danger-solid: #b3261e;
+  --tl-danger-outline: #e5a9a4;
+  --tl-danger-bg-alt: #fbe5e5;
+  --tl-danger-text-alt: #962323;
+
+  /* Typography — Inter, text styles "TeaLeaf/…" (Figma size ÷ 2) */
+  --tl-font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --tl-font-page-title: 700 26px/1.21 var(--tl-font-family);
+  --tl-font-hero-kpi: 700 34px/1.21 var(--tl-font-family);
+  --tl-font-modal-title: 700 22px/1.21 var(--tl-font-family);
+  --tl-font-section: 600 16px/1.21 var(--tl-font-family);
+  --tl-font-card-title: 600 16px/1.21 var(--tl-font-family);
+  --tl-font-body: 400 13.5px/1.21 var(--tl-font-family);
+  --tl-font-body-medium: 500 13.5px/1.21 var(--tl-font-family);
+  --tl-font-body-strong: 600 13.5px/1.21 var(--tl-font-family);
+  --tl-font-nav: 500 13.5px/1.21 var(--tl-font-family);
+  --tl-font-nav-active: 600 13.5px/1.21 var(--tl-font-family);
+  --tl-font-button: 600 13px/1.21 var(--tl-font-family);
+  --tl-font-input: 400 15px/1.21 var(--tl-font-family);
+  --tl-font-label: 600 14px/1.21 var(--tl-font-family);
+  --tl-font-filter: 500 13.5px/1.21 var(--tl-font-family);
+  --tl-font-chip: 600 12.5px/1.21 var(--tl-font-family);
+  --tl-font-badge: 600 11.5px/1.21 var(--tl-font-family);
+  --tl-font-table-header: 600 11px/1.21 var(--tl-font-family);
+  --tl-font-table-cell: 400 13px/1.21 var(--tl-font-family);
+  --tl-font-caption: 400 12px/1.21 var(--tl-font-family);
+  --tl-font-caption-medium: 500 12px/1.21 var(--tl-font-family);
+  --tl-font-subtitle: 400 14px/1.21 var(--tl-font-family);
+  --tl-font-tab: 500 14px/1.21 var(--tl-font-family);
+  --tl-font-tab-active: 600 14px/1.21 var(--tl-font-family);
+
+  /* Spacing scale (Figma 4…64 ÷ 2) */
+  --tl-space-2: 2px;
+  --tl-space-3: 3px;
+  --tl-space-5: 5px;
+  --tl-space-6: 6px;
+  --tl-space-8: 8px;
+  --tl-space-10: 10px;
+  --tl-space-12: 12px;
+  --tl-space-14: 14px;
+  --tl-space-16: 16px;
+  --tl-space-20: 20px;
+  --tl-space-24: 24px;
+  --tl-space-32: 32px;
+
+  /* Corner radius */
+  --tl-radius-sm: 6px;
+  --tl-radius-control: 8px;
+  --tl-radius-card-sm: 10px;
+  --tl-radius-card: 12px;
+  --tl-radius-card-lg: 14px; /* cards, modals */
+  --tl-radius-chip: 16px;
+  --tl-radius-pill: 20px;
+
+  /* Effect styles */
+  --tl-shadow-card: 0 2px 8px 0 rgb(18 51 31 / 0.08);
+  --tl-shadow-modal: 0 8px 24px 0 rgb(13 31 20 / 0.22);
+  --tl-shadow-dropdown: 0 8px 24px 0 rgb(13 31 20 / 0.16);
+  --tl-focus-ring: 0 0 0 2px var(--tl-bg-surface), 0 0 0 4px var(--tl-primary-500);
+
+  /* Layout */
+  --tl-sidebar-width: 248px;
+  --tl-sidebar-collapsed-width: 72px;
+  --tl-topbar-height: 72px;
+  --tl-page-padding-x: 32px;
+  --tl-page-padding-y: 24px;
+  --tl-control-height: 38px;
+  --tl-filter-height: 40px;
+  --tl-input-height: 48px;
+}
