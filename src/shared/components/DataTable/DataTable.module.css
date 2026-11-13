@@ -1,5 +1,7 @@
 /* Figma: Table/Standard (368:1877) — radius 24 → 12px, header 84 → 42px, row 92 → 46px, padding 32 → 16px. */
 .wrapper {
+  min-width: 0;
+  max-width: 100%;
   width: 100%;
   overflow-x: auto;
   border: 1px solid var(--tl-border-default);
@@ -76,6 +78,12 @@
 .pages {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
+}
+@media (max-width: 767px) {
+  .pageButton { min-width: 44px; height: 44px; }
+  .table td { padding-block: 8px; }
+  .sortButton { min-height: 44px; }
 }
 
 .pageButton {

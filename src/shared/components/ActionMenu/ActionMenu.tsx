@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type SyntheticEvent } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type SyntheticEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { Icon, type IconName } from '@/shared/design-system'
 import { cx } from '@/shared/utilities/classNames'
@@ -30,6 +30,7 @@ const stop = (event: SyntheticEvent) => event.stopPropagation()
  */
 export function ActionMenu({ label, items }: ActionMenuProps) {
   const [open, setOpen] = useState(false)
+  const [position, setPosition] = useState<CSSProperties>({})
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
@@ -38,13 +39,28 @@ export function ActionMenu({ label, items }: ActionMenuProps) {
 
   useEffect(() => {
     if (!open) return
-    itemRefs.current.find((item) => item && !item.disabled)?.focus()
+    itemRefs.current.find((item) => item && !item.disabled)?.focus({ preventScroll: true })
     function onPointerDown(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
     }
     document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
+    const closeOnMove = (event: Event) => { if (!(event.target instanceof Node) || !rootRef.current?.contains(event.target)) setOpen(false) }
+    window.addEventListener('resize', closeOnMove)
+    document.addEventListener('wheel', closeOnMove, { passive: true })
+    document.addEventListener('touchmove', closeOnMove, { passive: true })
+    return () => { document.removeEventListener('pointerdown', onPointerDown); window.removeEventListener('resize', closeOnMove); document.removeEventListener('wheel', closeOnMove); document.removeEventListener('touchmove', closeOnMove) }
   }, [open])
+
+  function openMenu() {
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (rect) {
+      const width = Math.min(220, window.innerWidth - 32)
+      const available = window.innerHeight - rect.bottom - 16
+      const upwards = available < 180 && rect.top > available
+      setPosition({ position: 'fixed', width, minWidth: 0, right: 'auto', left: Math.max(16, Math.min(rect.right - width, window.innerWidth - width - 16)), ...(upwards ? { bottom: window.innerHeight - rect.top + 4, top: 'auto' } : { top: rect.bottom + 4 }), maxHeight: Math.max(80, Math.min(320, upwards ? rect.top - 16 : available)), overflowY: 'auto' })
+    }
+    setOpen(true)
+  }
 
   function close(returnFocus: boolean) {
     setOpen(false)
@@ -86,18 +102,18 @@ export function ActionMenu({ label, items }: ActionMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => open ? close(false) : openMenu()}
         onKeyDown={(event) => {
           if (event.key === 'ArrowDown' && !open) {
             event.preventDefault()
-            setOpen(true)
+            openMenu()
           }
         }}
       >
         <Icon name="more" size={18} />
       </button>
       {open && (
-        <div id={menuId} role="menu" aria-label={label} className={styles.menu} onKeyDown={onMenuKeyDown}>
+        <div id={menuId} role="menu" aria-label={label} className={styles.menu} style={position} onKeyDown={onMenuKeyDown}>
           {items.map((item, index) => (
             <button
               key={item.id}

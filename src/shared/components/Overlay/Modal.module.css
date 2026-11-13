@@ -16,6 +16,7 @@
   gap: 18px;
   width: 100%;
   max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   overflow: auto;
   padding: 28px;
   border-radius: var(--tl-radius-card-lg);
@@ -61,4 +62,14 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
+}
+.header > div, .body { min-width: 0; overflow-wrap: anywhere; }
+.drawerBackdrop { justify-content: flex-start; align-items: stretch; padding: 0; }
+.drawer { width: min(320px, calc(100vw - 32px)); max-width: none; height: 100dvh; max-height: 100dvh; padding: 0; gap: 0; border-radius: 0; }
+.drawer .header { padding: 12px 16px; }
+.drawer .body { flex: 1; min-height: 0; overflow: auto; }
+@media (max-width: 767px) {
+  .modal:not(.drawer) { padding: 20px 16px; }
+  .footer { position: sticky; bottom: -20px; padding-block: 12px; background: var(--tl-bg-surface); }
+  .footer > * { flex: 1 1 120px; }
 }

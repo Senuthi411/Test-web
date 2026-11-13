@@ -1,6 +1,8 @@
 /* Figma: Filter/Dropdown — 80px → 40px trigger "Label: Value ▾", menu radius 24 → 12,
    options padding 22/32 → 11/16, selected bg #f1f7ec (approximated by bg-subtle). */
 .root {
+  min-width: 0;
+  max-width: 100%;
   position: relative;
   display: inline-flex;
 }
@@ -63,8 +65,15 @@
   border-radius: var(--tl-radius-control);
   font: var(--tl-font-body);
   color: var(--tl-text-ink);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   cursor: pointer;
+}
+@media (max-width: 767px) {
+  .trigger { max-width: 100%; min-height: 44px; height: auto; padding-block: 10px; white-space: normal; text-align: start; }
+  .trigger > span { min-width: 0; overflow-wrap: anywhere; }
+  .trigger svg { flex: none; }
+  .option { min-height: 44px; }
 }
 
 .option[aria-selected='true'] {

@@ -247,7 +247,7 @@ function Detail({ correction: c }: { correction: Correction }) {
                   },
                 ]}
               />
-              <div className={styles.tableScroll}>
+              <div className={styles.tableScroll} role="region" aria-label="Revision changes scroll area" tabIndex={0}>
                 <table className={styles.changeTable}>
                   <caption className="tl-visually-hidden">
                     Fields changed in {c.revision.id}

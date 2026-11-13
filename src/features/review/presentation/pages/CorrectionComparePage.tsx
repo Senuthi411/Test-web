@@ -124,7 +124,7 @@ function Compare({ correction: c }: { correction: Correction }) {
         </Card>
       </div>
       <Card title="Differences">
-        <div className={styles.tableScroll}>
+        <div className={styles.tableScroll} role="region" aria-label="Revision comparison scroll area" tabIndex={0}>
           <table className={styles.changeTable}>
             <caption className="tl-visually-hidden">
               Field differences between revision 1 and revision{" "}

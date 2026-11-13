@@ -300,9 +300,17 @@
 }
 
 .choiceText {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+@media (max-width: 767px) {
+  .input.input, .select, .textarea, .searchInput { font-size: 16px; }
+  .control, .select, .search { min-height: 44px; }
+  .choice { min-height: 44px; }
+  .revealButton { width: 44px; height: 44px; flex: none; }
 }
 
 .choiceDescription {
@@ -332,4 +340,8 @@
 .textarea[data-invalid='true'] {
   border-color: var(--tl-danger-solid);
   box-shadow: 0 0 0 1px var(--tl-danger-solid);
+}
+@media (max-width: 767px) {
+  .textarea { font-size: 16px; }
+  .control[data-appearance='auth'] .input { font-size: 18px; }
 }

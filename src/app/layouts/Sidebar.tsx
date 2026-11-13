@@ -17,13 +17,15 @@ export interface SidebarProps {
   onToggle: () => void
   /** Fixture mode: shows the "Demonstration data · UI design only" note. */
   demo: boolean
+  mobile?: boolean
+  onNavigate?: () => void
 }
 
-export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo }: SidebarProps) {
+export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo, mobile = false, onNavigate }: SidebarProps) {
   const home = navigation.items[0]?.to ?? '/'
   return (
-    <aside className={cx(styles.sidebar, collapsed && styles.collapsed)} aria-label="Sidebar">
-      <Link to={home} className={styles.brand} aria-label="TeaLeaf Field Scout home">
+    <aside className={cx(styles.sidebar, collapsed && styles.collapsed, mobile && styles.mobile)} aria-label="Sidebar">
+      <Link to={home} className={styles.brand} aria-label="TeaLeaf Field Scout home" onClick={onNavigate}>
         <img src={logoMark} alt="" className={styles.logo} />
         {!collapsed && (
           <span className={styles.wordmark}>
@@ -56,6 +58,7 @@ export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo
             <li key={item.to}>
               <NavLink
                 to={item.to}
+                onClick={onNavigate}
                 end={item.end}
                 className={({ isActive }) => cx(styles.link, isActive && styles.active)}
                 aria-label={collapsed ? item.label : undefined}

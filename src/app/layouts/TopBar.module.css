@@ -11,6 +11,7 @@
   border-bottom: 1px solid var(--tl-border-default);
   background: var(--tl-bg-surface);
 }
+.mobileMenu { flex: none; min-height: 44px; padding: 0 10px; border: 1px solid var(--tl-border-control); border-radius: var(--tl-radius-control); background: var(--tl-bg-surface); color: var(--tl-forest-600); font-weight: 600; }
 
 .crumbs {
   flex: 1;
@@ -136,6 +137,13 @@
 }
 
 @media (max-width: 767px) {
+  .actions form { display: none; }
+  .profileTrigger > svg { display: none; }
+  .profileTrigger { padding: 4px; gap: 0; }
+  .bell { width: 44px; height: 44px; }
+  .topBar { flex-wrap: wrap; height: auto; min-height: var(--tl-topbar-height); padding-block: 8px; }
+  .crumbs { order: 3; flex-basis: 100%; }
+  .actions { margin-left: auto; }
   .topBar {
     padding: 0 16px;
     gap: 10px;

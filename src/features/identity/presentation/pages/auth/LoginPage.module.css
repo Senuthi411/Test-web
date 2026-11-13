@@ -397,6 +397,10 @@
 }
 
 @media (max-width: 599px) {
+  .panel { padding: 24px 16px; }
+  .brand, .secure { min-width: 0; }
+  .devAccounts li { flex-wrap: wrap; }
+  .heroPill { max-width: 100%; }
   .hero {
     display: none;
   }

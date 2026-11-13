@@ -156,6 +156,7 @@
 }
 
 .timelineTitle {
+  overflow-wrap: anywhere;
   font: var(--tl-font-body-strong);
   color: var(--tl-text-ink);
 }
@@ -165,6 +166,11 @@
 }
 
 .timelineDetail {
+  overflow-wrap: anywhere;
   font: 400 12.5px/1.21 var(--tl-font-family);
   color: var(--tl-text-muted);
+}
+@media (max-width: 767px) {
+  .bar { grid-template-columns: minmax(0, 1fr) minmax(32px, 1fr) 24px; }
+  .barLabel { white-space: normal; overflow-wrap: anywhere; }
 }

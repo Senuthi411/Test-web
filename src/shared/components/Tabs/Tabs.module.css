@@ -34,3 +34,4 @@
   font-weight: 500;
   color: var(--tl-text-subtle);
 }
+@media (max-width: 767px) { .tab { min-height: 44px; } .tabList { gap: 20px; } }

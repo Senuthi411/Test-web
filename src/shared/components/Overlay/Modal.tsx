@@ -8,6 +8,7 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export interface ModalProps {
+  id?: string
   open: boolean
   title: string
   description?: ReactNode
@@ -17,13 +18,14 @@ export interface ModalProps {
   size?: 'small' | 'medium' | 'large'
   /** Prevents closing while an operation is in progress. */
   dismissible?: boolean
+  placement?: 'center' | 'start'
 }
 
 /**
  * Accessible modal dialog: focus moves inside on open, Tab is trapped, Escape and the
  * backdrop close it (when dismissible), and focus returns to the trigger on close.
  */
-export function Modal({ open, title, description, onClose, children, footer, size = 'medium', dismissible = true }: ModalProps) {
+export function Modal({ id, open, title, description, onClose, children, footer, size = 'medium', dismissible = true, placement = 'center' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
   const descriptionId = useId()
@@ -69,19 +71,20 @@ export function Modal({ open, title, description, onClose, children, footer, siz
 
   return createPortal(
     <div
-      className={styles.backdrop}
+      className={cx(styles.backdrop, placement === 'start' && styles.drawerBackdrop)}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && dismissible) onClose()
       }}
     >
       <div
+        id={id}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={cx(styles.modal, styles[size])}
+        className={cx(styles.modal, styles[size], placement === 'start' && styles.drawer)}
         onKeyDown={onKeyDown}
       >
         <div className={styles.header}>

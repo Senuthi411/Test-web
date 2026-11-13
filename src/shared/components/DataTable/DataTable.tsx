@@ -52,7 +52,7 @@ export function DataTable<Row>({
   }
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} role="region" aria-label={`${caption} scroll area`} tabIndex={0}>
       <table className={styles.table} aria-busy={loading || undefined}>
         <caption className="tl-visually-hidden">{caption}</caption>
         <thead>

@@ -27,9 +27,11 @@ export interface TopBarProps {
   searchPlaceholder: string
   /** Fixture mode: shows the "Demo data" pill. */
   demo: boolean
+  onOpenNavigation?: () => void
+  navigationOpen?: boolean
 }
 
-export function TopBar({ user, searchPlaceholder, demo }: TopBarProps) {
+export function TopBar({ user, searchPlaceholder, demo, onOpenNavigation, navigationOpen }: TopBarProps) {
   const breadcrumbs = useBreadcrumbs()
   const toast = useToast()
 
@@ -41,6 +43,7 @@ export function TopBar({ user, searchPlaceholder, demo }: TopBarProps) {
 
   return (
     <header className={styles.topBar}>
+      {onOpenNavigation && <button type="button" className={styles.mobileMenu} aria-label="Open navigation" aria-controls="mobile-navigation" aria-expanded={navigationOpen} onClick={onOpenNavigation}>Menu</button>}
       <div className={styles.crumbs}>{breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} />}</div>
       <div className={styles.actions}>
         <form role="search" onSubmit={onSearch}>

@@ -135,3 +135,7 @@
 .plainIconButton:hover {
   background: rgb(0 0 0 / 0.06);
 }
+@media (max-width: 767px) {
+  .button { min-height: 44px; height: auto; max-width: 100%; padding-block: 10px; white-space: normal; overflow-wrap: anywhere; text-align: center; }
+  .iconButton, .plainIconButton { min-width: 44px; width: 44px; height: 44px; flex: none; }
+}

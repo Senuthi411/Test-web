@@ -15,11 +15,13 @@
 }
 
 .title {
+  overflow-wrap: anywhere;
   font: var(--tl-font-page-title);
   color: var(--tl-text-ink);
 }
 
 .subtitle {
+  overflow-wrap: anywhere;
   font: var(--tl-font-subtitle);
   color: var(--tl-text-muted);
 }
@@ -79,3 +81,4 @@
 .separator {
   color: var(--tl-text-disabled);
 }
+@media (max-width: 767px) { .breadcrumbs a { display: inline-flex; align-items: center; min-height: 32px; } }

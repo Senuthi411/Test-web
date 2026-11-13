@@ -60,3 +60,7 @@
   padding: 10px 14px 10px 40px;
   border-top: 1px solid var(--tl-border-default);
 }
+@media (max-width: 767px) {
+  .divisionRow { flex-wrap: wrap; padding-left: 20px; }
+  .estateMeta { flex-wrap: wrap; }
+}
