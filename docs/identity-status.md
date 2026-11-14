@@ -92,3 +92,53 @@ This is a fixture implementation, not completed production Identity integration.
 - `tests/e2e/identity.spec.ts`
 - `tests/e2e/shell.spec.ts` (stale login heading assertion only)
 - `docs/identity-status.md`
+
+## Create User: role-based fields (2026-11-14)
+
+Create User (ID-05) and Edit User (ID-06) now carry these fields.
+
+**Every role:**
+
+- Phone number: required; +94XXXXXXXXX or 0XXXXXXXXX, spaces and hyphens ignored.
+- Employee / Staff ID: required; must be unique, ignoring letter case.
+- Preferred language: required; Sinhala, Tamil or English.
+- NIC and date of birth: optional.
+  - Only a signed-in Administrator can enter them, and only on Create User.
+  - NIC: 9 digits followed by V or X, or 12 digits.
+  - Date of birth: from 1940-01-01 to today. The date is stored, not an age.
+
+**Role-specific:**
+
+| Role | Scope | Extra fields |
+| --- | --- | --- |
+| Administrator | All estates | Multi-factor sign-in (required). Enforcement belongs to the sign-in service. |
+| Supervisor | One or more estates | Reports to (optional; active Supervisors), office phone |
+| Disease expert | One or more estates | Registration number (required), institution, qualifications |
+| Field worker | One estate, then its divisions | Supervisor (optional; active Supervisors of that estate), mobile number (required), "mobile application access only" note |
+| Reporting user | One or more estates (`REPORTING_USER_SCOPE_LEVEL`) | Organisation or department |
+
+**Changing role:**
+
+- Fields that no longer apply are cleared.
+- If the administrator had entered any of them, a dialog lists them first.
+- Cancelling keeps the previous role and every value.
+- Only the selected role's details are ever submitted.
+
+**Privacy:**
+
+- The data layer masks the NIC before returning it: the first 2 characters and the last character stay visible.
+- NIC and date of birth are returned only when the reader is an Administrator. They never appear in user lists, the dashboard, exports, URLs or audit entries.
+- The existing "User created" activity entry records the name, ID and role only.
+
+**Fixture data:**
+
+- Seeded users get synthetic, ID-derived values (EMP-007, +94770000007, REG-DEMO-005).
+- No NICs, dates of birth, field-worker supervisors or reporting lines are seeded.
+
+**Open decisions (not guessed):**
+
+- Reporting user scope: estate or division. It is estate today and switchable in `src/features/identity/domain/scope.ts`.
+- Whether NIC is required for Field workers (recovery verification). It is optional today.
+- Which users may be chosen as "Reports to". Active Supervisors for now.
+- Whether a field worker's supervisor is required. The brief marks it optional.
+- Edit User does not show or change NIC and date of birth, and the fields have no approved Figma frame yet.

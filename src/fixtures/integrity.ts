@@ -27,6 +27,15 @@ export function findIntegrityProblems(db: FixtureDatabase): string[] {
   checkUnique('case', db.cases.map((c) => c.id))
   checkUnique('audit event', db.auditEvents.map((e) => e.id))
   checkUnique('user e-mail', db.users.map((u) => u.email))
+  checkUnique('employee', db.users.map((u) => u.employeeId.trim().toLowerCase()))
+  // Never print a NIC: report the users that share one instead.
+  const nicOwners = new Map<string, string>()
+  for (const u of db.users) {
+    if (!u.nic) continue
+    const owner = nicOwners.get(u.nic)
+    if (owner) problems.push(`${u.id} and ${owner} share a NIC`)
+    else nicOwners.set(u.nic, u.id)
+  }
 
   for (const division of db.divisions) {
     if (!estateIds.has(division.estateId)) {
@@ -46,6 +55,18 @@ export function findIntegrityProblems(db: FixtureDatabase): string[] {
     }
     if (user.role !== 'FIELD_WORKER' && user.divisionIds.length > 0) {
       problems.push(`${user.id} has division-level scope but is not a field worker`)
+    }
+    const details = user.roleDetails
+    if (details.role !== user.role) problems.push(`${user.id} role details are for ${details.role}`)
+    if (details.role === 'FIELD_WORKER' && details.supervisorId) {
+      const supervisor = userById.get(details.supervisorId)
+      const workerEstates = new Set(user.divisionIds.map((id) => db.divisions.find((division) => division.id === id)?.estateId))
+      if (supervisor?.role !== 'SUPERVISOR' || !supervisor.estateIds.some((id) => workerEstates.has(id))) {
+        problems.push(`${user.id} supervisor ${details.supervisorId} is not a Supervisor of the worker's estate`)
+      }
+    }
+    if (details.role === 'SUPERVISOR' && details.reportsToId) {
+      if (details.reportsToId === user.id || !userById.has(details.reportsToId)) problems.push(`${user.id} reports to an unknown user`)
     }
   }
 

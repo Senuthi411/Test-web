@@ -18,6 +18,8 @@ import { formatIsoDate } from '@/shared/utilities/format'
 import type { DeviceSession, UserDetail } from '../../../domain/models'
 import { roleDefinition } from '../../../domain/roles'
 import { shortEstateName } from '../../../domain/scope'
+import { preferredLanguageLabel } from '../../../domain/userFields'
+import { useSession } from '../../session/sessionContext'
 import { QueryBoundary, RoleBadge, SessionStatusBadge, StatusBadge } from '../../components/common'
 import { activityLink, divisionPath, estatePath, useDemoWording, useRelativeTime } from '../../components/helpers'
 import { useUserDetail } from '../../services/queries'
@@ -75,6 +77,31 @@ function UserDetailView({ detail }: { detail: UserDetail }) {
   const definition = roleDefinition(user.role)
   const isFieldWorker = user.role === 'FIELD_WORKER'
   const created = user.createdAt ? `${formatIsoDate(user.createdAt)}${demo ? ' (demo)' : ''}` : '—'
+  const { state: session } = useSession()
+  // Both checks: the data layer returns personal details to Administrators only, and the
+  // screen shows them only while an Administrator is signed in.
+  const personal = session.status === 'signed_in' && session.session.user.role === 'ADMINISTRATOR' ? detail.personal : null
+  const details = user.roleDetails
+  const roleDetailItems =
+    details.role === 'ADMINISTRATOR'
+      ? [{ label: 'Multi-factor sign-in', value: details.mfaRequired ? 'Required' : 'Not set' }]
+      : details.role === 'SUPERVISOR'
+        ? [
+            { label: 'Reports to', value: detail.reportsTo ? `${detail.reportsTo.fullName} (${detail.reportsTo.id})` : '—' },
+            { label: 'Office phone', value: details.officePhone ?? '—' },
+          ]
+        : details.role === 'DISEASE_EXPERT'
+          ? [
+              { label: 'Registration number', value: details.registrationNumber },
+              { label: 'Institution', value: details.institution ?? '—' },
+              { label: 'Qualifications', value: details.qualifications ?? '—' },
+            ]
+          : details.role === 'FIELD_WORKER'
+            ? [
+                { label: 'Supervisor', value: detail.supervisor ? `${detail.supervisor.fullName} (${detail.supervisor.id})` : '—' },
+                { label: 'Mobile number', value: details.mobileNumber },
+              ]
+            : [{ label: 'Organisation or department', value: details.organisation ?? '—' }]
 
   const savedMessage =
     saved === 'created'
@@ -99,6 +126,23 @@ function UserDetailView({ detail }: { detail: UserDetail }) {
               },
           { label: isFieldWorker ? 'Capture permissions' : 'Permissions', value: definition.permissionSummary },
           { label: isFieldWorker ? 'Last device session' : 'Last sign-in', value: relative(user.lastSignInAt) },
+          { label: 'Phone number', value: user.phone },
+          { label: 'Employee / Staff ID', value: user.employeeId },
+          { label: 'Preferred language', value: preferredLanguageLabel(user.preferredLanguage) },
+          ...roleDetailItems,
+        ]}
+      />
+    </Card>
+  )
+
+  const personalCard = personal && (
+    <Card title="Personal details">
+      <p className={styles.caption}>Visible to Administrators only.</p>
+      <DescriptionList
+        columns={2}
+        items={[
+          { label: 'NIC', value: personal.nicMasked ?? 'Not provided' },
+          { label: 'Date of birth', value: personal.dateOfBirth ?? 'Not provided' },
         ]}
       />
     </Card>
@@ -261,6 +305,7 @@ function UserDetailView({ detail }: { detail: UserDetail }) {
             {tab === 'overview' && (
               <>
                 {overview}
+                {personalCard}
                 {scopeCard}
                 {sessionsCard}
               </>

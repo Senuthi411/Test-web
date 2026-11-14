@@ -1,4 +1,5 @@
 import type { DivisionId, EstateId, ObservationId, UserId, UserRole } from '@/shared/types'
+import type { PersonalDetailsView, PreferredLanguage, RoleDetails } from './userFields'
 
 /**
  * Identity domain models: what the Identity screens show, independent of where the data
@@ -39,6 +40,13 @@ export interface IdentityUser {
   scopeAssignedAt: string | null
   /** Optimistic-concurrency version; sent back on update. */
   version: number
+  /** Sri Lankan phone number, stored without spaces. */
+  phone: string
+  /** Employee / Staff ID, unique across users. */
+  employeeId: string
+  preferredLanguage: PreferredLanguage
+  /** Details of the user's role (multi-factor, reports-to, registration, supervisor …). */
+  roleDetails: RoleDetails
 }
 
 export type DeviceSessionStatus = 'active' | 'revoked' | 'signed_out'
@@ -72,6 +80,14 @@ export interface UserDetail {
   divisions: Array<DivisionRef & { status: RecordStatus }>
   deviceSessions: DeviceSession[]
   activity: ActivityEvent[]
+  /** People named in the role details, resolved for display. */
+  reportsTo: PersonRef | null
+  supervisor: PersonRef | null
+  /**
+   * NIC (masked) and date of birth. Present only when an Administrator reads the user;
+   * null for every other reader.
+   */
+  personal: PersonalDetailsView | null
 }
 
 export interface EstateSummary {

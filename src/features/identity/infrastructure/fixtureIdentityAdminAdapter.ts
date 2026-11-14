@@ -1,10 +1,11 @@
 import { AppError } from '@/shared/api'
-import type { FixtureAuditEvent, FixtureDatabase, FixtureStore, FixtureUser } from '@/fixtures'
-import type { UserId } from '@/shared/types'
+import type { FixtureAuditEvent, FixtureDatabase, FixtureRoleDetails, FixtureStore, FixtureUser } from '@/fixtures'
+import type { UserId, UserRole } from '@/shared/types'
 import type { Clock } from '@/shared/utilities/clock'
 import { formatIsoDate } from '@/shared/utilities/format'
 import type { AdminDashboard, AttentionRow, DivisionDetail, RecoveryRequest, UserDetail } from '../domain/models'
 import { normaliseScope, sameScope, scopeIdsOf, scopeLevelFor, type ScopeSelection, type ScopeTopology } from '../domain/scope'
+import { maskNic, sameEmployeeId, USER_FIELD_MESSAGES, type RoleDetails } from '../domain/userFields'
 import type { IdentityAdminPort, UserInput } from '../application/ports'
 import {
   auditActivity,
@@ -48,10 +49,12 @@ function topologyOf(db: Db): ScopeTopology {
 }
 
 /** Checks that every scope identifier exists and returns the scope stored for the role. */
-function resolveScope(db: Db, input: UserInput): ScopeSelection {
-  const level = scopeLevelFor(input.role)
-  const scope = normaliseScope(level, input.scope, topologyOf(db))
-  if (scope.estateIds.some((id) => !db.estates.some((estate) => estate.id === id))) throw invalid('estateId', 'Select an existing estate')
+function resolveScope(db: Db, role: UserRole, selection: ScopeSelection): ScopeSelection {
+  const level = scopeLevelFor(role)
+  const scope = normaliseScope(level, selection, topologyOf(db))
+  if (scope.estateIds.some((id) => !db.estates.some((estate) => estate.id === id))) {
+    throw invalid(level === 'estate' ? 'estateIds' : 'estateId', 'Select an existing estate')
+  }
   if (scope.divisionIds.some((id) => !db.divisions.some((division) => division.id === id))) throw invalid('divisionIds', 'Select existing divisions')
   return scope
 }
@@ -60,6 +63,33 @@ function assertUniqueEmail(db: Db, email: string, exceptId?: UserId): void {
   if (db.users.some((user) => user.id !== exceptId && user.email.toLowerCase() === email.toLowerCase())) {
     throw invalid('email', 'Another user already uses this email address')
   }
+}
+
+function assertUniqueStaffDetails(db: Db, input: Pick<UserInput, 'employeeId' | 'personal'>, exceptId?: UserId): void {
+  if (db.users.some((user) => user.id !== exceptId && sameEmployeeId(user.employeeId, input.employeeId))) {
+    throw invalid('employeeId', USER_FIELD_MESSAGES.employeeIdDuplicate)
+  }
+  const nic = input.personal?.nic
+  if (nic && db.users.some((user) => user.id !== exceptId && user.nic === nic)) throw invalid('nic', USER_FIELD_MESSAGES.nicDuplicate)
+}
+
+const activeSupervisor = (db: Db, id: UserId) => db.users.find((user) => user.id === id && user.role === 'SUPERVISOR' && user.status === 'active')
+
+/**
+ * Checks the people named in the role details. A field worker's supervisor must be an
+ * active Supervisor of the worker's estate. "Reports to" accepts an active Supervisor
+ * (the approved rule for reporting lines is still open).
+ */
+function resolveRoleDetails(db: Db, details: RoleDetails, scope: ScopeSelection, userId?: UserId): FixtureRoleDetails {
+  if (details.role === 'FIELD_WORKER' && details.supervisorId) {
+    const estates = new Set(scope.divisionIds.map((id) => db.divisions.find((division) => division.id === id)?.estateId))
+    const supervisor = activeSupervisor(db, details.supervisorId)
+    if (!supervisor || !supervisor.estateIds.some((id) => estates.has(id))) throw invalid('supervisorId', USER_FIELD_MESSAGES.supervisorInvalid)
+  }
+  if (details.role === 'SUPERVISOR' && details.reportsToId) {
+    if (details.reportsToId === userId || !activeSupervisor(db, details.reportsToId)) throw invalid('reportsToId', USER_FIELD_MESSAGES.reportsToInvalid)
+  }
+  return { ...details }
 }
 
 /**
@@ -87,9 +117,20 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     return [...new Set(scope.divisionIds.map((id) => db.divisions.find((division) => division.id === id)?.estateId ?? ''))].filter(Boolean)
   }
 
+  /** Personal details are returned to Administrators only. */
+  function actorIsAdministrator(db: Db): boolean {
+    const actorId = options.actorId()
+    return Boolean(actorId && findUser(db, actorId)?.role === 'ADMINISTRATOR')
+  }
+
   function userDetail(db: Db, userId: UserId): UserDetail {
     const user = findUser(db, userId)
     if (!user) throw notFound('This user')
+    const details = user.roleDetails
+    const linked = (id: string | null) => {
+      const found = id ? findUser(db, id) : undefined
+      return found ? person(found) : null
+    }
     const estateIds = new Set(
       user.role === 'ADMINISTRATOR'
         ? db.estates.map((estate) => estate.id)
@@ -108,6 +149,9 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
       }),
       deviceSessions: db.deviceSessions.filter((session) => session.userId === user.id).map((session) => toDeviceSession(db, session)),
       activity: userActivity(db, user),
+      reportsTo: details.role === 'SUPERVISOR' ? linked(details.reportsToId) : null,
+      supervisor: details.role === 'FIELD_WORKER' ? linked(details.supervisorId) : null,
+      personal: actorIsAdministrator(db) ? { nicMasked: user.nic ? maskNic(user.nic) : null, dateOfBirth: user.dateOfBirth } : null,
     }
   }
 
@@ -176,7 +220,9 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
       return store.run(() =>
         store.write((db) => {
           assertUniqueEmail(db, input.email)
-          const scope = resolveScope(db, input)
+          assertUniqueStaffDetails(db, input)
+          const scope = resolveScope(db, input.role, input.scope)
+          const roleDetails = resolveRoleDetails(db, input.roleDetails, scope)
           const user: FixtureUser = {
             id: nextId('USR', db.users.map((item) => item.id)),
             fullName: input.fullName,
@@ -191,6 +237,12 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
             version: 1,
             language: 'en',
             notificationPreferences: { reviewEscalations: true, deviceSessionAlerts: true, weeklySummary: false },
+            phone: input.phone,
+            employeeId: input.employeeId,
+            preferredLanguage: input.preferredLanguage,
+            nic: input.personal?.nic ?? null,
+            dateOfBirth: input.personal?.dateOfBirth ?? null,
+            roleDetails,
           }
           db.users.push(user)
           audit(db, { kind: 'user_created', userId: user.id, estateIds: estatesOfScope(db, scope) })
@@ -206,7 +258,9 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
           if (!user) throw notFound('This user')
           if (user.version !== input.expectedVersion) throw conflict('This user was changed by another administrator. Your changes were not saved.')
           assertUniqueEmail(db, input.email, userId)
-          const scope = resolveScope(db, input)
+          assertUniqueStaffDetails(db, input, userId)
+          const scope = resolveScope(db, input.role, input.scope)
+          const roleDetails = resolveRoleDetails(db, input.roleDetails, scope, userId)
           const scopeChanged = !sameScope(scope, { estateIds: user.estateIds, divisionIds: user.divisionIds })
           Object.assign(user, {
             fullName: input.fullName,
@@ -217,6 +271,12 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
             divisionIds: scope.divisionIds,
             scopeAssignedAt: scopeChanged ? today() : user.scopeAssignedAt,
             version: user.version + 1,
+            phone: input.phone,
+            employeeId: input.employeeId,
+            preferredLanguage: input.preferredLanguage,
+            roleDetails,
+            // Omitted personal details keep the stored values.
+            ...(input.personal ? { nic: input.personal.nic, dateOfBirth: input.personal.dateOfBirth } : {}),
           })
           const credential = db.credentials.find((item) => item.userId === userId)
           if (credential) credential.email = input.email
@@ -234,7 +294,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
           if (user.version !== input.expectedVersion) {
             throw conflict("This user's scope was changed by another administrator. Your change was not applied.")
           }
-          const scope = resolveScope(db, { fullName: user.fullName, email: user.email, role: user.role, status: user.status, scope: input.scope })
+          const scope = resolveScope(db, user.role, input.scope)
           user.estateIds = scope.estateIds
           user.divisionIds = scope.divisionIds
           user.scopeAssignedAt = today()

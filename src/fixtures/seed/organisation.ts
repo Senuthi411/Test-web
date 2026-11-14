@@ -4,7 +4,7 @@
  * ID-09 Estate Management (16:596), ID-11 Division Management (17:2),
  * ID-14 My Profile (17:934), CASE-07 Disease Catalog (23:162).
  */
-import type { FixtureDisease, FixtureDivision, FixtureEstate, FixtureNotificationPreferences, FixtureUser } from '../records'
+import type { FixtureDisease, FixtureDivision, FixtureEstate, FixtureNotificationPreferences, FixtureRoleDetails, FixtureUser } from '../records'
 
 export const estates: FixtureEstate[] = [
   { id: 'EST-001', name: 'Highland Tea Estate', region: 'Nuwara Eliya', status: 'active', createdAt: null },
@@ -34,7 +34,31 @@ const DEFAULT_PREFERENCES: FixtureNotificationPreferences = {
 type UserSeed = Pick<FixtureUser, 'id' | 'fullName' | 'email' | 'role' | 'estateIds' | 'divisionIds'> &
   Partial<Pick<FixtureUser, 'createdAt' | 'lastSignInAt' | 'scopeAssignedAt'>>
 
+/**
+ * Contact and staff details are not in the designs. The seed gives every user clearly
+ * synthetic values derived from the user ID (USR-007 → EMP-007, +94770000007) so the
+ * required Create/Edit User fields are filled. No NIC or date of birth is seeded, and no
+ * field-worker supervisor or reporting line is assumed.
+ */
+function syntheticRoleDetails(seed: UserSeed, phone: string): FixtureRoleDetails {
+  const number = seed.id.slice(4)
+  switch (seed.role) {
+    case 'ADMINISTRATOR':
+      return { role: 'ADMINISTRATOR', mfaRequired: true }
+    case 'SUPERVISOR':
+      return { role: 'SUPERVISOR', reportsToId: null, officePhone: null }
+    case 'DISEASE_EXPERT':
+      return { role: 'DISEASE_EXPERT', qualifications: null, registrationNumber: `REG-DEMO-${number}`, institution: null }
+    case 'FIELD_WORKER':
+      return { role: 'FIELD_WORKER', supervisorId: null, mobileNumber: phone }
+    case 'REPORTING_USER':
+      return { role: 'REPORTING_USER', organisation: null }
+  }
+}
+
 function user(seed: UserSeed): FixtureUser {
+  const number = seed.id.slice(4)
+  const phone = `+94770000${number}`
   return {
     status: 'active',
     createdAt: null,
@@ -43,6 +67,12 @@ function user(seed: UserSeed): FixtureUser {
     version: 1,
     language: 'en',
     notificationPreferences: { ...DEFAULT_PREFERENCES },
+    phone,
+    employeeId: `EMP-${number}`,
+    preferredLanguage: 'en',
+    nic: null,
+    dateOfBirth: null,
+    roleDetails: syntheticRoleDetails(seed, phone),
     ...seed,
   }
 }

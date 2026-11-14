@@ -63,7 +63,7 @@ export function assembleContainer(
     clock,
     auth: createAuthUseCases(adapters.identity.auth, persistence, config.dataSource),
     identity: {
-      admin: createIdentityAdminUseCases(adapters.identity.admin),
+      admin: createIdentityAdminUseCases(adapters.identity.admin, clock),
       account: createAccountUseCases(adapters.identity.account),
       clock,
       demo: config.dataSource === 'fixtures',

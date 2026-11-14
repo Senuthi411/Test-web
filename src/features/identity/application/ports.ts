@@ -17,6 +17,7 @@ import type {
   UserDetail,
 } from '../domain/models'
 import type { ScopeSelection } from '../domain/scope'
+import type { PersonalDetailsInput, PreferredLanguage, RoleDetails } from '../domain/userFields'
 import type { Session, SignInCredentials } from '../domain/session'
 
 /** Authenticates a web user. Implemented by the fixture and HTTP adapters. */
@@ -44,6 +45,16 @@ export interface UserInput {
   role: UserRole
   status: RecordStatus
   scope: ScopeSelection
+  phone: string
+  employeeId: string
+  preferredLanguage: PreferredLanguage
+  /** Must describe the same role as `role`. */
+  roleDetails: RoleDetails
+  /**
+   * NIC and date of birth (Administrator only). Omitted on an update to keep the stored
+   * values unchanged.
+   */
+  personal?: PersonalDetailsInput
 }
 
 /** Every update carries the version that was loaded; a stale version is a 409 conflict. */

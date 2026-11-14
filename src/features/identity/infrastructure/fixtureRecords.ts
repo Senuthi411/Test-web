@@ -45,6 +45,11 @@ export function toIdentityUser(db: Db, user: FixtureUser): IdentityUser {
     lastSignInAt: user.role === 'FIELD_WORKER' ? latestSessionAt(db, user.id) : user.lastSignInAt,
     scopeAssignedAt: user.scopeAssignedAt,
     version: user.version,
+    phone: user.phone,
+    employeeId: user.employeeId,
+    preferredLanguage: user.preferredLanguage,
+    // NIC and date of birth are deliberately not part of IdentityUser (lists, dashboard, exports).
+    roleDetails: { ...user.roleDetails },
   }
 }
 
