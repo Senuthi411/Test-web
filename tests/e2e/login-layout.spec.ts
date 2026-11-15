@@ -36,7 +36,7 @@ for (const [width, height] of VIEWPORTS) {
       page.getByRole('textbox', { name: 'User ID' }),
       page.getByLabel('Password', { exact: true }),
       page.getByRole('checkbox', { name: 'Remember User ID' }),
-      page.getByRole('button', { name: 'Forgot password?' }),
+      page.getByRole('link', { name: 'Forgot password?' }),
       logIn,
     ]) {
       await control.scrollIntoViewIfNeeded()
