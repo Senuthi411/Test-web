@@ -18,8 +18,18 @@ substitutes fixture data.
 
 | Operation | Adapter | Blocked by |
 | --- | --- | --- |
-| `identity.auth.signIn` | `features/identity/infrastructure/httpAuthAdapter.ts` | P1, Identity OpenAPI |
+| `identity.auth.signIn` | `features/identity/infrastructure/httpAuthAdapter.ts` | P1, Identity OpenAPI. Request is a company User ID + password (no e-mail sign-in). Response is a session or an MFA challenge. |
+| `identity.auth.verifyMfa` | same | P1, Identity OpenAPI: challenge format, code format, expiry and error codes |
 | `identity.auth.signOut` | same | P1, Identity OpenAPI |
+| `identity.auth.mfaEnrollment.start` | same | P1, Identity OpenAPI: mandatory Administrator TOTP enrollment. Response is a backend-rendered QR image (`data:image/...`) and/or setup key and account label. The frontend never generates or checks TOTP secrets. |
+| `identity.auth.mfaEnrollment.confirm` | same | P1, Identity OpenAPI: first authenticator code; response is a session or "log in again", plus one-time recovery codes if the approved design issues them |
+| `identity.recovery.request` | `features/identity/infrastructure/pendingAuthFlowAdapters.ts` | Identity OpenAPI: company User ID → recovery reference, code expiry and resend time. Must answer the same way whether or not the account exists. |
+| `identity.recovery.resend` | same | Identity OpenAPI: rate limit and cooldown error codes (`RESEND_COOLDOWN`, `RESEND_UNAVAILABLE`) |
+| `identity.recovery.verify` | same | Identity OpenAPI: 6-digit e-mail OTP (5 minutes), attempt limit; returns a short-lived reset authorisation |
+| `identity.recovery.complete` | same | Identity OpenAPI: new password with the reset authorisation; password policy; revokes existing sessions; no automatic sign-in |
+| `identity.activation.validate` | same | Identity OpenAPI: invitation token → invitation (invalid, expired and already-used codes), whether MFA enrollment follows |
+| `identity.activation.activate` | same | Identity OpenAPI: token + new password; returns "activated" or an MFA enrollment session for Administrators |
+| `users.create` | `features/identity/infrastructure/httpIdentityAdapters.ts` | P8, Identity OpenAPI. The response must return the stored account with its backend-assigned Company User ID and an invitation status (`sent`, `pending` or `not_sent`). |
 
 ## Implemented as pending (Phase 5 — Review)
 
@@ -64,3 +74,11 @@ by a real call once the backend publishes the contract.
    versions (409) exposed?
 4. Are list endpoints paginated by page/size or cursor, and what are the filter names?
 5. How are evidence images served (presigned URL lifetime, thumbnails)?
+6. What are the final error codes for MFA, recovery and activation? The frontend currently
+   uses `MFA_CHALLENGE_EXPIRED`, `TOO_MANY_ATTEMPTS`, `OTP_INVALID`, `OTP_EXPIRED`,
+   `RESEND_COOLDOWN`, `RESEND_UNAVAILABLE`, `RECOVERY_SESSION_EXPIRED`,
+   `RESET_AUTHORIZATION_EXPIRED`, `ACTIVATION_TOKEN_INVALID`, `ACTIVATION_TOKEN_EXPIRED` and
+   `ACTIVATION_TOKEN_USED` (see `domain/authFlows.ts`).
+7. Is the company User ID format always `USR-` followed by digits? The login form enforces it.
+8. What is the backend password policy? The forms require at least 12 characters (ID-14 design)
+   and show any further server-side rule as a field error.

@@ -28,9 +28,11 @@ function safeStorage(kind: 'local' | 'session'): Storage | null {
 }
 
 /**
- * Stores the session in sessionStorage, or in localStorage when "Remember me" is
- * chosen. Storage can be unavailable (private mode, blocked site data); the app then
- * simply asks the user to sign in again after a reload.
+ * Stores the session in sessionStorage only, so it ends with the browser tab.
+ * "Remember User ID" keeps the User ID, never the session or its token. Earlier builds
+ * could keep a session in localStorage; such an entry is never loaded and is removed on
+ * save and clear. Storage can be unavailable (private mode, blocked site data); the app
+ * then simply asks the user to sign in again after a reload.
  */
 export function createBrowserSessionPersistence(): SessionPersistencePort {
   const clear = () => {
@@ -45,35 +47,28 @@ export function createBrowserSessionPersistence(): SessionPersistencePort {
 
   return {
     load() {
-      for (const kind of ['session', 'local'] as const) {
-        try {
-          const raw = safeStorage(kind)?.getItem(STORAGE_KEY)
-          if (!raw) continue
-          const parsed = storedSessionSchema.safeParse(JSON.parse(raw))
-          if (parsed.success) return parsed.data satisfies Session
-        } catch {
-          // Corrupt entry: ignore and fall through to "signed out".
-        }
+      try {
+        const raw = safeStorage('session')?.getItem(STORAGE_KEY)
+        if (!raw) return null
+        const parsed = storedSessionSchema.safeParse(JSON.parse(raw))
+        return parsed.success ? (parsed.data satisfies Session) : null
+      } catch {
+        // Corrupt entry: treat as signed out.
+        return null
       }
-      return null
     },
     update(session) {
-      for (const kind of ['session', 'local'] as const) {
-        try {
-          const storage = safeStorage(kind)
-          if (storage?.getItem(STORAGE_KEY)) {
-            storage.setItem(STORAGE_KEY, JSON.stringify(session))
-            return
-          }
-        } catch {
-          // Ignore: the in-memory session is still updated.
-        }
+      try {
+        const storage = safeStorage('session')
+        if (storage?.getItem(STORAGE_KEY)) storage.setItem(STORAGE_KEY, JSON.stringify(session))
+      } catch {
+        // Ignore: the in-memory session is still updated.
       }
     },
-    save(session, remember) {
+    save(session) {
       clear()
       try {
-        safeStorage(remember ? 'local' : 'session')?.setItem(STORAGE_KEY, JSON.stringify(session))
+        safeStorage('session')?.setItem(STORAGE_KEY, JSON.stringify(session))
       } catch {
         // Storage full or blocked: the session still works until reload.
       }

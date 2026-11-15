@@ -4,6 +4,9 @@
  */
 export { LoginPage } from './presentation/pages/auth/LoginPage'
 export { SessionExpiredPage } from './presentation/pages/auth/SessionExpiredPage'
+export { MfaEnrollmentPage, MfaVerifyPage } from './presentation/pages/auth/MfaPages'
+export { ForgotPasswordPage, PasswordResetSuccessPage, RecoveryCodePage, ResetPasswordPage } from './presentation/pages/auth/RecoveryPages'
+export { ActivateAccountPage } from './presentation/pages/auth/ActivateAccountPage'
 export { AccessDeniedPage } from './presentation/pages/auth/AccessDeniedPage'
 export { AdminDashboardPage } from './presentation/pages/admin/AdminDashboardPage'
 export { UsersPage } from './presentation/pages/admin/UsersPage'

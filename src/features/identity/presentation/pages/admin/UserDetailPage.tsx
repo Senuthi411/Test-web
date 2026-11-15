@@ -15,7 +15,7 @@ import {
 } from '@/shared/components'
 import { ROLE_LABELS } from '@/shared/types'
 import { formatIsoDate } from '@/shared/utilities/format'
-import type { DeviceSession, UserDetail } from '../../../domain/models'
+import type { DeviceSession, InvitationStatus, UserDetail } from '../../../domain/models'
 import { roleDefinition } from '../../../domain/roles'
 import { shortEstateName } from '../../../domain/scope'
 import { preferredLanguageLabel } from '../../../domain/userFields'
@@ -37,6 +37,22 @@ const TABS = [
 /** Navigation state set by the create and edit forms, so the outcome is announced here. */
 export interface UserSavedState {
   userSaved?: 'created' | 'updated' | 'scope'
+  /** Create only: the invitation status the backend returned with the new account. */
+  invitation?: InvitationStatus
+}
+
+/** Only what the backend reported: an invitation is never described as sent unless confirmed. */
+function invitationMessage(status: InvitationStatus | undefined, demo: boolean): string {
+  switch (status) {
+    case 'sent':
+      return 'Invitation sent: the user can now set up sign-in.'
+    case 'pending':
+      return 'Invitation pending: the backend has queued it but has not confirmed that it was sent.'
+    case 'not_sent':
+      return demo ? 'No invitation was sent (demonstration data).' : 'No invitation was sent.'
+    default:
+      return 'Invitation status was not reported.'
+  }
 }
 
 function estateValue(detail: UserDetail): string {
@@ -70,7 +86,8 @@ function UserDetailView({ detail }: { detail: UserDetail }) {
   const [tab, setTab] = useState<TabId>('overview')
   const location = useLocation()
   const navigate = useNavigate()
-  const saved = (location.state as UserSavedState | null)?.userSaved
+  const savedState = location.state as UserSavedState | null
+  const saved = savedState?.userSaved
   const [showSaved, setShowSaved] = useState(Boolean(saved))
   const relative = useRelativeTime()
   const { demo, illustrative } = useDemoWording()
@@ -272,6 +289,7 @@ function UserDetailView({ detail }: { detail: UserDetail }) {
         <Banner tone="success" title={saved === 'created' ? 'User created' : 'Changes saved'} onDismiss={() => setShowSaved(false)}>
           {savedMessage}
           {demo && ' The change is held in this browser tab only (demonstration data).'}
+          {saved === 'created' && ` ${invitationMessage(savedState?.invitation, demo)}`}
         </Banner>
       )}
       <div className={styles.sideFirst}>

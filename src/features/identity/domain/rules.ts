@@ -297,6 +297,20 @@ export interface PasswordChangeDraft {
   confirmPassword: string
 }
 
+/**
+ * The new-password rule shared by My Profile, password reset and account activation.
+ * Only the length minimum from the approved ID-14 design is checked here; the backend
+ * password policy is authoritative and its errors are shown as returned.
+ */
+export function newPasswordErrors(newPassword: string, confirmPassword: string): FieldErrors<'newPassword' | 'confirmPassword'> {
+  const errors: FieldErrors<'newPassword' | 'confirmPassword'> = {}
+  if (!newPassword) errors.newPassword = 'Enter a new password'
+  else if (newPassword.length < MIN_PASSWORD_LENGTH) errors.newPassword = `Use at least ${MIN_PASSWORD_LENGTH} characters`
+  if (!confirmPassword) errors.confirmPassword = 'Confirm your new password'
+  else if (confirmPassword !== newPassword) errors.confirmPassword = 'Passwords do not match'
+  return errors
+}
+
 export function validatePasswordChange(draft: PasswordChangeDraft): FieldErrors<keyof PasswordChangeDraft> {
   const errors: FieldErrors<keyof PasswordChangeDraft> = {}
   if (!draft.currentPassword) errors.currentPassword = 'Enter your current password'

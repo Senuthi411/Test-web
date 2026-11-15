@@ -120,6 +120,21 @@
   color: var(--tl-text-muted);
 }
 
+.readOnlyField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px dashed var(--tl-border-control);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-subtle, #f6f8f4);
+}
+
+.readOnlyLabel {
+  font: 600 13px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
+}
+
 .caption {
   margin: 0;
   font: 400 12.5px/1.4 var(--tl-font-family);

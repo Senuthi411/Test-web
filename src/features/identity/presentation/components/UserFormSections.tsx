@@ -77,6 +77,7 @@ export function EstateChecklist({ estates, value, onChange, error, isRequired, i
         <LegendText text="Estates" isRequired={isRequired} />
       </legend>
       <div className={styles.checkList} aria-invalid={Boolean(error) || undefined}>
+        {estates.length === 0 && <p className={styles.caption}>No estates are available to assign.</p>}
         {estates.map((estate, index) => (
           <Checkbox
             key={estate.id}

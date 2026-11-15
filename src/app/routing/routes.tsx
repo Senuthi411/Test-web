@@ -5,14 +5,21 @@ import { AppLayout } from '../layouts/AppLayout'
 import { RequireRole, RequireSession, RoleHomeRedirect } from './guards'
 import {
   AccessDeniedPage,
+  ActivateAccountPage,
   AdminDashboardPage,
   DeviceSessionsPage,
   DivisionDetailPage,
   DivisionsPage,
   EstateDetailPage,
   EstatesPage,
+  ForgotPasswordPage,
   LoginPage,
+  MfaEnrollmentPage,
+  MfaVerifyPage,
+  PasswordResetSuccessPage,
   ProfilePage,
+  RecoveryCodePage,
+  ResetPasswordPage,
   RoleDetailPage,
   RolesPage,
   ScreenLoading,
@@ -24,7 +31,7 @@ import {
   UsersPage,
 } from './identityScreens'
 import { NotFoundScreen, ScreenPending } from './PlaceholderScreens'
-import { SCREEN_GROUPS, SHARED_SCREENS } from './screens'
+import { AUTH_FLOW_SCREENS, SCREEN_GROUPS, SHARED_SCREENS } from './screens'
 import { CaptureEntryPage, ObservationPage, AssignmentsPage, AssignmentCreatePage, AssignmentDetailPage, AssignmentEditPage } from './captureScreens'
 import {
   CorrectionComparePage,
@@ -117,9 +124,26 @@ const roleGroupRoutes: RouteObject[] = SCREEN_GROUPS.map((group) => ({
   }),
 }))
 
+/** Public MFA, recovery and activation screens. None of them creates a session by itself. */
+const AUTH_FLOW_PAGES: Record<keyof typeof AUTH_FLOW_SCREENS, ReactNode> = {
+  mfaVerify: <MfaVerifyPage />,
+  mfaSetup: <MfaEnrollmentPage />,
+  forgotPassword: <ForgotPasswordPage />,
+  recoveryCode: <RecoveryCodePage />,
+  resetPassword: <ResetPasswordPage />,
+  resetComplete: <PasswordResetSuccessPage />,
+  activate: <ActivateAccountPage />,
+}
+
+const authFlowRoutes: RouteObject[] = (Object.keys(AUTH_FLOW_SCREENS) as Array<keyof typeof AUTH_FLOW_SCREENS>).map((key) => ({
+  path: AUTH_FLOW_SCREENS[key].path,
+  element: <ScreenLoading>{AUTH_FLOW_PAGES[key]}</ScreenLoading>,
+}))
+
 export function createAppRoutes(): RouteObject[] {
   const { profile, forbidden, login, sessionExpired } = SHARED_SCREENS
   return [
+    ...authFlowRoutes,
     {
       path: login.path,
       element: (

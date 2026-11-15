@@ -25,7 +25,6 @@ const USERS: Record<WebRole, Session['user']> = {
 function signInAs(role: WebRole, source: Session['source'] = 'fixtures') {
   createBrowserSessionPersistence().save(
     { user: USERS[role], accessToken: null, source, signedInAt: '2026-10-21T09:00:00+05:30' },
-    false,
   )
 }
 

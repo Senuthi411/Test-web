@@ -10,14 +10,14 @@ const groups = [...manifest.matchAll(/base:\s*'([^']+)'[\s\S]*?roles:\s*\[([^\]]
 }))
 if (groups.length !== 6 || groups.some((group) => !group.screens.length)) throw new Error('Update responsive coverage for the changed route manifest format.')
 
-const accounts: Record<string, string> = { ADMINISTRATOR: 'anika.perera', SUPERVISOR: 'malini.fernando', DISEASE_EXPERT: 'tara.wijesinghe', REPORTING_USER: 'maya.dissanayake' }
+const accounts: Record<string, string> = { ADMINISTRATOR: 'USR-001', SUPERVISOR: 'USR-003', DISEASE_EXPERT: 'USR-005', REPORTING_USER: 'USR-013' }
 const samples: Record<string, string> = { userId: 'USR-005', role: 'supervisor', estateId: 'EST-001', divisionId: 'DIV-001', sessionId: 'DS-3012', observationId: 'OBS-014', correctionId: 'COR-005', quarantineId: 'QUA-002', assignmentId: 'ASG-001', caseId: 'CASE-018', diseaseId: 'DIS-001', referralId: 'REF-014' }
 function sample(path: string) { return path.replace(/:([A-Za-z]+)/g, (_, key: string) => samples[key]) }
-async function signIn(page: Page, account = 'anika.perera') {
+async function signIn(page: Page, account = 'USR-001') {
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
-  await page.getByRole('textbox', { name: 'Email or username' }).fill(account)
+  await page.getByRole('textbox', { name: 'User ID' }).fill(account)
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
   await expect(page.locator('h1')).toBeVisible()
 }
@@ -163,7 +163,7 @@ for (const width of [320, 375, 430]) {
 test('320px assignment editing, evidence controls and correction approval remain usable', async ({ page }) => {
   test.setTimeout(90_000)
   await page.setViewportSize({ width: 320, height: 700 })
-  await signIn(page, 'malini.fernando')
+  await signIn(page, 'USR-003')
   await page.getByRole('button', { name: 'Open navigation' }).click()
   await page.getByRole('dialog', { name: 'Navigation' }).getByRole('link', { name: 'Fieldwork Assignments' }).click()
   await page.getByRole('link', { name: 'Create assignment', exact: true }).click()

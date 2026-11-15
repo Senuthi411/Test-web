@@ -1,5 +1,7 @@
 import { createContext, useContext } from 'react'
-import type { Session, SessionUser, SignInCredentials } from '../../domain/session'
+import type { SignInOptions } from '../../application/authUseCases'
+import type { MfaEnrollmentDetails, MfaEnrollmentResult, MfaEnrollmentSession } from '../../domain/authFlows'
+import type { MfaChallenge, Session, SessionUser, SignInCredentials, SignInResult } from '../../domain/session'
 
 export type SessionState =
   | { status: 'signed_out' }
@@ -9,7 +11,16 @@ export type SessionState =
 
 export interface SessionContextValue {
   state: SessionState
-  signIn(credentials: SignInCredentials, signal?: AbortSignal): Promise<Session>
+  /** Signs in, or returns the MFA challenge the backend requires first. */
+  signIn(credentials: SignInCredentials, options: SignInOptions, signal?: AbortSignal): Promise<SignInResult>
+  verifyMfa(challenge: MfaChallenge, code: string, signal?: AbortSignal): Promise<Session>
+  startMfaEnrollment(enrollment: MfaEnrollmentSession, signal?: AbortSignal): Promise<MfaEnrollmentDetails>
+  /** Signs in only if the backend returns a session with the confirmed enrollment. */
+  confirmMfaEnrollment(enrollment: MfaEnrollmentSession, code: string, signal?: AbortSignal): Promise<MfaEnrollmentResult>
+  /** Forgets the local session (e.g. after a password reset revoked it). */
+  discard(): void
+  /** The User ID remembered on this device ("Remember User ID"), if any. */
+  rememberedUserId(): string | null
   signOut(): Promise<void>
   /** Marks the session as expired after a 401 response. */
   expire(): void

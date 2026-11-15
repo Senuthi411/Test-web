@@ -246,7 +246,8 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
           }
           db.users.push(user)
           audit(db, { kind: 'user_created', userId: user.id, estateIds: estatesOfScope(db, scope) })
-          return toIdentityUser(db, user)
+          // Fixture mode never contacts a mail or SMS service, so no invitation is started.
+          return { user: toIdentityUser(db, user), invitation: 'not_sent' as const }
         }),
       )
     },

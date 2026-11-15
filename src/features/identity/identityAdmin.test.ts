@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FIXTURE_DEV_PASSWORD, FIXTURE_REFERENCE_DATE, FixtureStore } from '@/fixtures'
-import { createAccountUseCases, createAuthUseCases, createBrowserSessionPersistence, createIdentityAdminUseCases } from '@/features/identity'
+import { createAccountUseCases, createAuthUseCases, createBrowserRememberedUserId, createBrowserSessionPersistence, createIdentityAdminUseCases } from '@/features/identity'
 import { createIdentityFixtureAdapters } from '@/features/identity/fixtures'
 import { createIdentityHttpAdapters } from '@/features/identity/http'
 import type { HttpClient } from '@/shared/api'
@@ -29,7 +29,7 @@ function setup() {
     store,
     admin: createIdentityAdminUseCases(adapters.admin),
     account: createAccountUseCases(adapters.account),
-    auth: createAuthUseCases(adapters.auth, createBrowserSessionPersistence(), 'fixtures'),
+    auth: createAuthUseCases(adapters.auth, createBrowserSessionPersistence(), 'fixtures', createBrowserRememberedUserId()),
   }
 }
 
@@ -235,7 +235,8 @@ describe('fixture identity administration', () => {
       ...CONTACT,
       roleDetails: { role: 'FIELD_WORKER', supervisorId: 'USR-002', mobileNumber: '077 123 4567' },
     })
-    expect(created).toMatchObject({
+    expect(created.invitation).toBe('not_sent')
+    expect(created.user).toMatchObject({
       id: 'USR-014',
       fullName: 'Test Worker',
       email: 'test.worker@example.test',
@@ -301,7 +302,8 @@ describe('fixture identity administration', () => {
   it('stores several estates for a supervisor and rejects a duplicate NIC', async () => {
     const { admin } = setup()
     const created = await admin.createUser(supervisorInput({ personal: { nic: '901234567v', dateOfBirth: '1990-05-01' } }))
-    expect(created.estateIds).toEqual(['EST-001', 'EST-003'])
+    expect(created.user.estateIds).toEqual(['EST-001', 'EST-003'])
+    expect(created.invitation).toBe('not_sent')
     expect(created).not.toHaveProperty('nic')
     await expect(
       admin.createUser(supervisorInput({ email: 'other@example.test', employeeId: 'EMP-200', personal: { nic: '901234567V', dateOfBirth: null } })),
@@ -326,14 +328,14 @@ describe('fixture identity administration', () => {
   it('returns NIC masked and date of birth to Administrators only', async () => {
     const { admin, store } = setup()
     const created = await admin.createUser(supervisorInput({ personal: { nic: '199012345678', dateOfBirth: '1990-05-01' } }))
-    const detail = await admin.getUser(created.id)
+    const detail = await admin.getUser(created.user.id)
     expect(detail.personal).toEqual({ nicMasked: '19•••••••••8', dateOfBirth: '1990-05-01' })
     expect(JSON.stringify(await admin.listUsers())).not.toContain('199012345678')
     expect(JSON.stringify(await admin.getDashboard())).not.toContain('199012345678')
     expect(JSON.stringify(store.read((db) => db.auditEvents))).not.toContain('199012345678')
 
     const supervisorView = createIdentityFixtureAdapters(store, { clock: fixedClock(FIXTURE_REFERENCE_DATE), actorId: () => 'USR-003' })
-    expect((await supervisorView.admin.getUser(created.id)).personal).toBeNull()
+    expect((await supervisorView.admin.getUser(created.user.id)).personal).toBeNull()
   })
 
   it('records "User created" in the activity timeline without personal details', async () => {
@@ -434,11 +436,12 @@ describe('fixture account', () => {
       details: [{ path: 'currentPassword' }],
     })
     await account.changePassword('USR-001', { currentPassword: FIXTURE_DEV_PASSWORD, newPassword: 'a-new-password-1' })
-    await expect(auth.signIn({ identifier: 'anika.perera', password: FIXTURE_DEV_PASSWORD, remember: false })).rejects.toMatchObject({
+    await expect(auth.signIn({ userId: 'USR-001', password: FIXTURE_DEV_PASSWORD }, { rememberUserId: false })).rejects.toMatchObject({
       code: 'INVALID_CREDENTIALS',
     })
-    await expect(auth.signIn({ identifier: 'anika.perera', password: 'a-new-password-1', remember: false })).resolves.toMatchObject({
-      user: { id: 'USR-001' },
+    await expect(auth.signIn({ userId: 'USR-001', password: 'a-new-password-1' }, { rememberUserId: false })).resolves.toMatchObject({
+      status: 'signed_in',
+      session: { user: { id: 'USR-001' } },
     })
   })
 

@@ -1,24 +1,24 @@
 ﻿import { expect, test, type Page } from '@playwright/test'
 
-async function signIn(page: Page, username = 'anika.perera') {
+async function signIn(page: Page, username = 'USR-001') {
   await page.goto('/login')
-  await page.getByRole('textbox', { name: 'Email or username' }).fill(username)
+  await page.getByRole('textbox', { name: 'User ID' }).fill(username)
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
 }
 
 test('login validates input, rejects bad credentials and protects Identity routes', async ({ page }) => {
   await page.goto('/admin/users')
   await expect(page).toHaveURL(/\/login\?next=/)
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
-  await expect(page.getByText('Enter your email or username')).toBeVisible()
-  await page.getByRole('textbox', { name: 'Email or username' }).fill('anika.perera')
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
+  await expect(page.getByText('Enter your User ID')).toBeVisible()
+  await page.getByRole('textbox', { name: 'User ID' }).fill('USR-001')
   await page.getByLabel('Password', { exact: true }).fill('wrong')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
-  await expect(page.getByText('The email, username or password is incorrect.')).toBeVisible()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
+  await expect(page.getByText('The User ID or password is incorrect.')).toBeVisible()
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).toHaveURL(/\/admin\/users$/)
 })
 
@@ -131,9 +131,9 @@ test('profile updates, notifications and password changes remain functional unti
   await expect(page.getByText('Password updated. Use the new password the next time you sign in.')).toBeVisible()
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await expect(page).toHaveURL(/\/login$/)
-  await page.getByRole('textbox', { name: 'Email or username' }).fill('anika.perera')
+  await page.getByRole('textbox', { name: 'User ID' }).fill('USR-001')
   await page.getByLabel('Password', { exact: true }).fill('identity-new-password')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).toHaveURL(/\/admin$/)
 })
 
@@ -255,7 +255,7 @@ test('division and session filters, sort headers and reset controls work', async
 })
 
 test('non-administrators are denied Identity administration and can return from expired state', async ({ page }) => {
-  await signIn(page, 'malini.fernando')
+  await signIn(page, 'USR-003')
   await page.goto('/admin/users')
   await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible()
   await page.goto('/session-expired')

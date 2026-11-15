@@ -1,9 +1,13 @@
 import {
+  createAccountActivationUseCases,
   createAccountUseCases,
   createAuthUseCases,
+  createBrowserRememberedUserId,
   createBrowserSessionPersistence,
   createIdentityAdminUseCases,
+  createPasswordRecoveryUseCases,
   type AuthUseCases,
+  type RememberedUserIdPort,
   type IdentityServices,
 } from '@/features/identity'
 import { systemClock, type Clock } from '@/shared/utilities/clock'
@@ -54,6 +58,7 @@ export function assembleContainer(
   adapters: AdapterSet,
   clock: Clock,
   persistence = createBrowserSessionPersistence(),
+  remembered: RememberedUserIdPort = createBrowserRememberedUserId(),
 ): AppContainer {
   const fixtures = adapters.fixtures
   return {
@@ -61,13 +66,14 @@ export function assembleContainer(
     review: { port: createReviewUseCases(adapters.review), demo: config.dataSource === 'fixtures', clock },
     config,
     clock,
-    auth: createAuthUseCases(adapters.identity.auth, persistence, config.dataSource),
+    auth: createAuthUseCases(adapters.identity.auth, persistence, config.dataSource, remembered),
     identity: {
       admin: createIdentityAdminUseCases(adapters.identity.admin, clock),
       account: createAccountUseCases(adapters.identity.account),
+      recovery: createPasswordRecoveryUseCases(adapters.identity.recovery, persistence),
+      activation: createAccountActivationUseCases(adapters.identity.activation),
       clock,
       demo: config.dataSource === 'fixtures',
-      developmentAccounts: fixtures?.developmentAccounts ?? [],
       simulateNextFailure: fixtures ? (kind) => fixtures.failNext(kind) : null,
     },
     fixtures,

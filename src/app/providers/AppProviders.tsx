@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { IdentityServicesContext, SessionProvider, useSession } from '@/features/identity'
+import { AuthFlowProvider, IdentityServicesContext, SessionProvider, useSession } from '@/features/identity'
 import { ToastProvider } from '@/shared/components'
 import { CaptureContext } from '@/features/capture'
 import { ReviewContext } from '@/features/review'
@@ -31,7 +31,9 @@ export function AppProviders({ container, children }: { container: AppContainer;
           <IdentityServicesContext.Provider value={container.identity}>
             <CaptureContext.Provider value={container.capture}>
               <ReviewContext.Provider value={container.review}>
-                <ToastProvider>{children}</ToastProvider>
+                <ToastProvider>
+                  <AuthFlowProvider>{children}</AuthFlowProvider>
+                </ToastProvider>
               </ReviewContext.Provider>
             </CaptureContext.Provider>
           </IdentityServicesContext.Provider>

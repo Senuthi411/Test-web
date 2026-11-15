@@ -90,6 +90,21 @@ export interface UserDetail {
   personal: PersonalDetailsView | null
 }
 
+/**
+ * Invitation status reported by the backend after Create User.
+ * - `sent`: the backend confirmed the invitation was delivered to its sender.
+ * - `pending`: the backend accepted the account and queued the invitation.
+ * - `not_sent`: no invitation was started (e.g. demonstration data never sends one).
+ * PENDING CONTRACT: the Identity API has not defined this field yet.
+ */
+export type InvitationStatus = 'sent' | 'pending' | 'not_sent'
+
+/** The result of Create User: the account as stored, with its Company User ID. */
+export interface CreatedUser {
+  user: IdentityUser
+  invitation: InvitationStatus
+}
+
 export interface EstateSummary {
   id: EstateId
   name: string

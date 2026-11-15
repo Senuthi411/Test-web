@@ -34,7 +34,7 @@ import {
   type UserDraft,
   type UserDraftField,
 } from '../../../domain/rules'
-import { scopeLevelFor } from '../../../domain/scope'
+import { REPORTING_USER_SCOPE_LEVEL, scopeLevelFor } from '../../../domain/scope'
 import { maskNic, PREFERRED_LANGUAGES, preferredLanguageLabel, type PreferredLanguage } from '../../../domain/userFields'
 import type { UserInput } from '../../../application/ports'
 import { QueryBoundary } from '../../components/common'
@@ -350,9 +350,11 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
       )
     } else {
       createUser.mutate(input, {
-        onSuccess: (saved) => {
+        onSuccess: (created) => {
           setReview(null)
-          navigate(userPath(saved.id), { state: { userSaved: 'created' } satisfies UserSavedState })
+          navigate(userPath(created.user.id), {
+            state: { userSaved: 'created', invitation: created.invitation } satisfies UserSavedState,
+          })
         },
         onError: (error) => {
           setReview(null)
@@ -408,8 +410,8 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
     }
   }
   const invitationNote = demo
-    ? 'No password is set here. In the live service the user receives an invitation link to set up sign-in; in demonstration mode no invitation is sent.'
-    : 'No password is set here. The user receives an invitation link to set up sign-in.'
+    ? 'No password is set here. In the live service the backend starts an invitation so the user can set up sign-in; in demonstration mode no invitation is sent.'
+    : 'No password is set here. The backend starts an invitation so the user can set up sign-in; its status is shown after the account is created.'
 
   return (
     <>
@@ -455,6 +457,12 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
       <div className={styles.withSide}>
         <Card title="Account details">
           <form id="user-form" className={styles.form} onSubmit={onSubmit} noValidate>
+            {!user && (
+              <div className={styles.readOnlyField}>
+                <span className={styles.readOnlyLabel}>Company User ID</span>
+                <span className={styles.caption}>Assigned by the system when the account is created. It is separate from the Employee / Staff ID.</span>
+              </div>
+            )}
             <div className={styles.formGrid}>
               <TextField label="Full name" required placeholder="e.g. Ishara Kumari" error={errors.fullName?.message} {...register('fullName')} />
               <TextField
@@ -516,6 +524,12 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
             {showPersonal && <PersonalDetailsFields register={register} errors={errors} today={today} />}
 
             <h3 className={styles.sectionTitle}>Scope assignment</h3>
+            {role === 'REPORTING_USER' && (
+              <Banner tone="warning" title="Reporting User scope is a pending team decision">
+                {REPORTING_USER_SCOPE_LEVEL === 'estate' ? 'Estate-level' : 'Division-level'} access is used for now. Whether
+                Reporting Users get estate-level access, division-level access or both has not been approved.
+              </Banner>
+            )}
             {scopeKept && user ? (
               <Banner tone="info" title={`Current scope: ${scopeLabel(user)}`}>
                 This user holds a scope this form cannot show. It is kept unchanged.{' '}
@@ -688,7 +702,7 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
             <p className={styles.caption}>
               {demo
                 ? 'Demonstration data: the account is held in this browser tab only and no invitation is sent.'
-                : 'The backend creates the account, applies the scope and sends the invitation link.'}
+                : 'The backend creates the account, assigns the Company User ID and starts the invitation. The result is shown after creation.'}
             </p>
           </div>
         )}
