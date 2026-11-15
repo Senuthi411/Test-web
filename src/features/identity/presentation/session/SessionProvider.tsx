@@ -16,13 +16,44 @@ export function SessionProvider({ auth, onSessionEnded, children }: SessionProvi
   })
 
   const signIn = useCallback<SessionContextValue['signIn']>(
-    async (credentials, signal) => {
-      const session = await auth.signIn(credentials, signal)
+    async (credentials, options, signal) => {
+      const result = await auth.signIn(credentials, options, signal)
+      if (result.status === 'signed_in') setState({ status: 'signed_in', session: result.session })
+      return result
+    },
+    [auth],
+  )
+
+  const verifyMfa = useCallback<SessionContextValue['verifyMfa']>(
+    async (challenge, code, signal) => {
+      const session = await auth.verifyMfa(challenge, code, signal)
       setState({ status: 'signed_in', session })
       return session
     },
     [auth],
   )
+
+  const rememberedUserId = useCallback(() => auth.rememberedUserId(), [auth])
+
+  const startMfaEnrollment = useCallback<SessionContextValue['startMfaEnrollment']>(
+    (enrollment, signal) => auth.startMfaEnrollment(enrollment, signal),
+    [auth],
+  )
+
+  const confirmMfaEnrollment = useCallback<SessionContextValue['confirmMfaEnrollment']>(
+    async (enrollment, code, signal) => {
+      const result = await auth.confirmMfaEnrollment(enrollment, code, signal)
+      if (result.session) setState({ status: 'signed_in', session: result.session })
+      return result
+    },
+    [auth],
+  )
+
+  const discard = useCallback(() => {
+    auth.discard()
+    setState({ status: 'signed_out' })
+    onSessionEnded?.()
+  }, [auth, onSessionEnded])
 
   const signOut = useCallback(async () => {
     const current = state.status === 'signed_in' ? state.session : null
@@ -57,8 +88,8 @@ export function SessionProvider({ auth, onSessionEnded, children }: SessionProvi
   )
 
   const value = useMemo<SessionContextValue>(
-    () => ({ state, signIn, signOut, expire, updateUser }),
-    [state, signIn, signOut, expire, updateUser],
+    () => ({ state, signIn, verifyMfa, startMfaEnrollment, confirmMfaEnrollment, discard, rememberedUserId, signOut, expire, updateUser }),
+    [state, signIn, verifyMfa, startMfaEnrollment, confirmMfaEnrollment, discard, rememberedUserId, signOut, expire, updateUser],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

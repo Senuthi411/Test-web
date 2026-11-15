@@ -1,5 +1,5 @@
 import { FIXTURE_REFERENCE_DATE, FixtureStore } from '@/fixtures'
-import { FIXTURE_DEVELOPMENT_ACCOUNTS, createIdentityFixtureAdapters } from '@/features/identity/fixtures'
+import { createIdentityFixtureAdapters } from '@/features/identity/fixtures'
 import type { UserId } from '@/shared/types'
 import { fixedClock, type Clock } from '@/shared/utilities/clock'
 import type { AdapterSet } from './adapterSet'
@@ -21,7 +21,6 @@ export function createFixtureAdapterSet(
     fixtures: {
       reset: () => store.reset(),
       failNext: (kind) => store.failNext(kind),
-      developmentAccounts: FIXTURE_DEVELOPMENT_ACCOUNTS,
     },
   }
 }

@@ -137,3 +137,17 @@ export const SHARED_SCREENS = {
   login: { path: '/login', screenId: 'AUTH-01', title: 'Sign in', phase: 3 },
   sessionExpired: { path: '/session-expired', screenId: 'ID-16', title: 'Session expired', phase: 3 },
 } as const
+
+/**
+ * Public authentication flow screens (no session). Each needs backend-issued state held
+ * in memory, so opening one directly shows a "start again" message.
+ */
+export const AUTH_FLOW_SCREENS = {
+  mfaVerify: { path: '/login/verify', screenId: 'AUTH-02', title: 'Verify Your Identity' },
+  mfaSetup: { path: '/login/mfa-setup', screenId: 'AUTH-03', title: 'Set Up Two-Factor Authentication' },
+  forgotPassword: { path: '/forgot-password', screenId: 'AUTH-04', title: 'Forgot Password?' },
+  recoveryCode: { path: '/forgot-password/verify', screenId: 'AUTH-05', title: 'Verify Your Email' },
+  resetPassword: { path: '/forgot-password/reset', screenId: 'AUTH-06', title: 'Create a New Password' },
+  resetComplete: { path: '/forgot-password/complete', screenId: 'AUTH-07', title: 'Password Updated Successfully' },
+  activate: { path: '/activate', screenId: 'AUTH-08', title: 'Activate Your Account' },
+} as const

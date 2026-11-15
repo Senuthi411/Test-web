@@ -22,7 +22,6 @@ function renderReview(path: string, userId = 'USR-003') {
   const user = USERS[userId]
   persistence.save(
     { user: { id: userId, fullName: user.fullName, email: 'demo@example.test', role: user.role, estateIds: user.estateIds, divisionIds: [] }, source: 'fixtures', accessToken: null, signedInAt: '2026-10-21T09:00:00+05:30' },
-    false,
   )
   const adapters = createFixtureAdapterSet(() => persistence.load()?.user.id ?? null, store)
   const container = assembleContainer({ dataSource: 'fixtures', apiBaseUrl: '', apiTimeoutMs: 15000 }, adapters, fixtureClock, persistence)

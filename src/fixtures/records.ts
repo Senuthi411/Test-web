@@ -69,7 +69,29 @@ export interface FixtureUser {
   language: 'en'
   /** ID-14 "Notifications" toggles. */
   notificationPreferences: FixtureNotificationPreferences
+  /** Sri Lankan phone number without spaces (synthetic in the seed). */
+  phone: string
+  /** Employee / Staff ID, unique ignoring case (synthetic in the seed). */
+  employeeId: string
+  /** Create User "Preferred language": Sinhala, Tamil or English. */
+  preferredLanguage: 'si' | 'ta' | 'en'
+  /**
+   * Personal details, Administrator only. The NIC is stored upper-case and is only ever
+   * returned masked. Not seeded: the dataset holds no NICs or dates of birth.
+   */
+  nic: string | null
+  dateOfBirth: string | null
+  /** Details of the user's role; `role` always equals the user's role. */
+  roleDetails: FixtureRoleDetails
 }
+
+/** Role-specific account details (Create User role sections). */
+export type FixtureRoleDetails =
+  | { role: 'ADMINISTRATOR'; mfaRequired: boolean }
+  | { role: 'SUPERVISOR'; reportsToId: string | null; officePhone: string | null }
+  | { role: 'DISEASE_EXPERT'; qualifications: string | null; registrationNumber: string; institution: string | null }
+  | { role: 'FIELD_WORKER'; supervisorId: string | null; mobileNumber: string }
+  | { role: 'REPORTING_USER'; organisation: string | null }
 
 /** Development-only sign-in credentials (fixture mode). Seeded from `accounts.ts`. */
 export interface FixtureCredential {

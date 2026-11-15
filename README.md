@@ -39,7 +39,7 @@ npm run dev
 
 | `VITE_DATA_SOURCE` | Behaviour |
 | --- | --- |
-| `fixtures` | Synthetic, relational demo data held in the browser. The UI shows "Demo data" indicators. Sign in with the [development-only accounts](docs/development-accounts.md). |
+| `fixtures` | Synthetic, relational demo data held in the browser. The UI shows "Demo data" indicators. Sign in with a User ID from the [development-only accounts](docs/development-accounts.md); the login page does not list them. |
 | `api` | Uses the API Gateway at `VITE_API_BASE_URL` (e.g. `http://localhost:3000/api/v1`). Fixture data and accounts are not loaded. Operations whose backend contract is not yet approved report "Not yet available" — see [pending contracts](docs/api-integration/pending-contracts.md). |
 
 The variable is required; the app shows a configuration error if it is missing. All
