@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import {
   Avatar,
   Banner,
@@ -24,6 +24,7 @@ import { useChangePassword, useProfile, useSetNotificationPreference, useUpdateP
 import { useCurrentSession, useSession } from '../../session/sessionContext'
 import styles from '../../components/identity.module.css'
 import profileStyles from './ProfilePage.module.css'
+import type { ProfileSectionState } from './profileSection'
 
 const NOTIFICATIONS: ReadonlyArray<{ key: NotificationPreferenceKey; label: string; description: string }> = [
   { key: 'reviewEscalations', label: 'Review escalations', description: 'Notify when a review needs administrator attention' },
@@ -38,6 +39,9 @@ export function ProfilePage() {
   const { signOut } = useSession()
   const navigate = useNavigate()
   const query = useProfile(session.user.id)
+  const location = useLocation()
+  // A new request each time the link is followed, even when My Profile is already open.
+  const securityRequest = (location.state as ProfileSectionState | null)?.section === 'security' ? location.key : null
   const [signingOut, setSigningOut] = useState(false)
 
   async function onSignOut() {
@@ -57,12 +61,12 @@ export function ProfilePage() {
           </Button>
         }
       />
-      <QueryBoundary query={query}>{(profile) => <ProfileView profile={profile} />}</QueryBoundary>
+      <QueryBoundary query={query}>{(profile) => <ProfileView profile={profile} securityRequest={securityRequest} />}</QueryBoundary>
     </div>
   )
 }
 
-function ProfileView({ profile }: { profile: Profile }) {
+function ProfileView({ profile, securityRequest }: { profile: Profile; securityRequest: string | null }) {
   const { user } = profile
   const relative = useRelativeTime()
   return (
@@ -89,7 +93,7 @@ function ProfileView({ profile }: { profile: Profile }) {
       </Card>
       <div className={styles.stack}>
         <PersonalInformation profile={profile} />
-        <SecurityCard userId={user.id} />
+        <SecurityCard userId={user.id} focusRequest={securityRequest} />
         <NotificationsCard profile={profile} />
       </div>
     </div>
@@ -164,7 +168,13 @@ const passwordResolver: Resolver<PasswordChangeDraft> = (values) => {
   return { values: {}, errors: Object.fromEntries(errors.map(([field, message]) => [field, { type: 'validation', message }])) }
 }
 
-function SecurityCard({ userId }: { userId: string }) {
+function SecurityCard({ userId, focusRequest }: { userId: string; focusRequest: string | null }) {
+  const sectionRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!focusRequest || !sectionRef.current) return
+    sectionRef.current.scrollIntoView?.({ block: 'start' })
+    sectionRef.current.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true })
+  }, [focusRequest])
   const change = useChangePassword(userId)
   const [result, setResult] = useState<{ ok: true } | { ok: false; error: unknown } | null>(null)
   const {
@@ -197,43 +207,45 @@ function SecurityCard({ userId }: { userId: string }) {
   })
 
   return (
-    <Card title="Security">
-      <form className={styles.form} onSubmit={onSubmit} noValidate aria-label="Change password">
-        <div className={styles.formGrid}>
-          <PasswordField label="Current password" autoComplete="current-password" error={errors.currentPassword?.message} {...register('currentPassword')} />
-          <span aria-hidden="true" />
-          <PasswordField
-            label="New password"
-            placeholder={`Minimum ${MIN_PASSWORD_LENGTH} characters`}
-            autoComplete="new-password"
-            error={errors.newPassword?.message}
-            {...register('newPassword')}
-          />
-          <PasswordField
-            label="Confirm password"
-            placeholder="Repeat new password"
-            autoComplete="new-password"
-            error={errors.confirmPassword?.message}
-            {...register('confirmPassword')}
-          />
-        </div>
-        {result?.ok && (
-          <p className={profileStyles.success} role="status">
-            Password updated. Use the new password the next time you sign in.
-          </p>
-        )}
-        {result && !result.ok && (
-          <Banner tone="error" title="Your password was not changed">
-            {errorMessage(result.error)}
-          </Banner>
-        )}
-        <div className={styles.formActions}>
-          <Button type="submit" icon="lock" loading={change.isPending} loadingLabel="Updating…">
-            Update password
-          </Button>
-        </div>
-      </form>
-    </Card>
+    <div ref={sectionRef} className={profileStyles.sectionAnchor}>
+      <Card title="Security">
+        <form className={styles.form} onSubmit={onSubmit} noValidate aria-label="Change password">
+          <div className={styles.formGrid}>
+            <PasswordField label="Current password" autoComplete="current-password" error={errors.currentPassword?.message} {...register('currentPassword')} />
+            <span aria-hidden="true" />
+            <PasswordField
+              label="New password"
+              placeholder={`Minimum ${MIN_PASSWORD_LENGTH} characters`}
+              autoComplete="new-password"
+              error={errors.newPassword?.message}
+              {...register('newPassword')}
+            />
+            <PasswordField
+              label="Confirm password"
+              placeholder="Repeat new password"
+              autoComplete="new-password"
+              error={errors.confirmPassword?.message}
+              {...register('confirmPassword')}
+            />
+          </div>
+          {result?.ok && (
+            <p className={profileStyles.success} role="status">
+              Password updated. Use the new password the next time you sign in.
+            </p>
+          )}
+          {result && !result.ok && (
+            <Banner tone="error" title="Your password was not changed">
+              {errorMessage(result.error)}
+            </Banner>
+          )}
+          <div className={styles.formActions}>
+            <Button type="submit" icon="lock" loading={change.isPending} loadingLabel="Updating…">
+              Update password
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </div>
   )
 }
 

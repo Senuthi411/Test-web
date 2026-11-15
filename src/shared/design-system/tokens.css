@@ -120,7 +120,17 @@
   --tl-focus-ring: 0 0 0 2px var(--tl-bg-surface), 0 0 0 4px var(--tl-primary-500);
 
   /* Layout */
-  --tl-sidebar-width: 248px;
+  --tl-sidebar-width: 260px;
+  /* Sidebar (enterprise sidebar reference, 2026-11-15). */
+  --tl-sidebar-bg: #062f1d;
+  --tl-sidebar-bg-deep: #082b1b;
+  --tl-sidebar-active: #285a35;
+  --tl-sidebar-indicator: #a3e635;
+  --tl-sidebar-text-muted: #b8ccbf;
+  --tl-sidebar-heading: #b7ccbf;
+  --tl-sidebar-divider: #466c53;
+  --tl-sidebar-card: #19462b;
+  --tl-sidebar-avatar: #e6f6c8;
   --tl-sidebar-collapsed-width: 72px;
   --tl-topbar-height: 72px;
   --tl-page-padding-x: 32px;

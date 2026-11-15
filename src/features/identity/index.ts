@@ -33,6 +33,7 @@ export {
   type AccountActivationUseCases,
   type PasswordRecoveryUseCases,
 } from './application/authFlowUseCases'
+export type { ProfileSectionState } from './presentation/pages/account/profileSection'
 export { AuthFlowProvider } from './presentation/session/AuthFlowProvider'
 export { createBrowserSessionPersistence } from './infrastructure/browserSessionPersistence'
 export { createBrowserRememberedUserId } from './infrastructure/browserRememberedUserId'

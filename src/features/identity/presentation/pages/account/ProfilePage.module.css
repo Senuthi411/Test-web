@@ -17,3 +17,8 @@
   padding: 0;
   list-style: none;
 }
+
+/* Scroll target for "Change Password" links: clears the sticky top bar. */
+.sectionAnchor {
+  scroll-margin-top: calc(var(--tl-topbar-height) + 16px);
+}
