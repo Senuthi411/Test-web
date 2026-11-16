@@ -583,9 +583,8 @@ describe('identity administration screens', () => {
     signInAs('ADMINISTRATOR')
     const user = userEvent.setup()
     renderFixtureApp('/admin/device-sessions?session=DS-3091')
-    const panel = await screen.findByRole('heading', { name: 'Session DS-3091' })
-    const card = panel.closest('section') ?? document.body
-    await user.click(within(card as HTMLElement).getByRole('button', { name: 'Revoke session' }))
+    const details = await screen.findByRole('dialog', { name: 'Session DS-3091' })
+    await user.click(within(details).getByRole('button', { name: 'Revoke session' }))
     const dialog = await screen.findByRole('dialog', { name: 'Revoke session DS-3091?' })
     await user.click(within(dialog).getByRole('button', { name: 'Revoke session' }))
     expect(await screen.findByText('Session DS-3091 revoked')).toBeInTheDocument()

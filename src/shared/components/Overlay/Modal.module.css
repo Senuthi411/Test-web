@@ -73,3 +73,29 @@
   .footer { position: sticky; bottom: -20px; padding-block: 12px; background: var(--tl-bg-surface); }
   .footer > * { flex: 1 1 120px; }
 }
+
+/* Right-side details sheet: fixed header and footer, scrolling body. */
+.sheetBackdrop { justify-content: flex-end; align-items: stretch; padding: 0; }
+.sheet {
+  width: min(480px, 100vw);
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  border-radius: var(--tl-radius-card-lg) 0 0 var(--tl-radius-card-lg);
+  animation: sheet-in 180ms ease-out;
+}
+.sheet .header { align-items: center; padding: 16px 16px 14px 24px; border-bottom: 1px solid var(--tl-border-default); }
+.sheet .header > button { flex: none; min-width: 36px; min-height: 36px; }
+.sheet .body { flex: 1; min-height: 0; overflow: auto; padding: 20px 24px; }
+.sheet .footer { position: static; justify-content: flex-start; padding: 14px 24px; border-top: 1px solid var(--tl-border-default); background: var(--tl-bg-surface); }
+@keyframes sheet-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+@media (max-width: 767px) { .sheet { width: min(440px, 100vw); } }
+@media (max-width: 479px) {
+  .sheet { width: 100vw; border-radius: 0; }
+  .sheet .header, .sheet .body, .sheet .footer { padding-inline: 16px; }
+}

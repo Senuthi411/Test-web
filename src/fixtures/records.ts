@@ -170,6 +170,8 @@ export type FixtureAuditKind =
   | 'division_reviewed'
   | 'device_session_revoked'
   | 'session_recovery_requested'
+  | 'role_changed'
+  | 'account_status_changed'
 
 /** Administrative audit trail ("Recent administrative activity", ID-02 / ID-10). */
 export interface FixtureAuditEvent {
@@ -186,6 +188,13 @@ export interface FixtureAuditEvent {
   reasonCode?: string
   /** Scope after the change (scope_updated). */
   scope?: string[]
+  /**
+   * Value before the change, when it was recorded: scope ids (scope_updated), role
+   * (role_changed) or status (account_status_changed).
+   */
+  previousValue?: string
+  /** Role after the change (role_changed). Status changes use `status`. */
+  newValue?: string
   status?: RecordStatus
   provenance: FixtureProvenance
 }

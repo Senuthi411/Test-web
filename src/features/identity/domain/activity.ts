@@ -13,9 +13,13 @@ export type AuditKind =
   | 'division_reviewed'
   | 'device_session_revoked'
   | 'session_recovery_requested'
+  | 'role_changed'
+  | 'account_status_changed'
 
 /** An audit record with the names it refers to already resolved. */
 export interface AuditEntry {
+  previousValue?: string
+  newValue?: string
   id: string
   at: string
   kind: AuditKind
@@ -45,6 +49,17 @@ export function describeAudit(entry: AuditEntry): ActivityEvent {
       return { ...base, title: `User invited: ${entry.user?.fullName ?? ''}`, detail: entry.user ? ROLE_LABELS[entry.user.role] : '', link: userLink }
     case 'user_created':
       return { ...base, title: `User created: ${entry.user?.fullName ?? ''}`, detail: entry.user ? `${entry.user.id} · ${ROLE_LABELS[entry.user.role]}` : '', link: userLink }
+    case 'role_changed': {
+      const role = (value?: string) => (value && value in ROLE_LABELS ? ROLE_LABELS[value as UserRole] : 'Not recorded')
+      return { ...base, title: `Role changed for ${entry.user?.fullName ?? 'a user'}`, detail: `${role(entry.previousValue)} → ${role(entry.newValue)}`, link: userLink }
+    }
+    case 'account_status_changed':
+      return {
+        ...base,
+        title: `Account ${entry.status === 'active' ? 'enabled' : 'disabled'}: ${entry.user?.fullName ?? ''}`,
+        detail: entry.user ? `${entry.user.id} · ${ROLE_LABELS[entry.user.role]}` : '',
+        link: userLink,
+      }
     case 'user_updated':
       return { ...base, title: `User updated: ${entry.user?.fullName ?? ''}`, detail: entry.user ? `${entry.user.id} · ${ROLE_LABELS[entry.user.role]}` : '', link: userLink }
     case 'device_session_revoked':

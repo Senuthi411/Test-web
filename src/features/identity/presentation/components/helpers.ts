@@ -36,6 +36,8 @@ export function activityLink(event: ActivityEvent): string | undefined {
       return `/admin/divisions/${event.link.id}`
     case 'estate':
       return `/admin/estates/${event.link.id}`
+    case 'access_history':
+      return '/admin/roles?tab=history'
   }
 }
 
@@ -77,6 +79,9 @@ export function useExportAction(kind: ExportKind) {
     },
   }
 }
+
+/** The service is not connected yet (API mode: no backend contract for this operation). */
+export const isServiceUnavailable = (error: unknown) => isAppError(error) && error.kind === 'contract_pending'
 
 /** Text error for a failed mutation. */
 export function errorMessage(error: unknown): string {

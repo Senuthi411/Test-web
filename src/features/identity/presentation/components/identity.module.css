@@ -63,6 +63,19 @@
   min-width: 0;
 }
 
+/* Name over a secondary line (e.g. user ID) inside a table cell. */
+.stackTight {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stackTight > .muted {
+  padding-left: 38px;
+  font-size: 12.5px;
+}
+
 .filterBar {
   display: flex;
   flex-wrap: wrap;

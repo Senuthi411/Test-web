@@ -185,8 +185,8 @@ describe('temporary access adapters', () => {
     expect(await kindOf(port.endGrant(created.id, 'revoke', 'No longer needed'))).toBe('conflict')
     const cancelled = await port.endGrant(created.id, 'cancel', 'No longer needed')
     expect(cancelled).toMatchObject({ status: 'cancelled', endReason: 'No longer needed', endedBy: { id: 'USR-001' } })
-    // Newest first; the seed's own permanent scope-change audit record comes after.
-    expect((await port.listAccessHistory()).map((entry) => entry.action)).toEqual(['temporary_cancelled', 'temporary_requested', 'permanent_scope_changed'])
+    // Newest first; the seed's own identity audit records (scope change, device revocation) come after.
+    expect((await port.listAccessHistory()).map((entry) => entry.action)).toEqual(['temporary_cancelled', 'temporary_requested', 'permanent_scope_changed', 'device_access_revoked'])
   })
 
   it('reports every operation as a pending contract in API mode and validates before sending', async () => {

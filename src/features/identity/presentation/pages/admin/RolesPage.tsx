@@ -1,7 +1,6 @@
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import {
   Badge,
-  Banner,
   Button,
   Card,
   DataTable,
@@ -14,52 +13,61 @@ import {
   usePageBreadcrumbs,
   type TabItem,
 } from '@/shared/components'
-import { ROLE_LABELS, type UserRole } from '@/shared/types'
+import { ROLE_LABELS } from '@/shared/types'
 import type { IdentityUser } from '../../../domain/models'
-import { PERMISSIONS, ROLE_CATALOG, roleBySlug, type PermissionDefinition, type RoleDefinition } from '../../../domain/roles'
-import { useExportAction, userPath } from '../../components/helpers'
+import {
+  APPLICATION_ACCESS_LABELS,
+  PERMISSIONS,
+  ROLE_CATALOG,
+  ROLE_PROFILES,
+  applicationAccess,
+  permissionCell,
+  permissionGroup,
+  permissionScopeRestriction,
+  roleBySlug,
+  roleGroups,
+  scopeSummary,
+  type RoleDefinition,
+} from '../../../domain/roles'
+import { isServiceUnavailable, scopeLabel, useDemoWording, useExportAction, userPath } from '../../components/helpers'
+import { StatusBadge } from '../../components/common'
 import { useUsers } from '../../services/queries'
 import styles from '../../components/identity.module.css'
 import roleStyles from './RolesPage.module.css'
 import { AccessHistoryTab } from './roles/AccessHistoryTab'
 import { PermissionMatrixTab } from './roles/PermissionMatrixTab'
-import { TemporaryAccessTab } from './roles/TemporaryAccessTab'
+import { PermissionLegend, PermissionState } from './roles/PermissionState'
+import { RoleOverviewTab } from './roles/RoleOverviewTab'
+import { userCountLabel, usersWithRolePath } from './roles/roleUsers'
 
-const countLabel = (count: number | undefined) => (count === undefined ? '…' : `${count} ${count === 1 ? 'user' : 'users'}`)
-
-function useRoleCounts(): Partial<Record<UserRole, number>> {
-  const users = useUsers()
-  if (!users.data) return {}
-  const counts: Partial<Record<UserRole, number>> = {}
-  for (const user of users.data) counts[user.role] = (counts[user.role] ?? 0) + 1
-  return counts
-}
-
-type RolesTab = 'matrix' | 'temporary' | 'history'
+type RolesTab = 'overview' | 'matrix' | 'history'
 
 const ROLES_TABS: readonly TabItem<RolesTab>[] = [
+  { id: 'overview', label: 'Role Overview' },
   { id: 'matrix', label: 'Permission Matrix' },
-  { id: 'temporary', label: 'Temporary Access' },
   { id: 'history', label: 'Access History' },
 ]
 
 const isRolesTab = (value: string | null): value is RolesTab => ROLES_TABS.some((tab) => tab.id === value)
 
-/** ID-07 Roles and Permissions (Figma 16:2): permission matrix, temporary access and access history. */
+/**
+ * ID-07 Roles and Permissions: who the system roles are, what each can do and within what
+ * scope, and which identity and access changes have occurred. Read-only; roles are assigned
+ * in User Management. An unknown `?tab=` (e.g. the removed Temporary Access) opens the overview.
+ */
 export function RolesPage() {
   usePageBreadcrumbs([{ label: 'Administration', to: '/admin' }, { label: 'Roles & Permissions' }])
-  const counts = useRoleCounts()
-  const users = useUsers()
   const exportAction = useExportAction('permission-matrix')
+  const { demo } = useDemoWording()
   const [params, setParams] = useSearchParams()
   const requested = params.get('tab')
-  const tab: RolesTab = isRolesTab(requested) ? requested : 'matrix'
+  const tab: RolesTab = isRolesTab(requested) ? requested : 'overview'
 
   return (
     <div className={styles.page}>
       <PageHeader
         title="Roles and Permissions"
-        subtitle="Permission codes are illustrative fixture values; enforcement happens in the backend"
+        subtitle={`Review system roles, understand permissions, and audit access changes.${demo ? ' Demonstration data: the backend enforces the real permissions.' : ''}`}
         actions={
           tab === 'matrix' ? (
             <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
@@ -71,67 +79,26 @@ export function RolesPage() {
       <Tabs
         items={ROLES_TABS}
         value={tab}
-        onChange={(next) => setParams(next === 'matrix' ? {} : { tab: next }, { replace: true })}
+        onChange={(next) => setParams(next === 'overview' ? {} : { tab: next }, { replace: true })}
         label="Roles and permissions sections"
         idBase="roles"
       />
       <div {...tabPanelProps('roles', tab)} className={styles.stack}>
-        {tab === 'matrix' && (
-          <>
-            {users.isError && <ErrorState error={users.error} onRetry={() => void users.refetch()} />}
-            <PermissionMatrixTab
-              aside={
-              <Card title="Roles">
-                <ul className={roleStyles.roleList}>
-                  {ROLE_CATALOG.map((definition) => (
-                    <li key={definition.role}>
-                      <Link to={`/admin/roles/${definition.slug}`} className={roleStyles.roleItem}>
-                        <span className={roleStyles.roleTop}>
-                          <span className={roleStyles.roleName}>{ROLE_LABELS[definition.role]}</span>
-                          <Badge tone="neutral" dot={false}>
-                            {countLabel(counts[definition.role] ?? (users.data ? 0 : undefined))}
-                          </Badge>
-                        </span>
-                        <span className={styles.muted}>{definition.description}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-              }
-            />
-          </>
-        )}
-        {tab === 'temporary' && <TemporaryAccessTab />}
+        {tab === 'overview' && <RoleOverviewTab />}
+        {tab === 'matrix' && <PermissionMatrixTab />}
         {tab === 'history' && <AccessHistoryTab />}
       </div>
     </div>
   )
 }
 
-/** Assigned-user subtitle on the role detail (161:74 …). */
-function assignedSubtitle(user: IdentityUser): string {
-  switch (user.role) {
-    case 'ADMINISTRATOR':
-      return 'Identity administration'
-    case 'SUPERVISOR':
-      return user.estateIds.join(', ')
-    case 'DISEASE_EXPERT':
-      return 'Referred cases'
-    case 'FIELD_WORKER':
-      return user.divisionIds.join(', ')
-    case 'REPORTING_USER':
-      return 'Scoped division analytics'
-  }
-}
-
-/** ID-07 role detail (Figma 161:74 … 161:1426). Viewing a role never assigns it. */
+/** ID-07 role detail. Viewing a role never assigns it. */
 export function RoleDetailPage() {
   const { role: slug } = useParams()
   const definition = roleBySlug(slug)
   usePageBreadcrumbs(
     definition
-      ? [{ label: 'Administration', to: '/admin' }, { label: `${ROLE_LABELS[definition.role]} role` }]
+      ? [{ label: 'Administration', to: '/admin' }, { label: 'Roles & Permissions', to: '/admin/roles' }, { label: `${ROLE_LABELS[definition.role]} role` }]
       : [{ label: 'Administration', to: '/admin' }, { label: 'Role not found' }],
   )
   if (!definition) {
@@ -151,98 +118,122 @@ function RoleDetail({ definition }: { definition: RoleDefinition }) {
   const navigate = useNavigate()
   const assigned = (users.data ?? []).filter((user) => user.role === definition.role)
   const label = ROLE_LABELS[definition.role]
+  const profile = ROLE_PROFILES[definition.role]
+  const allowed = PERMISSIONS.filter((permission) => definition.permissions.includes(permission.code))
 
   return (
     <div className={styles.page}>
-      <PageHeader back={{ to: '/admin/roles', label: 'Back to roles' }} title={label} subtitle={`${definition.description} · permissions view only`} />
+      <PageHeader back={{ to: '/admin/roles', label: 'Back to roles' }} title={label} subtitle={profile.responsibility} />
       <nav className={roleStyles.roleTabs} aria-label="Roles">
         {ROLE_CATALOG.map((item) => (
-          <Link
-            key={item.role}
-            to={`/admin/roles/${item.slug}`}
-            className={roleStyles.roleTab}
-            aria-current={item.role === definition.role ? 'page' : undefined}
-          >
+          <Link key={item.role} to={`/admin/roles/${item.slug}`} className={roleStyles.roleTab} aria-current={item.role === definition.role ? 'page' : undefined}>
             {ROLE_LABELS[item.role]}
           </Link>
         ))}
       </nav>
-      <Banner tone="info">
-        Viewing a role&apos;s permissions does not assign it. Assign roles to users from Users → Edit User or Scope Assignment.
-      </Banner>
       <div className={styles.sideFirst}>
         <div className={styles.stack}>
           <Card title="Role summary">
             <DescriptionList
               items={[
                 { label: 'Role', value: label },
-                { label: 'Description', value: definition.description },
-                { label: 'Assigned users', value: users.data ? countLabel(assigned.length) : '…' },
-                { label: 'Allowed module', value: definition.allowedModule },
-                { label: 'Capabilities', value: `${definition.permissions.length} of ${PERMISSIONS.length} granted` },
+                { label: 'Application access', value: APPLICATION_ACCESS_LABELS[applicationAccess(definition.role)] },
+                { label: 'Permanent scope', value: scopeSummary(definition.role) },
+                {
+                  label: 'Modules',
+                  value: (
+                    <span className={roleStyles.chips}>
+                      {roleGroups(definition).map((group) => (
+                        <Badge key={group} tone="neutral" dot={false}>
+                          {group}
+                        </Badge>
+                      ))}
+                    </span>
+                  ),
+                },
+                { label: 'Assigned users', value: users.data ? userCountLabel(assigned.length) : users.isError ? 'Not available' : '…' },
+                { label: 'Capabilities', value: `${allowed.length} of ${PERMISSIONS.length} permissions` },
               ]}
             />
           </Card>
           <Card title="Estate / division scope rules">
             <p className={styles.muted}>{definition.scopeRules}</p>
           </Card>
-          <Card title="Assigned users">
-            {users.isError ? <ErrorState error={users.error} onRetry={() => void users.refetch()} /> : <DataTable<IdentityUser>
-              caption={`Users with the ${label} role`}
-              loading={users.isPending}
-              rows={assigned}
-              rowKey={(user) => user.id}
-              onRowActivate={(user) => navigate(userPath(user.id))}
-              empty={<p className={styles.caption}>No users hold this role.</p>}
-              columns={[
-                { id: 'id', header: 'ID', cell: (user) => <span className={styles.idStrong}>{user.id}</span> },
-                {
-                  id: 'name',
-                  header: 'Name',
-                  cell: (user) => (
-                    <span>
-                      {user.fullName}
-                      <br />
-                      <span className={styles.muted}>{assignedSubtitle(user)}</span>
-                    </span>
-                  ),
-                },
-              ]}
-            />}
+          <Card title="Security limitations">
+            <ul className={styles.noteList}>
+              {profile.limitations.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
           </Card>
         </div>
-        <Card title={`Permission matrix · ${label}`}>
-          <DataTable<PermissionDefinition>
-            caption={`Permissions of the ${label} role`}
-            rows={PERMISSIONS}
-            rowKey={(permission) => permission.code}
-            columns={[
-              {
-                id: 'code',
-                header: 'Permission code',
-                cell: (permission) => (
-                  <span>
-                    {permission.label}
-                    <br />
-                    <span className={roleStyles.code}>{permission.code}</span>
-                  </span>
-                ),
-              },
-              {
-                id: 'access',
-                header: 'Access',
-                cell: (permission) =>
-                  definition.permissions.includes(permission.code) ? (
-                    <Badge tone="success" dot={false}>
-                      ✓ Granted
-                    </Badge>
-                  ) : (
-                    <span className={styles.muted}>Not granted</span>
-                  ),
-              },
-            ]}
-          />
-        </Card>
+        <div className={styles.stack}>
+          <Card title="Allowed actions" aria-label={`Allowed actions of the ${label} role`}>
+            <PermissionLegend />
+            <ul className={roleStyles.actionList}>
+              {allowed.map((permission) => (
+                <li key={permission.code} className={roleStyles.actionItem}>
+                  <PermissionState state={permissionCell(definition, permission.code)} compact />
+                  <div>
+                    <p className={roleStyles.permissionName}>
+                      {permission.label} <span className={roleStyles.code}>{permission.code}</span>
+                    </p>
+                    <p className={roleStyles.muted}>
+                      {permission.description} {permissionScopeRestriction(permission.code)}
+                    </p>
+                    <p className={roleStyles.code}>{permissionGroup(permission.code)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card
+            title="Assigned users"
+            action={
+              <Link to={usersWithRolePath(definition.role)} className={styles.link}>
+                View in User Management
+              </Link>
+            }
+          >
+            {users.isError ? (
+              isServiceUnavailable(users.error) ? (
+                <p className={styles.muted}>User accounts are not available yet: the Identity service is not connected.</p>
+              ) : (
+                <ErrorState error={users.error} onRetry={() => void users.refetch()} />
+              )
+            ) : (
+              <DataTable<IdentityUser>
+                caption={`Users with the ${label} role`}
+                loading={users.isPending}
+                rows={assigned}
+                rowKey={(user) => user.id}
+                onRowActivate={(user) => navigate(userPath(user.id))}
+                empty={<p className={styles.caption}>No users hold this role.</p>}
+                columns={[
+                  { id: 'id', header: 'ID', cell: (user) => <span className={styles.idStrong}>{user.id}</span> },
+                  { id: 'name', header: 'Name', cell: (user) => user.fullName },
+                  { id: 'scope', header: 'Scope', cell: (user) => <span className={styles.muted}>{scopeLabel(user)}</span> },
+                  { id: 'status', header: 'Status', cell: (user) => <StatusBadge status={user.status} /> },
+                  {
+                    id: 'manage',
+                    header: 'Manage',
+                    cell: (user) => (
+                      <span className={roleStyles.chips}>
+                        <Link to={`${userPath(user.id)}/edit`} className={styles.link} onClick={(event) => event.stopPropagation()} aria-label={`Manage role of ${user.fullName}`}>
+                          Role
+                        </Link>
+                        <Link to={`${userPath(user.id)}/scope`} className={styles.link} onClick={(event) => event.stopPropagation()} aria-label={`View access scope of ${user.fullName}`}>
+                          Scope
+                        </Link>
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            )}
+          </Card>
+          <p className={styles.caption}>Viewing a role does not assign it. Change a person’s role in Edit User and their permanent scope in Scope Assignment.</p>
+        </div>
       </div>
     </div>
   )

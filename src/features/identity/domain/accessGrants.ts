@@ -242,9 +242,56 @@ export function displayGrantStatus(grant: Pick<AccessGrant, 'status' | 'expiresA
 /** Within this time of expiry an active grant counts as "expiring soon" (list filter only). */
 export const EXPIRING_SOON_MS = 24 * 60 * 60 * 1000
 
-export function isExpiringSoon(grant: Pick<AccessGrant, 'status' | 'expiresAt'>, now: Date): boolean {
+/**
+ * Whether a grant currently holds access: the backend reports it active AND now lies inside
+ * its start–expiry interval. Pending, scheduled, expired, revoked, rejected and cancelled
+ * grants never count, and neither does an "active" grant before its start or after expiry.
+ */
+export function isCurrentlyActive(grant: Pick<AccessGrant, 'status' | 'startsAt' | 'expiresAt'>, now: Date): boolean {
+  const time = now.getTime()
+  return grant.status === 'active' && Date.parse(grant.startsAt) <= time && time < Date.parse(grant.expiresAt)
+}
+
+export function isExpiringSoon(grant: Pick<AccessGrant, 'status' | 'startsAt' | 'expiresAt'>, now: Date): boolean {
   const remaining = Date.parse(grant.expiresAt) - now.getTime()
-  return displayGrantStatus(grant, now) === 'active' && remaining > 0 && remaining <= EXPIRING_SOON_MS
+  return isCurrentlyActive(grant, now) && remaining <= EXPIRING_SOON_MS
+}
+
+export interface GrantSummary {
+  active: number
+  pendingApproval: number
+  /** Active grants that expire within EXPIRING_SOON_MS. */
+  expiringSoon: number
+}
+
+export function summariseGrants(grants: readonly AccessGrant[], now: Date): GrantSummary {
+  return {
+    active: grants.filter((grant) => isCurrentlyActive(grant, now)).length,
+    pendingApproval: grants.filter((grant) => grant.status === 'pending_approval').length,
+    expiringSoon: grants.filter((grant) => isExpiringSoon(grant, now)).length,
+  }
+}
+
+/**
+ * The grants most worth an Administrator's attention, in order: requests waiting for
+ * approval (oldest first), active grants expiring soon (soonest first), other active grants
+ * (most recently started first), then scheduled grants (next to start first). Ended grants
+ * are left out.
+ */
+export function relevantGrants(grants: readonly AccessGrant[], now: Date, limit = 5): AccessGrant[] {
+  const rank = (grant: AccessGrant): [number, number] => {
+    if (grant.status === 'pending_approval') return [0, Date.parse(grant.requestedAt)]
+    if (isExpiringSoon(grant, now)) return [1, Date.parse(grant.expiresAt)]
+    if (isCurrentlyActive(grant, now)) return [2, -Date.parse(grant.startsAt)]
+    if (displayGrantStatus(grant, now) === 'scheduled') return [3, Date.parse(grant.startsAt)]
+    return [9, 0]
+  }
+  return grants
+    .map((grant) => ({ grant, rank: rank(grant) }))
+    .filter((item) => item.rank[0] < 9)
+    .sort((a, b) => a.rank[0] - b.rank[0] || a.rank[1] - b.rank[1])
+    .slice(0, limit)
+    .map((item) => item.grant)
 }
 
 /** Which end action applies: revoke a running grant, cancel one that has not started. */
@@ -266,8 +313,30 @@ export type AccessHistoryAction =
   | 'temporary_cancelled'
   | 'permanent_role_changed'
   | 'permanent_scope_changed'
+  | 'account_enabled'
+  | 'account_disabled'
+  | 'device_access_revoked'
+
+/**
+ * Identity and authorization events shown to Administrators (Roles & Permissions → Access
+ * History). Temporary-access entries are operational and are not part of this view.
+ */
+export const IDENTITY_HISTORY_ACTIONS: readonly AccessHistoryAction[] = [
+  'permanent_role_changed',
+  'permanent_scope_changed',
+  'account_enabled',
+  'account_disabled',
+  'device_access_revoked',
+]
+
+export function isIdentityHistoryAction(action: AccessHistoryAction): boolean {
+  return IDENTITY_HISTORY_ACTIONS.includes(action)
+}
 
 export const ACCESS_HISTORY_ACTION_LABELS: Record<AccessHistoryAction, string> = {
+  account_enabled: 'Account enabled',
+  account_disabled: 'Account disabled',
+  device_access_revoked: 'Device access revoked',
   temporary_requested: 'Temporary access requested',
   temporary_approved: 'Temporary access approved',
   temporary_rejected: 'Temporary access rejected',

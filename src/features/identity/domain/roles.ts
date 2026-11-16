@@ -1,4 +1,5 @@
-import type { UserRole } from '@/shared/types'
+import { isWebRole, type UserRole } from '@/shared/types'
+import { scopeLevelFor } from './scope'
 
 /**
  * Roles & Permissions content from ID-07 (16:2) and its role variants (161:74 … 161:1426).
@@ -53,7 +54,7 @@ export const PERMISSION_MODULES: readonly PermissionModule[] = [...new Set(PERMI
 
 /** The scope limit a permission carries, from its code. */
 export function permissionScopeRestriction(code: string): string {
-  if (code.endsWith('_scoped')) return 'Limited to the holder’s assigned estates or divisions (and any active temporary grant).'
+  if (code.endsWith('_scoped')) return 'Limited to the holder’s assigned estates or divisions.'
   if (code.includes('.own.')) return 'Limited to the holder’s own records.'
   return 'Not limited by estate or division.'
 }
@@ -143,4 +144,127 @@ export function roleBySlug(slug: string | undefined): RoleDefinition | undefined
 
 export function permissionLabel(code: string): string {
   return PERMISSIONS.find((permission) => permission.code === code)?.label ?? code
+}
+
+// ---------------------------------------------------------------------------------------
+// Presentation of the fixed role model (Role Overview, matrix, comparison). Everything is
+// derived from PERMISSIONS, ROLE_CATALOG, WEB_ROLES and the scope levels above.
+// ---------------------------------------------------------------------------------------
+
+/**
+ * Matrix groups, from the code's first two segments (`identity.estates.manage` → Estate &
+ * division administration). Only groups with registered permissions exist; the registry has
+ * no device-session or system-configuration permission codes.
+ */
+export type PermissionGroup =
+  | 'Identity & user management'
+  | 'Estate & division administration'
+  | 'Observation capture'
+  | 'Observation review'
+  | 'Disease diagnosis & cases'
+  | 'Reporting & analytics'
+
+const GROUPS: Record<string, PermissionGroup> = {
+  'identity.users': 'Identity & user management',
+  'identity.estates': 'Estate & division administration',
+  capture: 'Observation capture',
+  review: 'Observation review',
+  cases: 'Disease diagnosis & cases',
+  analytics: 'Reporting & analytics',
+}
+
+export function permissionGroup(code: string): PermissionGroup {
+  const [first = '', second = ''] = code.split('.')
+  const group = GROUPS[`${first}.${second}`] ?? GROUPS[first]
+  if (!group) throw new Error(`Unknown permission group for ${code}`)
+  return group
+}
+
+/** Groups present in the registry, in registry order. */
+export const PERMISSION_GROUPS: readonly PermissionGroup[] = [...new Set(PERMISSIONS.map((permission) => permissionGroup(permission.code)))]
+
+/**
+ * A matrix cell. `scoped`: held, but only within assigned estates/divisions or own records,
+ * as the permission code states (`_scoped`, `.own.`). Never shown as unrestricted.
+ */
+export type PermissionCellState = 'allowed' | 'scoped' | 'not_allowed'
+
+export function isScopeRestricted(code: string): boolean {
+  return code.endsWith('_scoped') || code.includes('.own.')
+}
+
+export function permissionCell(definition: Pick<RoleDefinition, 'permissions'>, code: string): PermissionCellState {
+  if (!definition.permissions.includes(code)) return 'not_allowed'
+  return isScopeRestricted(code) ? 'scoped' : 'allowed'
+}
+
+/** Which application the role signs in to, from WEB_ROLES (Field Workers: mobile only). */
+export function applicationAccess(role: UserRole): 'web' | 'mobile' {
+  return isWebRole(role) ? 'web' : 'mobile'
+}
+
+export const APPLICATION_ACCESS_LABELS = { web: 'Web application', mobile: 'Mobile app only' } as const
+
+/** The permanent scope a role is assigned, from its scope level. */
+export function scopeSummary(role: UserRole): string {
+  switch (scopeLevelFor(role)) {
+    case 'all_estates':
+      return 'All estates and divisions'
+    case 'estate':
+      return role === 'REPORTING_USER' ? 'Assigned estates (scope level is a pending team decision)' : 'Assigned estates'
+    case 'division':
+      return 'Assigned divisions within one estate'
+  }
+}
+
+/** Modules the role's permissions belong to, in registry order. */
+export function roleGroups(definition: Pick<RoleDefinition, 'permissions'>): PermissionGroup[] {
+  return PERMISSION_GROUPS.filter((group) => definition.permissions.some((code) => permissionGroup(code) === group))
+}
+
+/**
+ * Responsibilities and limits per role, worded to match the permission sets above. They
+ * describe the model; the backend enforces it.
+ */
+export const ROLE_PROFILES: Record<UserRole, { responsibility: string; limitations: readonly string[] }> = {
+  ADMINISTRATOR: {
+    responsibility: 'Identity administration: employee accounts, role assignment, permanent estate and division scope, estates and divisions.',
+    limitations: [
+      'Holds no observation review, case, capture or analytics permissions.',
+      'Multi-factor sign-in is mandatory for every Administrator account.',
+      'Role permissions are fixed; an Administrator changes what a person can do only by changing their role or permanent scope.',
+    ],
+  },
+  SUPERVISOR: {
+    responsibility: 'Observation review, correction workflows and quarantine decisions within assigned estates.',
+    limitations: ['Acts only within assigned estates; the backend filters lists, maps and exports by scope.', 'Cannot manage users, estates or divisions.', 'Cannot record a diagnosis.'],
+  },
+  DISEASE_EXPERT: {
+    responsibility: 'Diagnosis of referred cases within assigned estates, with the disease catalog as reference.',
+    limitations: ['Case access also depends on referral and case assignment, decided by the backend.', 'Cannot verify, flag or correct observations.', 'Cannot manage users or scope.'],
+  },
+  FIELD_WORKER: {
+    responsibility: 'Mobile observation capture within assigned divisions, and revision of their own observations.',
+    limitations: ['Cannot sign in to the web application.', 'Sees and revises only their own observations.', 'Never reviews, diagnoses or administers.'],
+  },
+  REPORTING_USER: {
+    responsibility: 'Read-only, aggregate division analytics within the assigned reporting scope.',
+    limitations: ['No observation-level data.', 'Cannot change any record.', 'The reporting scope level (estate, division or both) is a pending team decision.'],
+  },
+}
+
+export interface RoleComparison {
+  shared: string[]
+  onlyFirst: string[]
+  onlySecond: string[]
+}
+
+/** Permission codes two roles share or hold alone, in registry order. */
+export function compareRoles(first: Pick<RoleDefinition, 'permissions'>, second: Pick<RoleDefinition, 'permissions'>): RoleComparison {
+  const codes = PERMISSIONS.map((permission) => permission.code)
+  return {
+    shared: codes.filter((code) => first.permissions.includes(code) && second.permissions.includes(code)),
+    onlyFirst: codes.filter((code) => first.permissions.includes(code) && !second.permissions.includes(code)),
+    onlySecond: codes.filter((code) => !first.permissions.includes(code) && second.permissions.includes(code)),
+  }
 }

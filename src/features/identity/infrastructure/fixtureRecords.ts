@@ -138,7 +138,8 @@ export function auditActivity(db: Db, events: readonly FixtureAuditEvent[]): Act
       const user = event.userId ? findUser(db, event.userId) : undefined
       const division = event.divisionId ? db.divisions.find((item) => item.id === event.divisionId) : undefined
       const estate = event.estateId ? db.estates.find((item) => item.id === event.estateId) : undefined
-      return describeAudit({
+      const actor = findUser(db, event.actorId)
+      const described = describeAudit({
         id: event.id,
         at: event.at,
         kind: event.kind,
@@ -149,7 +150,10 @@ export function auditActivity(db: Db, events: readonly FixtureAuditEvent[]): Act
         reasonCode: event.reasonCode,
         scope: event.scope,
         status: event.status,
+        previousValue: event.previousValue,
+        newValue: event.newValue,
       })
+      return actor ? { ...described, actor: person(actor) } : described
     })
 }
 
