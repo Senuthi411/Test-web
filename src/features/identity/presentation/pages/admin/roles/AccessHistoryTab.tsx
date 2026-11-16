@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { Badge, Button, Card, DataTable, EmptyState, ErrorState, FilterSelect, Pagination, SearchInput, TextField, type BadgeTone } from '@/shared/components'
 import { ROLE_LABELS, type UserRole } from '@/shared/types'
@@ -31,12 +31,28 @@ const localDay = (iso: string) => {
 
 const notRecorded = <span className={styles.muted}>Not recorded</span>
 
+export interface AccessHistoryTabProps {
+  /** Event types shown (and offered in the filter). Defaults to every identity event. */
+  actions?: readonly AccessHistoryAction[]
+  title?: string
+  /** Shown when the source has recorded none of these events. */
+  emptyMessage?: string
+  /** Extra explanation under the table (e.g. events the source does not record). */
+  note?: ReactNode
+}
+
 /**
  * Read-only identity and authorization history, as recorded by the audit log: role, permanent
  * scope and account-status changes and device-access revocations. Operational assignments are
- * not authorization changes and are not shown. Nothing here can be edited.
+ * not authorization changes and are not shown. Nothing here can be edited. Security & Settings
+ * shows the security subset of the same records.
  */
-export function AccessHistoryTab() {
+export function AccessHistoryTab({
+  actions = IDENTITY_HISTORY_ACTIONS,
+  title = 'Access history',
+  emptyMessage = 'Role, permanent scope and account-status changes and device-access revocations appear here once they are recorded.',
+  note,
+}: AccessHistoryTabProps) {
   const { demo } = useIdentityServices()
   const history = useAccessHistory()
   const [employee, setEmployee] = useState('')
@@ -49,7 +65,7 @@ export function AccessHistoryTab() {
   const [page, setPage] = useState(1)
 
   const term = employee.trim().toLowerCase()
-  const all = useMemo(() => (history.data ?? []).filter((entry) => isIdentityHistoryAction(entry.action)), [history.data])
+  const all = useMemo(() => (history.data ?? []).filter((entry) => isIdentityHistoryAction(entry.action) && actions.includes(entry.action)), [history.data, actions])
   const actors = useMemo(
     () => [...new Map(all.flatMap((entry) => (entry.performedBy ? [[entry.performedBy.id, entry.performedBy] as const] : []))).values()].sort((a, b) => a.fullName.localeCompare(b.fullName)),
     [all],
@@ -93,7 +109,7 @@ export function AccessHistoryTab() {
       <Card>
         <EmptyState
           icon="info"
-          title="Access history is not available yet"
+          title={`${title} is not available yet`}
           message="The backend audit log has no access-history service yet. No records are shown, and none are made up."
         />
       </Card>
@@ -102,7 +118,7 @@ export function AccessHistoryTab() {
 
   return (
     <Card
-      title="Access history"
+      title={title}
       action={<span className={styles.muted}>{demo ? 'Read-only · demonstration audit records' : 'Read-only · from the audit log'}</span>}
     >
       <div className={styles.filterBar}>
@@ -118,7 +134,7 @@ export function AccessHistoryTab() {
           label="Event type"
           value={action}
           onChange={withReset(setAction)}
-          options={[{ value: 'all', label: 'All' }, ...IDENTITY_HISTORY_ACTIONS.map((item) => ({ value: item, label: ACCESS_HISTORY_ACTION_LABELS[item] }))]}
+          options={[{ value: 'all', label: 'All' }, ...actions.map((item) => ({ value: item, label: ACCESS_HISTORY_ACTION_LABELS[item] }))]}
         />
         <FilterSelect<UserRole | 'all'>
           label="Role"
@@ -149,13 +165,13 @@ export function AccessHistoryTab() {
       ) : (
         <>
           <DataTable<AccessHistoryEntry>
-            caption="Access history"
+            caption={title}
             loading={history.isPending}
             rows={paginate(filtered, page, PAGE_SIZE)}
             rowKey={(entry) => entry.id}
             empty={
               all.length === 0 ? (
-                <EmptyState title="No access changes recorded" message="Role, permanent scope and account-status changes and device-access revocations appear here once they are recorded." />
+                <EmptyState title="No access changes recorded" message={emptyMessage} />
               ) : (
                 <EmptyState
                   title="No records match these filters"
@@ -208,6 +224,7 @@ export function AccessHistoryTab() {
             ]}
           />
           <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} itemLabel="records" />
+          {note && <p className={styles.caption}>{note}</p>}
         </>
       )}
     </Card>

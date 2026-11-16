@@ -52,9 +52,10 @@ describe('sidebar navigation', () => {
       { label: 'Overview', items: ['Dashboard'] },
       { label: 'Identity & Access', items: ['Users', 'Roles & Permissions', 'Device Sessions'] },
       { label: 'Estate Management', items: ['Estates', 'Divisions'] },
+      { label: 'Security', items: ['Security & Settings'] },
       { label: 'Account', items: ['My Profile'] },
     ])
-    for (const heading of ['Overview', 'Identity & Access', 'Estate Management', 'Account']) {
+    for (const heading of ['Overview', 'Identity & Access', 'Estate Management', 'Security', 'Account']) {
       expect(within(nav).queryByText(heading)).not.toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
@@ -65,6 +66,7 @@ describe('sidebar navigation', () => {
     ['/admin/users/USR-003', 'Users'],
     ['/admin/estates/EST-001', 'Estates'],
     ['/admin/divisions/DIV-001', 'Divisions'],
+    ['/admin/security?tab=policies', 'Security & Settings'],
   ])('highlights the parent item on %s', async (path, label) => {
     signInAs('ADMINISTRATOR')
     await renderApp(path)
@@ -77,7 +79,7 @@ describe('sidebar navigation', () => {
     signInAs(role)
     await renderApp('/')
     const nav = await mainNav()
-    for (const label of ['Users', 'Roles & Permissions', 'Device Sessions', 'Estates', 'Divisions']) {
+    for (const label of ['Users', 'Roles & Permissions', 'Device Sessions', 'Estates', 'Divisions', 'Security & Settings']) {
       expect(within(nav).queryByRole('link', { name: label })).not.toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'My Profile' })).toHaveAttribute('href', '/profile')

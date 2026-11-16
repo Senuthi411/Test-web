@@ -129,7 +129,7 @@ export function AdminDashboardPage() {
       )}
 
       <div className={dashboardStyles.row2}>
-        <SecurityAlertsCard />
+        <SecurityAlertsCard securityLink />
         <PendingActionsCard />
       </div>
 

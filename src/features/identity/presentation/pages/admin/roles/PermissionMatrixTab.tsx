@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router'
 import { Badge, Button, Card, DescriptionList, EmptyState, FilterSelect, SearchInput } from '@/shared/components'
 import { Icon } from '@/shared/design-system'
 import { ROLE_LABELS, type UserRole } from '@/shared/types'
@@ -106,6 +107,10 @@ export function PermissionMatrixTab() {
             )}
           </div>
           <PermissionLegend />
+          <p className={styles.caption}>
+            The five roles are predefined and their permissions cannot be edited here. Roles are assigned in User Management. The backend enforces
+            every permission and scope on each request; this matrix only describes them.
+          </p>
           {rows.length === 0 ? (
             <EmptyState
               title="No permissions match"
@@ -126,7 +131,13 @@ export function PermissionMatrixTab() {
                     <th scope="col">Permission</th>
                     {visibleRoles.map((definition) => (
                       <th key={definition.role} scope="col">
-                        {ROLE_LABELS[definition.role]}
+                        <Link
+                          to={`/admin/roles/${definition.slug}`}
+                          className={roleStyles.inlineLink}
+                          aria-label={`View details of the ${ROLE_LABELS[definition.role]} role`}
+                        >
+                          {ROLE_LABELS[definition.role]}
+                        </Link>
                       </th>
                     ))}
                   </tr>

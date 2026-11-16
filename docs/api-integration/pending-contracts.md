@@ -91,6 +91,63 @@ Decisions still open:
 3. Whether the design's ID-02 "Users requiring attention" entries with no recorded reason
    (USR-007, USR-006, USR-004) should stay in the demonstration data.
 
+## Implemented as pending (Security & Settings)
+
+`/admin/security` (Administrator only) has five read-only tabs: Overview, MFA, Account Security,
+Policies and Security Audit Log. It reuses existing operations (`identity.users.list`,
+`identity.dashboard.get`, `identity.deviceSessions.list`, `identity.securityAlerts.list`,
+`identity.accessHistory.list`); in API mode each section says "Not available yet" and nothing is
+taken from fixtures. It offers **no** security action: no MFA reset, unlock, recovery approval or
+policy editing. Account activation and suspension stay on the user's page; device-session
+revocation and recovery stay on Device Sessions.
+
+The Security Audit Log is the Access History source filtered to `account_enabled`,
+`account_disabled` and `device_access_revoked`; there is no second audit system.
+
+Contracts needed before Phase 2 actions can be added:
+
+| Operation | Needs |
+| --- | --- |
+| `identity.mfa.status` (per user, or a field on the user) | Enrollment status of each Administrator (`enrolled`, `pending`, `reset_required`), enrolled-at time. Never the secret, setup key or recovery codes. |
+| `identity.mfa.reset` | Start an Administrator MFA reset or recovery: requires the acting Administrator to re-authenticate, refuses self-reset, sends a one-time code to the target's verified e-mail address, is verified by the backend and writes an audit record. Idempotency key; error codes. |
+| `identity.accountSecurity.list` | Locked accounts (lock reason, time, unlock policy) and failed sign-in events, with the thresholds the backend applies. |
+| `identity.accounts.unlock` | Unlock with reason and audit record, if the lockout policy allows manual unlock. |
+| `identity.recoveryRequests.list` | Password, MFA and device-session recovery requests with status, requester and decision. Only device-session recoveries exist today. |
+| `identity.securityPolicies.get` | Current session expiration, inactivity timeout, offline session validity, re-authentication rules and recovery policy as enforced by the backend. |
+| `identity.securityPolicies.update` | Only after the policies, their owners and enforcement are approved; versioned, audited, with re-authentication. |
+| `identity.accessHistory.list` (extension) | Additional actions: `user_created`, `mfa_reset_requested`, `mfa_reset_completed`, `account_recovery_*`, `security_policy_changed`, `temporary_access_decided`. |
+
+Policies shown as **approved** restate recorded decisions (Administrator TOTP MFA, 6-digit codes,
+5-minute e-mail OTP, e-mail OTP password recovery, revoked and signed-out sessions cannot be
+reused, unsynchronized observations are preserved through recovery, the ID-14 password minimum).
+**Proposed**: the 7-day offline session validity (not enforced, not hard-coded anywhere).
+**Not defined**: session expiration, inactivity timeout, re-authentication for sensitive actions,
+MFA reset workflow, cross-estate temporary access approval authority.
+
+## Planned (Phase 3) — Supervisor coverage and temporary delegation
+
+Not implemented. No Administrator screen creates, approves or activates temporary access, and no
+handover UI exists in the Administrator module.
+
+- **Same scope** (both Supervisors hold EST-001): delegating review work is a temporary *work
+  assignment* in the Supervisor module. Neither permanent scope changes.
+- **Different scope** (Supervisor B holds EST-002 and must cover EST-001): Supervisor A must not
+  grant EST-001 directly. Proposed workflow:
+  1. Supervisor A opens a coverage request naming Supervisor B, the estate, the permitted
+     operations, the reason, the start and the expiry.
+  2. An authorized approver (not the requester, not Supervisor B) approves or rejects it.
+  3. The backend activates only the approved temporary scope; Supervisor B works under their own
+     identity; every action is audited.
+  4. The backend expires the grant automatically and rejects access after expiry or revocation.
+
+Requirements for the backend: authorization on every request, no self-approval, expiry enforced
+server-side, audit of request, decision, activation, use, expiry and revocation, and protection
+against privilege escalation. `AccessGrantPort` and the grant domain model are kept for this.
+
+Decision still open: **who approves** cross-estate coverage. If Administrators are designated, a
+limited "Access approval requests" queue may be added under Security & Settings, restricted to
+approve or reject within that policy; it must not become a workforce assignment screen.
+
 ## Implemented as pending (Phase 5 — Review)
 
 `features/review/infrastructure/httpReviewAdapter.ts` sends no requests. Every operation

@@ -7,8 +7,11 @@ import { ALERT_KIND_LABELS, SEVERITY, alertAction } from './dashboardLabels'
 import { SectionBoundary } from './SectionBoundary'
 import styles from './AdminDashboard.module.css'
 
-/** Security & access alerts: only events the source records, never inferred ones. */
-export function SecurityAlertsCard() {
+/**
+ * Security & access alerts: only events the source records, never inferred ones.
+ * `securityLink`: the Dashboard links to Security & Settings (that page shows the card itself).
+ */
+export function SecurityAlertsCard({ securityLink = false }: { securityLink?: boolean }) {
   const query = useSecurityAlerts()
   const relative = useRelativeTime()
   const { demo } = useDemoWording()
@@ -18,6 +21,13 @@ export function SecurityAlertsCard() {
       title="Security & access alerts"
       aria-label="Security & access alerts"
       className={styles.section}
+      action={
+        securityLink ? (
+          <Link to="/admin/security" className={styles.itemAction}>
+            Security &amp; Settings
+          </Link>
+        ) : undefined
+      }
     >
       <SectionBoundary queries={[query]} unavailable="The Identity service does not report security events yet. No alerts are shown until it does.">
         {() => {

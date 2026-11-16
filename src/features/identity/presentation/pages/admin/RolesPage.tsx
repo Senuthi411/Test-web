@@ -37,13 +37,11 @@ import roleStyles from './RolesPage.module.css'
 import { AccessHistoryTab } from './roles/AccessHistoryTab'
 import { PermissionMatrixTab } from './roles/PermissionMatrixTab'
 import { PermissionLegend, PermissionState } from './roles/PermissionState'
-import { RoleOverviewTab } from './roles/RoleOverviewTab'
 import { userCountLabel, usersWithRolePath } from './roles/roleUsers'
 
-type RolesTab = 'overview' | 'matrix' | 'history'
+type RolesTab = 'matrix' | 'history'
 
 const ROLES_TABS: readonly TabItem<RolesTab>[] = [
-  { id: 'overview', label: 'Role Overview' },
   { id: 'matrix', label: 'Permission Matrix' },
   { id: 'history', label: 'Access History' },
 ]
@@ -51,9 +49,10 @@ const ROLES_TABS: readonly TabItem<RolesTab>[] = [
 const isRolesTab = (value: string | null): value is RolesTab => ROLES_TABS.some((tab) => tab.id === value)
 
 /**
- * ID-07 Roles and Permissions: who the system roles are, what each can do and within what
- * scope, and which identity and access changes have occurred. Read-only; roles are assigned
- * in User Management. An unknown `?tab=` (e.g. the removed Temporary Access) opens the overview.
+ * ID-07 Roles and Permissions: what each predefined role can do and within what scope, and
+ * which identity and access changes have occurred. Read-only; roles are assigned in User
+ * Management. An unknown `?tab=` (e.g. the removed Role Overview or Temporary Access) opens
+ * the Permission Matrix.
  */
 export function RolesPage() {
   usePageBreadcrumbs([{ label: 'Administration', to: '/admin' }, { label: 'Roles & Permissions' }])
@@ -61,13 +60,13 @@ export function RolesPage() {
   const { demo } = useDemoWording()
   const [params, setParams] = useSearchParams()
   const requested = params.get('tab')
-  const tab: RolesTab = isRolesTab(requested) ? requested : 'overview'
+  const tab: RolesTab = isRolesTab(requested) ? requested : 'matrix'
 
   return (
     <div className={styles.page}>
       <PageHeader
         title="Roles and Permissions"
-        subtitle={`Review system roles, understand permissions, and audit access changes.${demo ? ' Demonstration data: the backend enforces the real permissions.' : ''}`}
+        subtitle={`Review the permissions of the predefined system roles and audit access changes.${demo ? ' Demonstration data: the backend enforces the real permissions.' : ''}`}
         actions={
           tab === 'matrix' ? (
             <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
@@ -79,12 +78,11 @@ export function RolesPage() {
       <Tabs
         items={ROLES_TABS}
         value={tab}
-        onChange={(next) => setParams(next === 'overview' ? {} : { tab: next }, { replace: true })}
+        onChange={(next) => setParams(next === 'matrix' ? {} : { tab: next }, { replace: true })}
         label="Roles and permissions sections"
         idBase="roles"
       />
       <div {...tabPanelProps('roles', tab)} className={styles.stack}>
-        {tab === 'overview' && <RoleOverviewTab />}
         {tab === 'matrix' && <PermissionMatrixTab />}
         {tab === 'history' && <AccessHistoryTab />}
       </div>

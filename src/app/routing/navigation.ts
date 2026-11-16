@@ -52,6 +52,7 @@ export const ROLE_NAVIGATION: Record<WebRole, RoleNavigation> = {
           { label: 'Divisions', to: '/admin/divisions', icon: 'layers' },
         ],
       },
+      { label: 'Security', items: [{ label: 'Security & Settings', to: '/admin/security', icon: 'lock' }] },
       ACCOUNT,
     ],
   },

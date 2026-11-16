@@ -31,6 +31,7 @@ export const DivisionsPage = lazy(() => load().then((module) => ({ default: modu
 export const DivisionDetailPage = lazy(() => load().then((module) => ({ default: module.DivisionDetailPage })))
 export const DeviceSessionsPage = lazy(() => load().then((module) => ({ default: module.DeviceSessionsPage })))
 export const SessionRecoveryPage = lazy(() => load().then((module) => ({ default: module.SessionRecoveryPage })))
+export const SecuritySettingsPage = lazy(() => load().then((module) => ({ default: module.SecuritySettingsPage })))
 export const ProfilePage = lazy(() => load().then((module) => ({ default: module.ProfilePage })))
 
 /** Shown while a screen's code loads. */

@@ -143,7 +143,7 @@ test('profile updates, notifications and password changes remain functional unti
 
 for (const width of [1440, 390]) {
   test(`Identity screens render without page overflow at ${width}px`, async ({ page }) => {
-    test.setTimeout(60_000)
+    test.setTimeout(90_000)
     await page.setViewportSize({ width, height: 900 })
     await signIn(page)
     const paths = [
@@ -151,7 +151,8 @@ for (const width of [1440, 390]) {
       '/admin/users/USR-005/edit', '/admin/users/USR-005/scope', '/admin/roles',
       '/admin/roles/administrator', '/admin/estates', '/admin/estates/EST-001',
       '/admin/divisions', '/admin/divisions/DIV-001', '/admin/device-sessions',
-      '/admin/device-sessions/DS-3012/recovery', '/profile', '/forbidden',
+      '/admin/device-sessions/DS-3012/recovery', '/admin/security', '/admin/security?tab=mfa',
+      '/admin/security?tab=accounts', '/admin/security?tab=policies', '/admin/security?tab=audit', '/profile', '/forbidden',
     ]
     for (const path of paths) {
       await page.goto(path)
@@ -167,7 +168,7 @@ test('role links, assigned users, user tabs and breadcrumbs connect Identity scr
   await signIn(page)
   const nav = page.getByRole('navigation', { name: 'Main' })
   await nav.getByRole('link', { name: 'Roles & Permissions' }).click()
-  await expect(page.getByRole('list', { name: 'System roles' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Permission Matrix', selected: true })).toBeVisible()
   await page.getByRole('link', { name: 'View details of the Administrator role' }).click()
   await expect(page.getByRole('heading', { name: 'Administrator', exact: true })).toBeVisible()
   await page.getByRole('table', { name: 'Users with the Administrator role' }).getByText('Anika Perera').click()

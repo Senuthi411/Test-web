@@ -43,6 +43,7 @@ export const SCREEN_GROUPS: readonly ScreenGroup[] = [
       { path: 'divisions/:divisionId', screenId: 'ID-12', title: 'Division Detail', phase: 3 },
       { path: 'device-sessions', screenId: 'ID-13', title: 'Device Sessions', phase: 3 },
       { path: 'device-sessions/:sessionId/recovery', screenId: 'ID-13', title: 'Controlled recovery', phase: 3 },
+      { path: 'security', screenId: 'ID-17', title: 'Security & Settings', phase: 3 },
     ],
   },
   {

@@ -147,7 +147,7 @@ export function permissionLabel(code: string): string {
 }
 
 // ---------------------------------------------------------------------------------------
-// Presentation of the fixed role model (Role Overview, matrix, comparison). Everything is
+// Presentation of the fixed role model (matrix, comparison, role detail). Everything is
 // derived from PERMISSIONS, ROLE_CATALOG, WEB_ROLES and the scope levels above.
 // ---------------------------------------------------------------------------------------
 

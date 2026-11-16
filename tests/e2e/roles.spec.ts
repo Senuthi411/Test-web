@@ -22,15 +22,15 @@ async function pickFilter(page: Page, label: string, option: string) {
   await page.getByRole('listbox', { name: label }).getByRole('option', { name: option, exact: true }).click()
 }
 
-test('role overview, role details and filtered User Management', async ({ page }) => {
+test('two tabs, role details from the matrix and filtered User Management', async ({ page }) => {
   await signIn(page)
   await page.goto('/admin/roles')
-  await expect(page.getByRole('tab', { name: 'Role Overview', selected: true })).toBeVisible()
-  await expect(page.getByRole('tab', { name: /Temporary/ })).toHaveCount(0)
-  const roles = page.getByRole('list', { name: 'System roles' })
-  await expect(roles.getByRole('region')).toHaveCount(5)
+  await expect(page.getByRole('tab', { name: 'Permission Matrix', selected: true })).toBeVisible()
+  await expect(page.getByRole('tab')).toHaveText(['Permission Matrix', 'Access History'])
+  await expect(page.getByRole('tab', { name: /Overview|Temporary/ })).toHaveCount(0)
+  await expect(page.getByRole('list', { name: 'System roles' })).toHaveCount(0)
 
-  await page.getByRole('link', { name: 'View details of the Supervisor role' }).click()
+  await page.getByRole('table', { name: 'Permission matrix', exact: true }).getByRole('link', { name: 'View details of the Supervisor role' }).click()
   await expect(page).toHaveURL(/\/admin\/roles\/supervisor$/)
   await expect(page.getByRole('heading', { name: 'Supervisor', level: 1 })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Users with the Supervisor role' })).toBeVisible()

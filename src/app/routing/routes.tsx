@@ -23,6 +23,7 @@ import {
   RoleDetailPage,
   RolesPage,
   ScreenLoading,
+  SecuritySettingsPage,
   SessionExpiredPage,
   SessionRecoveryPage,
   UserDetailPage,
@@ -103,6 +104,7 @@ const IMPLEMENTED: Record<string, ReactNode> = {
   '/admin/divisions/:divisionId': <DivisionDetailPage />,
   '/admin/device-sessions': <DeviceSessionsPage />,
   '/admin/device-sessions/:sessionId/recovery': <SessionRecoveryPage />,
+  '/admin/security': <SecuritySettingsPage />,
 }
 
 const roleGroupRoutes: RouteObject[] = SCREEN_GROUPS.map((group) => ({
