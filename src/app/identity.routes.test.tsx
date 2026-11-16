@@ -51,7 +51,7 @@ async function fillContact(user: ReturnType<typeof userEvent.setup>, options: { 
 }
 
 async function logIn(user: ReturnType<typeof userEvent.setup>, userId: string, password = FIXTURE_DEV_PASSWORD) {
-  await user.type(await screen.findByRole('textbox', { name: 'User ID' }), userId)
+  await user.type(await screen.findByRole('textbox', { name: 'Company User ID' }), userId)
   await user.type(screen.getByLabelText('Password'), password)
   await user.click(screen.getByRole('button', { name: 'Log In' }))
 }
@@ -60,8 +60,8 @@ describe('AUTH-01 login', () => {
   it('renders the enterprise login with User ID and password only', async () => {
     renderFixtureApp('/login')
     expect(await screen.findByRole('heading', { name: 'Welcome Back' }, { timeout: 5000 })).toBeInTheDocument()
-    expect(screen.getByText('Log in with your company User ID')).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: 'User ID' })).toHaveAttribute('placeholder', 'Enter your User ID')
+    expect(screen.getByText('Log in to continue to TeaLeaf Field Scout')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Company User ID' })).toHaveAttribute('placeholder', 'Enter your User ID')
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
     expect(screen.getByRole('checkbox', { name: 'Remember User ID' })).not.toBeChecked()
     expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '/forgot-password')
@@ -108,7 +108,7 @@ describe('AUTH-01 login', () => {
     await user.click(await screen.findByRole('button', { name: 'Log In' }))
     expect(await screen.findByText('Enter your User ID')).toBeInTheDocument()
     expect(screen.getByText('Enter your password')).toBeInTheDocument()
-    const userIdInput = screen.getByRole('textbox', { name: 'User ID' })
+    const userIdInput = screen.getByRole('textbox', { name: 'Company User ID' })
     expect(userIdInput).toHaveAttribute('aria-invalid', 'true')
     expect(userIdInput).toHaveAccessibleDescription('Enter your User ID')
     expect(userIdInput).toHaveFocus()
@@ -119,7 +119,7 @@ describe('AUTH-01 login', () => {
     const { router } = renderFixtureApp('/login')
     await logIn(user, 'anika.perera@example.test', 'x')
     expect(await screen.findByText('Log in with your company User ID, not an e-mail address')).toBeInTheDocument()
-    await user.clear(screen.getByRole('textbox', { name: 'User ID' }))
+    await user.clear(screen.getByRole('textbox', { name: 'Company User ID' }))
     await logIn(user, 'anika', 'x')
     expect(await screen.findByText('Enter a valid User ID, for example USR-003')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/login')
@@ -139,7 +139,7 @@ describe('AUTH-01 login', () => {
     await logIn(user, 'USR-001', 'not-the-password')
     expect(await screen.findByText('The User ID or password is incorrect.')).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toHaveValue('')
-    await user.clear(screen.getByRole('textbox', { name: 'User ID' }))
+    await user.clear(screen.getByRole('textbox', { name: 'Company User ID' }))
     await logIn(user, 'USR-999', 'whatever')
     expect(await screen.findByText('The User ID or password is incorrect.')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/login')
@@ -184,7 +184,7 @@ describe('AUTH-01 login', () => {
   it('pre-fills a remembered User ID and keeps the password empty', async () => {
     window.localStorage.setItem('tealeaf.rememberedUserId', 'USR-003')
     renderFixtureApp('/login')
-    expect(await screen.findByRole('textbox', { name: 'User ID' })).toHaveValue('USR-003')
+    expect(await screen.findByRole('textbox', { name: 'Company User ID' })).toHaveValue('USR-003')
     expect(screen.getByRole('checkbox', { name: 'Remember User ID' })).toBeChecked()
     expect(screen.getByLabelText('Password')).toHaveValue('')
   })

@@ -99,7 +99,7 @@ function renderWithPorts(path: string, ports: Ports = {}) {
 type User = ReturnType<typeof userEvent.setup>
 
 async function logIn(user: User, userId = 'USR-001', password = PASSWORD) {
-  await user.type(await screen.findByRole('textbox', { name: 'User ID' }, { timeout: 5000 }), userId)
+  await user.type(await screen.findByRole('textbox', { name: 'Company User ID' }, { timeout: 5000 }), userId)
   await user.type(screen.getByLabelText('Password'), password)
   await user.click(screen.getByRole('button', { name: 'Log In' }))
 }

@@ -1,10 +1,14 @@
-/* AUTH-01 enterprise login: full-bleed tea plantation, dark-green fade on the left,
-   product story on the left and a rounded white login card on the right. */
+/* AUTH-01 enterprise login: full-bleed tea plantation under a dark green/teal fade, brand and
+   product story on the left with a tea-leaf scan visual, bottom wave accents, and a rounded
+   mint-white login card on the right. */
 .page {
   --login-forest: #0f3a1d;
+  --login-ink: #111c15;
   --login-green: #2f8a2c;
   --login-leaf: #8ed64a;
-  --login-muted: #5b6b5f;
+  --login-lime: #b6ec3a;
+  --login-scan: #7ee86a;
+  --login-muted: #4f5d53;
 
   position: relative;
   min-height: 100vh;
@@ -16,12 +20,12 @@
 
 .background {
   position: absolute;
-  inset: 0;
+  inset: 0 auto 0 -10%;
   z-index: -2;
-  width: 100%;
+  width: 112%;
   height: 100%;
   object-fit: cover;
-  object-position: 62% center;
+  object-position: center 40%;
 }
 
 .overlay {
@@ -29,52 +33,60 @@
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, rgb(5 34 18 / 0.94) 0%, rgb(7 42 22 / 0.82) 26%, rgb(8 45 24 / 0.38) 50%, rgb(8 45 24 / 0.08) 68%),
-    linear-gradient(0deg, rgb(4 30 15 / 0.45) 0%, rgb(4 30 15 / 0) 30%);
+    linear-gradient(90deg, rgb(4 36 26 / 0.95) 0%, rgb(6 44 30 / 0.84) 28%, rgb(8 48 30 / 0.45) 48%, rgb(8 45 24 / 0.1) 66%),
+    linear-gradient(180deg, rgb(4 30 22 / 0.35) 0%, rgb(4 30 22 / 0) 30%, rgb(4 30 15 / 0) 65%, rgb(4 30 15 / 0.5) 100%);
+}
+
+.wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: clamp(100px, 22vh, 230px);
+  pointer-events: none;
 }
 
 .layout {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(420px, 0.8fr);
-  align-items: center;
-  gap: clamp(24px, 4vw, 96px);
+  grid-template-columns: minmax(0, 1fr) minmax(380px, min(520px, 38vw));
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'brand card'
+    'story card';
+  column-gap: clamp(32px, 4vw, 88px);
   min-height: 100vh;
   min-height: 100dvh;
-  padding: clamp(20px, 4vh, 56px) clamp(24px, 4vw, 80px);
+  padding: clamp(24px, 9vh, 96px) clamp(24px, 5.5vw, 112px) clamp(24px, 6vh, 64px);
 }
 
-/* ---- Left: product story ---- */
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-self: stretch;
-  justify-content: center;
-  min-width: 0;
-  padding-left: clamp(0px, 2vw, 40px);
-  color: #fff;
-}
-
+/* ---- Brand (upper left) ---- */
 .heroBrand {
+  grid-area: brand;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 22px;
-  margin-bottom: clamp(32px, 9vh, 110px);
+  gap: 14px clamp(14px, 1.5vw, 22px);
+  min-width: 0;
+  color: #fff;
 }
 
 .heroMark {
   flex: none;
+  width: clamp(52px, 4.7vw, 68px);
+  height: auto;
 }
 
-.heroWordmark,
-.wordmark {
+.heroWordmark {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
 
 .heroName {
-  font: 800 40px/1 var(--tl-font-family);
+  font: 800 clamp(32px, 2.8vw, 40px) / 1 var(--tl-font-family);
   letter-spacing: -0.01em;
 }
 
@@ -84,7 +96,7 @@
 
 .heroScout {
   margin-top: 6px;
-  font: 700 16px/1 var(--tl-font-family);
+  font: 700 clamp(13px, 1.1vw, 16px) / 1 var(--tl-font-family);
   letter-spacing: 0.24em;
   text-transform: uppercase;
 }
@@ -96,50 +108,69 @@
 }
 
 .heroPlatform {
-  font: 600 14px/1.3 var(--tl-font-family);
+  font: 600 clamp(12px, 0.98vw, 14px) / 1.3 var(--tl-font-family);
   letter-spacing: 0.26em;
   text-transform: uppercase;
+}
+
+/* ---- Left: product story and scan visual ---- */
+.hero {
+  grid-area: story;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(150px, 12vw, 220px);
+  align-items: center;
+  gap: clamp(16px, 1.8vw, 40px);
+  min-width: 0;
+  color: #fff;
+}
+
+.story {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.accentBar {
+  width: 88px;
+  height: 5px;
+  margin-bottom: clamp(18px, 3.5vh, 32px);
+  border-radius: 3px;
+  background: var(--login-lime);
 }
 
 .headline {
   display: flex;
   flex-direction: column;
-  max-width: 9.5em;
   margin: 0;
-  font: 700 clamp(40px, 3.5vw, 72px) / 1.14 var(--tl-font-family);
-  letter-spacing: -0.01em;
+  font: 700 clamp(32px, 2.6vw, 46px) / 1.22 var(--tl-font-family);
+  letter-spacing: -0.012em;
   text-shadow: 0 2px 18px rgb(0 0 0 / 0.25);
 }
 
 .headlineAccent {
-  font-size: 1.12em;
   font-weight: 800;
-  color: var(--login-leaf);
-}
-
-.headlineRest {
-  font-weight: 600;
+  color: var(--login-lime);
 }
 
 .rule {
-  width: 88px;
-  height: 4px;
-  margin: clamp(20px, 3.5vh, 36px) 0;
-  border-radius: 2px;
-  background: var(--login-leaf);
+  width: min(100%, 25em);
+  height: 2px;
+  margin: clamp(18px, 3.5vh, 30px) 0;
+  border-radius: 1px;
+  background: rgb(255 255 255 / 0.7);
 }
 
 .heroText {
-  max-width: 30em;
+  max-width: 27em;
   margin: 0;
-  font: 400 clamp(17px, 1.15vw, 22px) / 1.5 var(--tl-font-family);
+  font: 400 clamp(16px, 1.2vw, 18px) / 1.55 var(--tl-font-family);
   color: #eef6e8;
 }
 
 .features {
   display: flex;
   flex-wrap: wrap;
-  margin: clamp(32px, 9vh, 110px) 0 0;
+  margin: clamp(28px, 6vh, 56px) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -147,9 +178,11 @@
 .feature {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 12px;
-  padding: 0 clamp(20px, 2.2vw, 44px);
-  border-left: 1px solid rgb(255 255 255 / 0.4);
+  padding: 0 clamp(18px, 2.2vw, 40px);
+  border-left: 1px solid rgb(255 255 255 / 0.35);
+  text-align: center;
 }
 
 .feature:first-child {
@@ -163,102 +196,116 @@
   justify-content: center;
   width: 54px;
   height: 54px;
-  border: 2px solid #7cc84a;
+  border: 2px solid var(--login-lime);
   border-radius: 12px;
-  background: rgb(22 84 32 / 0.6);
-  color: #b4e67a;
+  background: rgb(14 70 30 / 0.7);
+  box-shadow: 0 0 14px rgb(182 236 58 / 0.25);
+  color: var(--login-lime);
 }
 
 .featureText {
-  font: 600 19px/1.3 var(--tl-font-family);
+  font: 600 17px/1.3 var(--tl-font-family);
+}
+
+.scan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 4vh, 36px);
+  color: var(--login-scan);
+}
+
+.signal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid rgb(126 232 106 / 0.75);
+  border-radius: 14px;
+  background: rgb(6 60 34 / 0.72);
+  box-shadow: 0 0 22px rgb(126 232 106 / 0.28);
+  backdrop-filter: blur(4px);
+}
+
+.signalIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--login-lime);
+  border-radius: 50%;
+  color: var(--login-lime);
+}
+
+.signalTrace {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+}
+
+.frame {
+  width: 92%;
+  height: auto;
+  filter: drop-shadow(0 0 6px rgb(126 232 106 / 0.6));
 }
 
 /* ---- Right: login card ---- */
 .panel {
+  grid-area: card;
   display: flex;
+  align-items: center;
   justify-content: center;
   min-width: 0;
 }
 
 .card {
+  position: relative;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  width: min(560px, 100%);
-  padding: clamp(28px, 4.5vh, 52px) clamp(24px, 2.6vw, 48px);
-  border: 1px solid rgb(255 255 255 / 0.8);
-  border-radius: 32px;
-  background: rgb(250 252 248 / 0.97);
+  width: 100%;
+  padding: clamp(28px, 5vh, 48px) clamp(24px, 2.1vw, 44px) clamp(24px, 4vh, 36px);
+  border: 1px solid rgb(255 255 255 / 0.75);
+  border-radius: 40px;
+  background: linear-gradient(165deg, rgb(232 247 232 / 0.96) 0%, rgb(246 251 244 / 0.96) 45%, rgb(250 253 248 / 0.97) 100%);
   box-shadow:
-    0 30px 80px rgb(2 22 10 / 0.35),
+    0 28px 70px rgb(4 40 18 / 0.4),
+    0 0 0 6px rgb(142 214 74 / 0.08),
     0 2px 8px rgb(2 22 10 / 0.12);
+  backdrop-filter: blur(6px);
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.brandMark {
-  flex: none;
-}
-
-.name {
-  font: 800 52px/1 var(--tl-font-family);
-  letter-spacing: -0.015em;
-  color: var(--login-forest);
-}
-
-.leaf {
-  color: #3f9a2e;
-}
-
-.scout {
-  margin-top: 6px;
-  font: 700 20px/1 var(--tl-font-family);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--login-forest);
-}
-
-.tagline {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin: 0;
-  font: 700 12px/1.3 var(--tl-font-family);
-  letter-spacing: 0.28em;
-  text-align: center;
-  text-transform: uppercase;
-  color: #1b3d26;
-}
-
-.tagline span {
-  flex: 0 1 48px;
-  height: 2px;
-  border-radius: 1px;
-  background: #5aa83a;
+.cardLeaf {
+  position: absolute;
+  top: -34px;
+  right: -16px;
+  width: clamp(110px, 10vw, 150px);
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 8px rgb(10 60 20 / 0.25));
 }
 
 .heading {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 6px;
   text-align: center;
 }
 
 .title {
   margin: 0;
-  font: 800 40px/1.15 var(--tl-font-family);
-  color: var(--login-forest);
+  font: 800 44px/1.12 var(--tl-font-family);
+  letter-spacing: -0.015em;
+  color: var(--login-ink);
 }
 
 .subtitle {
   margin: 0;
+  text-wrap: balance;
   font: 400 18px/1.4 var(--tl-font-family);
   color: var(--login-muted);
 }
@@ -267,6 +314,60 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Visible field labels with a leading glyph, as in the reference. */
+.userIdField label,
+.passwordField label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 18px/1.3 var(--tl-font-family);
+  color: var(--login-ink);
+}
+
+.userIdField label::before,
+.passwordField label::before {
+  content: '';
+  flex: none;
+  width: 22px;
+  height: 22px;
+  background: currentColor;
+  mask: center / contain no-repeat;
+}
+
+.userIdField label::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='7.2' r='4.6'/%3E%3Cpath d='M3.2 21.5c0-4.9 3.9-8.4 8.8-8.4s8.8 3.5 8.8 8.4z'/%3E%3C/svg%3E");
+}
+
+.passwordField label::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'%3E%3Crect x='4.5' y='10.5' width='15' height='11' rx='2'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
+}
+
+.form [data-appearance='auth'] {
+  height: 54px;
+  padding: 0 20px;
+  border-color: #cfdccb;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 60 24 / 0.05);
+}
+
+.form [data-appearance='auth']:focus-within {
+  border-color: var(--login-green);
+  box-shadow: 0 0 0 3px rgb(47 138 44 / 0.18);
+}
+
+.form [data-appearance='auth'][data-invalid='true'] {
+  border-color: var(--tl-danger-solid);
+  box-shadow: 0 0 0 1px var(--tl-danger-solid);
+}
+
+/* Input icons in brand green (the eye toggle stays dark). */
+.form [data-appearance='auth'] > svg:first-child {
+  width: 24px;
+  height: 24px;
+  color: var(--login-green);
 }
 
 .options {
@@ -279,16 +380,9 @@
   color: var(--tl-text-ink);
 }
 
-/* Input icons as in the reference: larger, in brand green (the eye toggle stays grey). */
-.form [data-appearance='auth'] > svg:first-child {
-  width: 24px;
-  height: 24px;
-  color: var(--login-green);
-}
-
 .options label {
   font: 500 17px/1.3 var(--tl-font-family);
-  color: var(--tl-text-ink);
+  color: var(--login-ink);
 }
 
 .textButton {
@@ -313,32 +407,51 @@
   box-shadow: var(--tl-focus-ring);
 }
 
-/* Small, centred Log In button (no arrow); full width on phones. */
+/* Compact, centred pill button with a trailing arrow; full width on phones. */
 .submit.submit {
   align-self: center;
-  width: clamp(200px, 64%, 320px);
-  height: 60px;
-  margin-top: 4px;
+  gap: 12px;
+  width: clamp(230px, 52%, 260px);
+  height: 52px;
+  margin-top: 2px;
   border: 0;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #2f8a2c 0%, #17601e 100%);
-  box-shadow: 0 8px 18px rgb(23 96 30 / 0.28);
-  font: 700 22px/1 var(--tl-font-family);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2f9a30 0%, #136019 100%);
+  box-shadow:
+    0 8px 18px rgb(19 96 25 / 0.32),
+    inset 0 1px 0 rgb(255 255 255 / 0.18);
+  font: 700 21px/1 var(--tl-font-family);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .submit.submit:hover:not(:disabled) {
-  background: linear-gradient(180deg, #2a7f27 0%, #124f18 100%);
+  background: linear-gradient(180deg, #2a8b2a 0%, #0f5014 100%);
+  box-shadow:
+    0 10px 22px rgb(19 96 25 / 0.38),
+    inset 0 1px 0 rgb(255 255 255 / 0.18);
+  transform: translateY(-1px);
+}
+
+.submit.submit:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px var(--login-green);
 }
 
 .secure {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 16px;
-  margin-top: 4px;
-  padding: 16px 22px;
+  justify-content: center;
+  gap: 6px 10px;
+  padding: 14px;
   border: 1px solid #dcebd2;
-  border-radius: 16px;
-  background: #eef6e8;
+  border-radius: 20px;
+  background: rgb(230 244 226 / 0.85);
   color: #2f7d32;
 }
 
@@ -347,15 +460,39 @@
 }
 
 .secureTitle {
-  margin: 0 0 2px;
-  font: 700 19px/1.3 var(--tl-font-family);
-  color: #15391f;
+  margin: 0;
+  white-space: nowrap;
+  font: 700 17px/1.3 var(--tl-font-family);
+  color: var(--login-ink);
+}
+
+.secureDivider {
+  width: 1px;
+  height: 28px;
+  background: #c4d8bd;
 }
 
 .secureText {
+  min-width: 0;
   margin: 0;
-  font: 400 16px/1.4 var(--tl-font-family);
+  font: 400 14px/1.4 var(--tl-font-family);
   color: var(--login-muted);
+}
+
+/* Narrow cards: icon and title on one line, the explanation centred beneath. */
+@container (max-width: 450px) {
+  .secure {
+    flex-wrap: wrap;
+  }
+
+  .secureDivider {
+    display: none;
+  }
+
+  .secureText {
+    flex-basis: 100%;
+    text-align: center;
+  }
 }
 
 .modalText {
@@ -364,29 +501,20 @@
   color: var(--tl-text-ink);
 }
 
-/* Laptops: keep the whole card inside short desktop viewports. Errors and zoom can still
-   grow the page naturally (it scrolls). */
-@media (min-width: 1024px) and (max-height: 900px) {
+/* Short desktop viewports (laptops): tighten the card so the whole page fits without
+   scrolling. Errors and zoom can still grow the page naturally (it scrolls). */
+@media (min-width: 1024px) and (max-height: 860px) {
+  .layout {
+    padding-block: clamp(20px, 5vh, 48px);
+  }
+
   .card {
     gap: 12px;
-    padding-block: 24px;
-  }
-
-  .brandMark {
-    width: 56px;
-    height: 56px;
-  }
-
-  .name {
-    font-size: 40px;
-  }
-
-  .scout {
-    font-size: 16px;
+    padding-block: 26px 22px;
   }
 
   .title {
-    font-size: 32px;
+    font-size: 36px;
   }
 
   .subtitle {
@@ -398,24 +526,42 @@
   }
 
   .form [data-appearance='auth'] {
-    height: 52px;
+    height: 50px;
   }
 
-  .submit.submit {
-    height: 52px;
-    font-size: 20px;
+  .userIdField label,
+  .passwordField label {
+    font-size: 16px;
   }
 
   .secure {
     padding: 10px 18px;
   }
 
-  .heroBrand {
-    margin-bottom: clamp(24px, 6vh, 64px);
+  .features {
+    margin-top: clamp(20px, 4vh, 40px);
+  }
+}
+
+/* Narrower desktops: the scan visual gives its room back to the story. */
+@media (max-width: 1399px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .features {
-    margin-top: clamp(24px, 6vh, 64px);
+  .scan {
+    display: none;
+  }
+}
+
+/* Small desktops: the platform line moves under the wordmark. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .heroDivider {
+    display: none;
+  }
+
+  .heroPlatform {
+    flex-basis: 100%;
   }
 }
 
@@ -428,46 +574,48 @@
   }
 }
 
-/* Tablets: stack a compact story above the card. */
+/* Tablets: brand and a compact story stacked above the card. */
 @media (max-width: 1023px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      'brand'
+      'story'
+      'card';
     align-content: center;
     gap: 32px;
-    padding: 32px 32px 40px;
+    padding: 32px 32px 48px;
+  }
+
+  .background {
+    inset: 0;
+    width: 100%;
   }
 
   .overlay {
-    background: linear-gradient(180deg, rgb(5 34 18 / 0.88) 0%, rgb(7 42 22 / 0.7) 45%, rgb(7 42 22 / 0.55) 100%);
-  }
-
-  .hero {
-    align-items: center;
-    padding-left: 0;
-    text-align: center;
+    background: linear-gradient(180deg, rgb(4 36 26 / 0.9) 0%, rgb(6 44 30 / 0.74) 45%, rgb(6 44 30 / 0.58) 100%);
   }
 
   .heroBrand {
     justify-content: center;
-    margin-bottom: 28px;
+  }
+
+  .hero {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .story {
+    align-items: center;
   }
 
   .headline {
-    display: block;
-    max-width: none;
-    font-size: 38px;
-  }
-
-  .headline span {
-    display: inline;
-    font-size: 1em;
-  }
-
-  .headline span + span::before {
-    content: ' ';
+    font-size: 36px;
   }
 
   .rule {
+    width: min(100%, 22em);
     margin: 18px auto;
   }
 
@@ -476,52 +624,72 @@
   }
 
   .features {
-    display: none;
+    justify-content: center;
+    margin-top: 28px;
+  }
+
+  .panel {
+    justify-content: center;
+  }
+
+  .card {
+    max-width: 560px;
   }
 }
 
-/* Phones: the login form comes first; the decorative story is hidden (the card keeps the
-   logo and product name). */
+/* Phones: the brand stays, the decorative story is hidden and the form comes first. */
 @media (max-width: 767px) {
   .hero {
     display: none;
   }
 
   .layout {
-    padding: 24px 16px;
+    gap: 24px;
+    padding: 24px 16px 32px;
+  }
+
+  .heroBrand {
+    gap: 8px 14px;
+  }
+
+  .heroMark {
+    width: 52px;
+    height: 52px;
+  }
+
+  .heroName {
+    font-size: 32px;
+  }
+
+  .heroScout {
+    font-size: 13px;
+  }
+
+  .heroDivider {
+    display: none;
+  }
+
+  .heroPlatform {
+    flex-basis: 100%;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-align: center;
+  }
+
+  .wave {
+    height: 80px;
   }
 
   .card {
     gap: 14px;
-    padding: 28px 20px;
-    border-radius: 24px;
+    padding: 30px 20px 22px;
+    border-radius: 28px;
   }
 
-  .brand {
-    gap: 12px;
-  }
-
-  .brandMark {
-    width: 56px;
-    height: 56px;
-  }
-
-  .name {
-    font-size: 38px;
-  }
-
-  .scout {
-    font-size: 15px;
-  }
-
-  .tagline {
-    gap: 8px;
-    font-size: 11px;
-    letter-spacing: 0.16em;
-  }
-
-  .tagline span {
-    flex-basis: 24px;
+  .cardLeaf {
+    top: -22px;
+    right: -6px;
+    width: 84px;
   }
 
   .title {
@@ -529,7 +697,22 @@
   }
 
   .subtitle {
+    font-size: 15px;
+  }
+
+  .userIdField label,
+  .passwordField label {
     font-size: 16px;
+  }
+
+  .form [data-appearance='auth'] {
+    padding: 0 14px;
+  }
+
+  .options,
+  .options label,
+  .textButton {
+    font-size: 15px;
   }
 
   .submit.submit {
@@ -537,24 +720,32 @@
   }
 
   .secure {
-    padding: 12px 16px;
+    padding: 12px 14px;
   }
 
   .secureTitle {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .secureText {
-    font-size: 15px;
+    font-size: 14px;
   }
 }
 
 @media (max-width: 359px) {
-  .tagline span {
-    display: none;
+  .heroName {
+    font-size: 28px;
   }
 
-  .name {
-    font-size: 34px;
+  .heroPlatform {
+    letter-spacing: 0.12em;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .form [data-appearance='auth'] input::placeholder {
+    font-size: 15px;
   }
 }
