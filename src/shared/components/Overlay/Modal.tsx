@@ -18,29 +18,60 @@ export interface ModalProps {
   size?: 'small' | 'medium' | 'large'
   /** Prevents closing while an operation is in progress. */
   dismissible?: boolean
-  placement?: 'center' | 'start'
+  /** `start`: navigation drawer on the left; `end`: details drawer on the right. */
+  placement?: 'center' | 'start' | 'end'
+  /** Where focus goes on close when the trigger no longer exists (e.g. a closed menu item). */
+  returnFocus?: () => void
+  /** Accessible name of the header close button. */
+  closeLabel?: string
 }
 
 /**
  * Accessible modal dialog: focus moves inside on open, Tab is trapped, Escape and the
  * backdrop close it (when dismissible), and focus returns to the trigger on close.
  */
-export function Modal({ id, open, title, description, onClose, children, footer, size = 'medium', dismissible = true, placement = 'center' }: ModalProps) {
+export function Modal({
+  id,
+  open,
+  title,
+  description,
+  onClose,
+  children,
+  footer,
+  size = 'medium',
+  dismissible = true,
+  placement = 'center',
+  returnFocus,
+  closeLabel = 'Close dialog',
+}: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const returnFocusRef = useRef(returnFocus)
   const titleId = useId()
   const descriptionId = useId()
+
+  // Declared before the open effect, so that effect reads the current callback.
+  useEffect(() => {
+    returnFocusRef.current = returnFocus
+  })
 
   useEffect(() => {
     if (!open) return
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    // Taken when the dialog opens, so it still knows its trigger after the caller clears its state.
+    const restore = returnFocusRef.current
     const dialog = dialogRef.current
     const first = dialog?.querySelector<HTMLElement>('[data-autofocus]') ?? dialog?.querySelector<HTMLElement>(FOCUSABLE)
     ;(first ?? dialog)?.focus()
-    const { overflow } = document.body.style
+    const { overflow, paddingRight } = document.body.style
+    // Keep the page from shifting when its scrollbar is hidden.
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth
     document.body.style.overflow = 'hidden'
+    if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`
     return () => {
       document.body.style.overflow = overflow
-      previouslyFocused?.focus()
+      document.body.style.paddingRight = paddingRight
+      if (restore) restore()
+      else if (previouslyFocused?.isConnected) previouslyFocused.focus()
     }
   }, [open])
 
@@ -71,7 +102,7 @@ export function Modal({ id, open, title, description, onClose, children, footer,
 
   return createPortal(
     <div
-      className={cx(styles.backdrop, placement === 'start' && styles.drawerBackdrop)}
+      className={cx(styles.backdrop, placement === 'start' && styles.drawerBackdrop, placement === 'end' && styles.sheetBackdrop)}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && dismissible) onClose()
       }}
@@ -84,7 +115,7 @@ export function Modal({ id, open, title, description, onClose, children, footer,
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={cx(styles.modal, styles[size], placement === 'start' && styles.drawer)}
+        className={cx(styles.modal, placement === 'center' && styles[size], placement === 'start' && styles.drawer, placement === 'end' && styles.sheet)}
         onKeyDown={onKeyDown}
       >
         <div className={styles.header}>
@@ -98,7 +129,7 @@ export function Modal({ id, open, title, description, onClose, children, footer,
               </p>
             )}
           </div>
-          {dismissible && <IconButton icon="x" label="Close dialog" appearance="plain" iconSize={16} onClick={onClose} />}
+          {dismissible && <IconButton icon="x" label={closeLabel} appearance="plain" iconSize={16} onClick={onClose} />}
         </div>
         {children && <div className={styles.body}>{children}</div>}
         {footer && <div className={styles.footer}>{footer}</div>}
@@ -120,6 +151,8 @@ export interface ConfirmDialogProps {
   pending?: boolean
   onConfirm: () => void
   onCancel: () => void
+  /** See ModalProps.returnFocus. */
+  returnFocus?: () => void
 }
 
 /**
@@ -137,6 +170,7 @@ export function ConfirmDialog({
   pending = false,
   onConfirm,
   onCancel,
+  returnFocus,
 }: ConfirmDialogProps) {
   return (
     <Modal
@@ -146,6 +180,7 @@ export function ConfirmDialog({
       onClose={onCancel}
       size="small"
       dismissible={!pending}
+      returnFocus={returnFocus}
       footer={
         <>
           <Button variant="secondary" onClick={onCancel} disabled={pending}>

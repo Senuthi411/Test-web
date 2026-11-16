@@ -3,7 +3,8 @@ import type { FixtureAuditEvent, FixtureDatabase, FixtureRoleDetails, FixtureSto
 import type { UserId, UserRole } from '@/shared/types'
 import type { Clock } from '@/shared/utilities/clock'
 import { formatIsoDate } from '@/shared/utilities/format'
-import type { AdminDashboard, AttentionRow, DivisionDetail, RecoveryRequest, UserDetail } from '../domain/models'
+import type { AdminDashboard, AttentionRow, DivisionDetail, OpenRecovery, RecoveryRequest, UserDetail } from '../domain/models'
+import { attentionReasons, type SecurityAlertFeed } from '../domain/adminDashboard'
 import { normaliseScope, sameScope, scopeIdsOf, scopeLevelFor, type ScopeSelection, type ScopeTopology } from '../domain/scope'
 import { maskNic, sameEmployeeId, USER_FIELD_MESSAGES, type RoleDetails } from '../domain/userFields'
 import type { IdentityAdminPort, UserInput } from '../application/ports'
@@ -155,15 +156,59 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     }
   }
 
+  function reasonsFor(db: Db, user: FixtureUser) {
+    const inactiveEstate = (id: string) => db.estates.find((estate) => estate.id === id)?.status === 'inactive'
+    const inactiveDivision = (id: string) => db.divisions.find((division) => division.id === id)?.status === 'inactive'
+    return attentionReasons({
+      role: user.role,
+      status: user.status,
+      estateIds: user.estateIds,
+      divisionIds: user.divisionIds,
+      sessionStatuses: db.deviceSessions.filter((session) => session.userId === user.id).map((session) => session.status),
+      inactiveScopeIds: [...user.estateIds.filter(inactiveEstate), ...user.divisionIds.filter(inactiveDivision)],
+    })
+  }
+
   function attentionRow(db: Db, user: FixtureUser): AttentionRow {
-    const sessions = db.deviceSessions.filter((session) => session.userId === user.id)
-    const revokedOnly = sessions.length > 0 && sessions.some((s) => s.status === 'revoked') && !sessions.some((s) => s.status === 'active')
+    const reasons = reasonsFor(db, user)
     const identity = toIdentityUser(db, user)
     return {
       user: { ...person(user), role: user.role, scopeIds: scopeIdsOf(user) },
-      status: revokedOnly ? 'session_revoked' : user.status,
+      status: reasons.includes('sessions_revoked') ? 'session_revoked' : user.status,
+      reasons,
       lastDeviceSessionAt: identity.lastSignInAt,
     }
+  }
+
+  /** The design's ID-02 list first, then any other account a rule applies to. */
+  function attentionRows(db: Db): AttentionRow[] {
+    const listed = db.dashboardAttentionUserIds.flatMap((id) => {
+      const user = findUser(db, id)
+      return user ? [attentionRow(db, user)] : []
+    })
+    const listedIds = new Set(db.dashboardAttentionUserIds)
+    const derived = db.users.filter((user) => !listedIds.has(user.id) && reasonsFor(db, user).length > 0).map((user) => attentionRow(db, user))
+    return [...listed, ...derived]
+  }
+
+  function openRecoveries(db: Db): OpenRecovery[] {
+    return db.recoveryRequests
+      .filter((request) => request.steps.some((step) => step !== 'done'))
+      .flatMap((request) => {
+        const session = db.deviceSessions.find((item) => item.id === request.sessionId)
+        const employee = session ? findUser(db, session.userId) : undefined
+        if (!employee) return []
+        const requester = findUser(db, request.requestedBy)
+        return [
+          {
+            id: request.id,
+            sessionId: request.sessionId,
+            employee: { ...person(employee), role: employee.role },
+            requestedBy: requester ? person(requester) : { id: request.requestedBy, fullName: request.requestedBy },
+            requestedAt: request.requestedAt,
+          },
+        ]
+      })
   }
 
   function recovery(db: Db, sessionId: string): RecoveryRequest | null {
@@ -190,6 +235,8 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
               totalUsers: db.users.length,
               estates: db.estates.map((estate) => toEstateSummary(db, estate)),
               divisionCount: db.divisions.length,
+              activeDivisionCount: db.divisions.filter((division) => division.status === 'active').length,
+              openRecoveries: openRecoveries(db),
               activeDeviceSessions: db.deviceSessions.filter((session) => session.status === 'active').length,
               revokedSessionsThisWeek: db.deviceSessions.filter((session) => {
                 if (!session.revokedAt) return false
@@ -198,12 +245,38 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
               }).length,
               usersByRole: usersByRole(db),
               recentActivity: auditActivity(db, db.auditEvents).slice(0, 4),
-              attention: db.dashboardAttentionUserIds.flatMap((id) => {
-                const user = findUser(db, id)
-                return user ? [attentionRow(db, user)] : []
-              }),
+              attention: attentionRows(db),
             }
           }),
+        signal,
+      )
+    },
+
+    listSecurityAlerts(signal) {
+      // The demonstration dataset records device sessions only: no sign-in attempts,
+      // lockouts, session flags or MFA enrollment. A revoked session is listed until a
+      // controlled recovery is requested for it.
+      return store.run(
+        () =>
+          store.read((db): SecurityAlertFeed => ({
+            reportedKinds: ['device_session_revoked'],
+            alerts: db.deviceSessions
+              .filter((session) => session.status === 'revoked' && !db.recoveryRequests.some((request) => request.sessionId === session.id))
+              .map((session) => {
+                const user = findUser(db, session.userId)
+                return {
+                  id: `ALERT-${session.id}`,
+                  kind: 'device_session_revoked' as const,
+                  at: session.revokedAt ?? session.lastSeenAt,
+                  employee: user ? { ...person(user), role: user.role } : null,
+                  sessionId: session.id,
+                  device: session.device,
+                  severity: null,
+                  reasonCode: session.revokedReasonCode ?? null,
+                }
+              })
+              .sort((a, b) => Date.parse(b.at) - Date.parse(a.at)),
+          })),
         signal,
       )
     },
@@ -263,6 +336,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
           const scope = resolveScope(db, input.role, input.scope)
           const roleDetails = resolveRoleDetails(db, input.roleDetails, scope, userId)
           const scopeChanged = !sameScope(scope, { estateIds: user.estateIds, divisionIds: user.divisionIds })
+          const before = { role: user.role, status: user.status, scope: scopeIdsOf(user) }
           Object.assign(user, {
             fullName: input.fullName,
             email: input.email,
@@ -281,7 +355,12 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
           })
           const credential = db.credentials.find((item) => item.userId === userId)
           if (credential) credential.email = input.email
-          audit(db, { kind: 'user_updated', userId, estateIds: estatesOfScope(db, scope) })
+          const estateIds = estatesOfScope(db, scope)
+          audit(db, { kind: 'user_updated', userId, estateIds })
+          // Authorization changes made through Edit User are recorded on their own as well.
+          if (before.role !== input.role) audit(db, { kind: 'role_changed', userId, previousValue: before.role, newValue: input.role, estateIds })
+          if (scopeChanged) audit(db, { kind: 'scope_updated', userId, scope: scopeIdsOf(scope), previousValue: before.scope.join(', '), estateIds })
+          if (before.status !== input.status) audit(db, { kind: 'account_status_changed', userId, previousValue: before.status, status: input.status, estateIds })
           return toIdentityUser(db, user)
         }),
       )
@@ -296,6 +375,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
             throw conflict("This user's scope was changed by another administrator. Your change was not applied.")
           }
           const scope = resolveScope(db, user.role, input.scope)
+          const previousScope = scopeIdsOf(user).join(', ')
           user.estateIds = scope.estateIds
           user.divisionIds = scope.divisionIds
           user.scopeAssignedAt = today()
@@ -304,6 +384,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
             kind: 'scope_updated',
             userId,
             scope: scopeIdsOf(scope),
+            previousValue: previousScope,
             reasonCode: input.reason,
             estateIds: estatesOfScope(db, scope),
           })

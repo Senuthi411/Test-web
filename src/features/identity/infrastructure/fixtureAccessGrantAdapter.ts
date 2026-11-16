@@ -1,6 +1,6 @@
 import { AppError } from '@/shared/api'
-import type { FixtureStore, FixtureUser } from '@/fixtures'
-import type { UserId } from '@/shared/types'
+import type { FixtureAuditEvent, FixtureStore, FixtureUser } from '@/fixtures'
+import { ROLE_LABELS, type UserId, type UserRole } from '@/shared/types'
 import type { Clock } from '@/shared/utilities/clock'
 import {
   estatesOfDivisions,
@@ -16,6 +16,29 @@ export interface FixtureAccessGrantOptions {
   clock: Clock
   /** The signed-in user, who requests or ends grants. */
   actorId: () => UserId | null
+}
+
+const STATUS_LABEL = { active: 'Active', inactive: 'Inactive' } as const
+const roleLabel = (value: string | undefined) => (value && value in ROLE_LABELS ? ROLE_LABELS[value as UserRole] : null)
+
+/** The access-history form of an audit record, for identity and authorization changes only. */
+function identityChange(event: FixtureAuditEvent): Pick<AccessHistoryEntry, 'action' | 'previousAccess' | 'newAccess'> | null {
+  switch (event.kind) {
+    case 'role_changed':
+      return { action: 'permanent_role_changed', previousAccess: roleLabel(event.previousValue), newAccess: roleLabel(event.newValue) }
+    case 'scope_updated':
+      return { action: 'permanent_scope_changed', previousAccess: event.previousValue || null, newAccess: event.scope?.join(', ') ?? null }
+    case 'account_status_changed':
+      return {
+        action: event.status === 'active' ? 'account_enabled' : 'account_disabled',
+        previousAccess: event.previousValue === 'active' || event.previousValue === 'inactive' ? STATUS_LABEL[event.previousValue] : null,
+        newAccess: event.status ? STATUS_LABEL[event.status] : null,
+      }
+    case 'device_session_revoked':
+      return { action: 'device_access_revoked', previousAccess: null, newAccess: event.sessionId ? `Device session ${event.sessionId} revoked` : null }
+    default:
+      return null
+  }
 }
 
 const invalid = (path: string, message: string) => new AppError('validation', message, { code: 'VALIDATION_FAILED', details: [{ path, message }] })
@@ -163,28 +186,25 @@ export function createFixtureAccessGrantAdapter(store: FixtureStore, options: Fi
     listAccessHistory(signal) {
       return store.run(() => {
         requireAdministrator()
-        // Permanent scope changes are the fixture audit log's own records.
+        // Identity changes are the fixture audit log's own records; nothing is added to them.
         const permanent = store.read((db) =>
-          db.auditEvents
-            .filter((event) => event.kind === 'scope_updated' && event.userId)
-            .flatMap((event): AccessHistoryEntry[] => {
-              const employee = db.users.find((user) => user.id === event.userId)
-              if (!employee) return []
-              const actor = db.users.find((user) => user.id === event.actorId)
-              return [
-                {
-                  id: event.id,
-                  at: event.at,
-                  employee: { ...ref(employee), role: employee.role },
-                  action: 'permanent_scope_changed',
-                  previousAccess: null,
-                  newAccess: event.scope?.join(', ') ?? null,
-                  performedBy: actor ? ref(actor) : null,
-                  reason: event.reasonCode ?? null,
-                  result: 'success',
-                },
-              ]
-            }),
+          db.auditEvents.flatMap((event): AccessHistoryEntry[] => {
+            const change = identityChange(event)
+            const employee = event.userId ? db.users.find((user) => user.id === event.userId) : undefined
+            if (!change || !employee) return []
+            const actor = db.users.find((user) => user.id === event.actorId)
+            return [
+              {
+                id: event.id,
+                at: event.at,
+                employee: { ...ref(employee), role: employee.role },
+                ...change,
+                performedBy: actor ? ref(actor) : null,
+                reason: event.reasonCode ?? null,
+                result: 'success',
+              },
+            ]
+          }),
         )
         return [...history, ...permanent].sort((a, b) => b.at.localeCompare(a.at))
       }, signal)

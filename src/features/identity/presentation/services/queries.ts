@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DivisionId, EstateId, UserId } from '@/shared/types'
 import type { DivisionInput, EstateInput, ScopeChangeInput, UserInput, VersionedInput } from '../../application/ports'
 import type { ExportKind, NotificationPreferenceKey, Profile } from '../../domain/models'
-import type { GrantRequestInput } from '../../domain/accessGrants'
 import { useIdentityServices } from './identityServices'
 
 /** Every Identity query key starts with this, so a write can refresh all Identity screens. */
@@ -10,6 +9,7 @@ export const IDENTITY_KEY = ['identity'] as const
 
 export const identityKeys = {
   dashboard: () => [...IDENTITY_KEY, 'dashboard'] as const,
+  securityAlerts: () => [...IDENTITY_KEY, 'security-alerts'] as const,
   users: () => [...IDENTITY_KEY, 'users'] as const,
   user: (id: UserId) => [...IDENTITY_KEY, 'user', id] as const,
   estates: () => [...IDENTITY_KEY, 'estates'] as const,
@@ -19,13 +19,18 @@ export const identityKeys = {
   sessions: () => [...IDENTITY_KEY, 'device-sessions'] as const,
   recovery: (sessionId: string) => [...IDENTITY_KEY, 'recovery', sessionId] as const,
   profile: (id: UserId) => [...IDENTITY_KEY, 'profile', id] as const,
-  accessGrants: () => [...IDENTITY_KEY, 'access-grants'] as const,
   accessHistory: () => [...IDENTITY_KEY, 'access-history'] as const,
 }
 
 export function useAdminDashboard() {
   const { admin } = useIdentityServices()
   return useQuery({ queryKey: identityKeys.dashboard(), queryFn: ({ signal }) => admin.getDashboard(signal) })
+}
+
+/** Security events reported by the source; `contract_pending` in API mode, not retried. */
+export function useSecurityAlerts() {
+  const { admin } = useIdentityServices()
+  return useQuery({ queryKey: identityKeys.securityAlerts(), queryFn: ({ signal }) => admin.listSecurityAlerts(signal), retry: false })
 }
 
 export function useUsers() {
@@ -151,25 +156,8 @@ export function useSetNotificationPreference(userId: UserId) {
   )
 }
 
-export function useAccessGrants() {
-  const { accessGrants } = useIdentityServices()
-  return useQuery({ queryKey: identityKeys.accessGrants(), queryFn: ({ signal }) => accessGrants.listGrants(signal), retry: false })
-}
-
+/** Identity and authorization audit history (contract pending in API mode, not retried). */
 export function useAccessHistory() {
   const { accessGrants } = useIdentityServices()
   return useQuery({ queryKey: identityKeys.accessHistory(), queryFn: ({ signal }) => accessGrants.listAccessHistory(signal), retry: false })
-}
-
-/** Sends a grant REQUEST. The backend decides its status; nothing is approved here. */
-export function useRequestAccessGrant() {
-  const { accessGrants } = useIdentityServices()
-  return useIdentityMutation((input: GrantRequestInput) => accessGrants.requestGrant(input))
-}
-
-export function useEndAccessGrant() {
-  const { accessGrants } = useIdentityServices()
-  return useIdentityMutation(({ id, action, reason }: { id: string; action: 'revoke' | 'cancel'; reason: string }) =>
-    accessGrants.endGrant(id, action, reason),
-  )
 }

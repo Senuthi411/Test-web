@@ -18,6 +18,7 @@ import type {
   UserDetail,
 } from '../domain/models'
 import type { ScopeSelection } from '../domain/scope'
+import type { SecurityAlertFeed } from '../domain/adminDashboard'
 import type { PersonalDetailsInput, PreferredLanguage, RoleDetails } from '../domain/userFields'
 import type { MfaChallenge, Session, SignInCredentials, SignInResult } from '../domain/session'
 import type {
@@ -144,6 +145,8 @@ export interface DivisionInput {
  */
 export interface IdentityAdminPort {
   getDashboard(signal?: AbortSignal): Promise<AdminDashboard>
+  /** Security events the source records, and which kinds it records. Never inferred. */
+  listSecurityAlerts(signal?: AbortSignal): Promise<SecurityAlertFeed>
   listUsers(signal?: AbortSignal): Promise<IdentityUser[]>
   getUser(userId: UserId, signal?: AbortSignal): Promise<UserDetail>
   /** Creates the account; the backend reports whether the invitation was started. */

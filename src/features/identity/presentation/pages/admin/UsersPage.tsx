@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import {
   ActionMenu,
   Button,
@@ -43,9 +43,17 @@ export function UsersPage() {
   const navigate = useNavigate()
 
   const [search, setSearch] = useState('')
-  const [role, setRole] = useState<UserRole | 'all'>('all')
+  const [params] = useSearchParams()
+  // "?role=" and "?status=" open the list pre-filtered (Dashboard and Roles & Permissions links).
+  const [role, setRole] = useState<UserRole | 'all'>(() => {
+    const requested = params.get('role')
+    return USER_ROLES.find((item) => item === requested) ?? 'all'
+  })
   const [estate, setEstate] = useState('all')
-  const [status, setStatus] = useState<StatusFilter>('active')
+  const [status, setStatus] = useState<StatusFilter>(() => {
+    const requested = params.get('status')
+    return requested === 'all' || requested === 'inactive' ? requested : 'active'
+  })
   const [page, setPage] = useState(1)
   const term = useDebouncedValue(search.trim().toLowerCase(), 200)
 

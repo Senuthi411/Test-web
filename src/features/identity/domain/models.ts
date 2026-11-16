@@ -59,7 +59,7 @@ export interface DeviceSession {
   status: DeviceSessionStatus
   revokedAt: string | null
   revokedReasonCode: string | null
-  /** The user's division scope (shown on the session panel). */
+  /** The user's division scope (shown in the session details drawer). */
   scopeDivisionIds: DivisionId[]
 }
 
@@ -70,7 +70,9 @@ export interface ActivityEvent {
   title: string
   detail: string
   /** Record the title links to, if any. */
-  link?: { kind: 'user' | 'session' | 'division' | 'estate'; id: string }
+  link?: { kind: 'user' | 'session' | 'division' | 'estate' | 'access_history'; id: string }
+  /** Who performed the action, when the source records it. */
+  actor?: PersonRef
 }
 
 export interface UserDetail {
@@ -172,10 +174,30 @@ export interface DivisionDetail {
   recentObservations: DivisionObservation[]
 }
 
+/**
+ * Why an account needs an Administrator's attention, each derived from a recorded fact:
+ * - `inactive`: the account is inactive.
+ * - `missing_scope`: a non-Administrator account has no estate or division.
+ * - `inactive_scope`: the account is assigned to an inactive estate or division.
+ * - `sessions_revoked`: every device session of the account has been revoked.
+ */
+export type AttentionReason = 'inactive' | 'missing_scope' | 'inactive_scope' | 'sessions_revoked'
+
 export interface AttentionRow {
   user: PersonRef & { role: UserRole; scopeIds: string[] }
   status: 'active' | 'inactive' | 'session_revoked'
+  /** Empty when no rule applies (e.g. an entry listed by the demonstration design only). */
+  reasons: AttentionReason[]
   lastDeviceSessionAt: string | null
+}
+
+/** A controlled device-session recovery that has been requested and is not complete. */
+export interface OpenRecovery {
+  id: string
+  sessionId: string
+  employee: PersonRef & { role: UserRole }
+  requestedBy: PersonRef
+  requestedAt: string
 }
 
 export interface AdminDashboard {
@@ -183,6 +205,8 @@ export interface AdminDashboard {
   totalUsers: number
   estates: EstateSummary[]
   divisionCount: number
+  activeDivisionCount: number
+  openRecoveries: OpenRecovery[]
   activeDeviceSessions: number
   revokedSessionsThisWeek: number
   usersByRole: Array<{ role: UserRole; count: number }>

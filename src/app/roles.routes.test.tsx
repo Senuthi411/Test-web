@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { FixtureStore } from '@/fixtures'
-import { createBrowserSessionPersistence, type AccessGrantPort } from '@/features/identity'
-import type { AccessGrant } from '@/features/identity/domain/accessGrants'
+import { createBrowserSessionPersistence } from '@/features/identity'
 import { AppError } from '@/shared/api'
+import { USER_ROLES, type UserRole } from '@/shared/types'
 import { assembleContainer } from './composition/container'
 import type { AppConfig } from './composition/config'
 import { createFixtureAdapterSet, fixtureClock } from './composition/fixtureAdapters'
@@ -23,13 +23,15 @@ function signInAsAdministrator() {
   })
 }
 
-/** Fixture app; `accessGrants` replaces the grant port with a test double. */
-function renderRoles(path: string, accessGrants?: AccessGrantPort) {
+type AdapterSet = ReturnType<typeof createFixtureAdapterSet>
+
+/** Fixture app; `patch` can replace adapters with test doubles (e.g. pending contracts). */
+function renderRoles(path: string, patch?: (adapters: AdapterSet, store: FixtureStore) => void) {
   signInAsAdministrator()
   const store = new FixtureStore({ latencyMs: 0 })
   const persistence = createBrowserSessionPersistence()
   const adapters = createFixtureAdapterSet(() => persistence.load()?.user.id ?? null, store)
-  if (accessGrants) adapters.identity.accessGrants = accessGrants
+  patch?.(adapters, store)
   const container = assembleContainer(FIXTURE_CONFIG, adapters, fixtureClock, persistence)
   const router = createMemoryRouter(createAppRoutes(), { initialEntries: [path] })
   render(
@@ -40,39 +42,7 @@ function renderRoles(path: string, accessGrants?: AccessGrantPort) {
   return { router, store }
 }
 
-const base = {
-  type: 'additional_estate' as const,
-  divisionIds: [],
-  reason: 'Harvest cover',
-  requestedBy: { id: 'USR-001', fullName: 'Anika Perera' },
-  requestedAt: '2026-10-19T08:00:00+05:30',
-  decidedBy: { id: 'USR-900', fullName: 'Approval Authority' },
-  decidedAt: '2026-10-19T09:00:00+05:30',
-  endedBy: null,
-  endedAt: null,
-  endReason: null,
-}
-
-/** Backend-reported grants in each state (the clock is 21 Oct 2026, 10:00). */
-const GRANTS: AccessGrant[] = [
-  { ...base, id: 'TAG-101', employee: { id: 'USR-003', fullName: 'Malini Fernando', role: 'SUPERVISOR' }, estateIds: ['EST-003'], startsAt: '2026-10-20T08:00:00+05:30', expiresAt: '2026-10-21T18:00:00+05:30', status: 'active' },
-  { ...base, id: 'TAG-102', employee: { id: 'USR-005', fullName: 'Dr Tara Wijesinghe', role: 'DISEASE_EXPERT' }, estateIds: ['EST-003'], startsAt: '2026-10-25T08:00:00+05:30', expiresAt: '2026-10-28T08:00:00+05:30', status: 'scheduled' },
-  { ...base, id: 'TAG-103', employee: { id: 'USR-002', fullName: 'Nimal Silva', role: 'SUPERVISOR' }, estateIds: ['EST-002'], startsAt: '2026-10-15T08:00:00+05:30', expiresAt: '2026-10-20T08:00:00+05:30', status: 'active', requestedAt: '2026-10-14T08:00:00+05:30' },
-]
-
-function stubPort(grants: AccessGrant[] = GRANTS) {
-  const endGrant = vi.fn(async (id: string, action: 'revoke' | 'cancel', reason: string) => {
-    const grant = grants.find((item) => item.id === id)!
-    return { ...grant, status: action === 'revoke' ? ('revoked' as const) : ('cancelled' as const), endReason: reason }
-  })
-  const port: AccessGrantPort = {
-    listGrants: async () => grants,
-    requestGrant: vi.fn(),
-    endGrant,
-    listAccessHistory: async () => [],
-  }
-  return { port, endGrant }
-}
+const pending = () => Promise.reject(new AppError('contract_pending', 'Not connected.'))
 
 /** Chooses an option of a toolbar FilterSelect (ARIA select-only combobox). */
 async function pickFilter(user: ReturnType<typeof userEvent.setup>, label: string, option: string) {
@@ -80,16 +50,110 @@ async function pickFilter(user: ReturnType<typeof userEvent.setup>, label: strin
   await user.click(within(screen.getByRole('listbox', { name: label })).getByRole('option', { name: option }))
 }
 
-const openTab = async (user: ReturnType<typeof userEvent.setup>, name: string) =>
-  user.click(await screen.findByRole('tab', { name }, { timeout: 10_000 }))
+const ROLE_NAMES = ['Administrator', 'Supervisor', 'Disease expert', 'Field worker', 'Reporting user']
+
+describe('Roles & Permissions · tabs', { timeout: 30_000 }, () => {
+  it('opens on Role Overview, has no Temporary Access tab and treats the old ?tab=temporary as the overview', async () => {
+    renderRoles('/admin/roles?tab=temporary')
+    expect(await screen.findByRole('tab', { name: 'Role Overview', selected: true }, { timeout: 10_000 })).toBeInTheDocument()
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Role Overview', 'Permission Matrix', 'Access History'])
+    expect(screen.queryByRole('tab', { name: /Temporary/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /temporary access/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/Review system roles, understand permissions, and audit access changes\./)).toBeInTheDocument()
+    // Fixture mode keeps the demonstration disclaimer.
+    expect(screen.getByText(/Demonstration data: the backend enforces the real permissions\./)).toBeInTheDocument()
+  })
+
+  it('moves between tabs with the keyboard and keeps the tab in the address', async () => {
+    const user = userEvent.setup()
+    const { router } = renderRoles('/admin/roles')
+    const overview = await screen.findByRole('tab', { name: 'Role Overview', selected: true }, { timeout: 10_000 })
+    overview.focus()
+    await user.keyboard('{ArrowRight}')
+    expect(await screen.findByRole('tab', { name: 'Permission Matrix', selected: true })).toHaveFocus()
+    expect(router.state.location.search).toBe('?tab=matrix')
+    await user.keyboard('{ArrowRight}')
+    expect(await screen.findByRole('tab', { name: 'Access History', selected: true })).toBeInTheDocument()
+    expect(router.state.location.search).toBe('?tab=history')
+  })
+})
+
+describe('Roles & Permissions · Role Overview', { timeout: 30_000 }, () => {
+  it('shows the five roles with user counts from the user accounts, access, scope and links', async () => {
+    const { store } = renderRoles('/admin/roles')
+    const list = await screen.findByRole('list', { name: 'System roles' }, { timeout: 10_000 })
+    const cards = within(list).getAllByRole('region')
+    expect(cards.map((card) => card.getAttribute('aria-label'))).toEqual(ROLE_NAMES.map((name) => `${name} role`))
+
+    const counts = store.read((db) => Object.fromEntries(USER_ROLES.map((role) => [role, db.users.filter((item) => item.role === role).length]))) as Record<UserRole, number>
+    const supervisor = screen.getByRole('region', { name: 'Supervisor role' })
+    expect(await within(supervisor).findByText(new RegExp(`^${counts.SUPERVISOR} users?$`))).toBeInTheDocument()
+    expect(within(supervisor).getByText('Web application')).toBeInTheDocument()
+    expect(within(supervisor).getByText('Assigned estates')).toBeInTheDocument()
+    expect(within(supervisor).getByText('Observation review')).toBeInTheDocument()
+    expect(within(supervisor).getByRole('link', { name: 'View details of the Supervisor role' })).toHaveAttribute('href', '/admin/roles/supervisor')
+    expect(within(supervisor).getByRole('link', { name: 'View users with the Supervisor role' })).toHaveAttribute('href', '/admin/users?role=SUPERVISOR&status=all')
+
+    const fieldWorker = screen.getByRole('region', { name: 'Field worker role' })
+    expect(within(fieldWorker).getByText(new RegExp(`^${counts.FIELD_WORKER} users?`))).toBeInTheDocument()
+    expect(within(fieldWorker).getByText('Mobile app only')).toBeInTheDocument()
+    expect(within(fieldWorker).getByText('Assigned divisions within one estate')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Administrator role' })).getByText('All estates and divisions')).toBeInTheDocument()
+  })
+
+  it('opens filtered User Management from a role card', async () => {
+    const user = userEvent.setup()
+    const { router } = renderRoles('/admin/roles')
+    await user.click(await screen.findByRole('link', { name: 'View users with the Disease expert role' }, { timeout: 10_000 }))
+    expect(router.state.location.pathname).toBe('/admin/users')
+    expect(await screen.findByRole('combobox', { name: 'Role: Disease expert' }, { timeout: 10_000 })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Status: All' })).toBeInTheDocument()
+    const table = await screen.findByRole('table', { name: 'Users' })
+    expect(within(table).getAllByText('Disease expert').length).toBeGreaterThan(0)
+    for (const other of ['Supervisor', 'Field worker', 'Administrator']) expect(within(table).queryByText(other)).not.toBeInTheDocument()
+  })
+
+  it('shows role details: access, scope rules, limitations, allowed actions and assigned users with management links', async () => {
+    const { store } = renderRoles('/admin/roles/field-worker')
+    expect(await screen.findByRole('heading', { name: 'Field worker', level: 1 }, { timeout: 10_000 })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Field worker', current: 'page' })).toBeInTheDocument()
+    expect(screen.getByText('Mobile app only')).toBeInTheDocument()
+    expect(screen.getByText('Assigned divisions within one estate')).toBeInTheDocument()
+    expect(screen.getByText(/Division-level scope/)).toBeInTheDocument()
+    expect(screen.getByText('Security limitations')).toBeInTheDocument()
+
+    const actions = screen.getByRole('region', { name: 'Allowed actions of the Field worker role' })
+    expect(within(actions).getByText('Create observation, mobile')).toBeInTheDocument()
+    expect(within(actions).getAllByRole('img', { name: 'Allowed within scope' }).length).toBeGreaterThan(0)
+    expect(within(actions).queryByText('Decide quarantine')).not.toBeInTheDocument()
+
+    const fieldWorkers = store.read((db) => db.users.filter((item) => item.role === 'FIELD_WORKER'))
+    const table = await screen.findByRole('table', { name: 'Users with the Field worker role' })
+    expect(within(table).getAllByRole('row')).toHaveLength(fieldWorkers.length + 1)
+    const first = fieldWorkers[0]!
+    expect(within(table).getByRole('link', { name: `Manage role of ${first.fullName}` })).toHaveAttribute('href', `/admin/users/${first.id}/edit`)
+    expect(within(table).getByRole('link', { name: `View access scope of ${first.fullName}` })).toHaveAttribute('href', `/admin/users/${first.id}/scope`)
+    expect(screen.getByRole('link', { name: 'View in User Management' })).toHaveAttribute('href', '/admin/users?role=FIELD_WORKER&status=all')
+  })
+
+  it('says counts and assigned users are unavailable when the Identity service is not connected, without inventing numbers', async () => {
+    renderRoles('/admin/roles', (adapters) => {
+      adapters.identity.admin.listUsers = pending
+    })
+    const supervisor = await screen.findByRole('region', { name: 'Supervisor role' }, { timeout: 10_000 })
+    expect(await within(supervisor).findByText('Count not available yet')).toBeInTheDocument()
+    expect(within(supervisor).queryByRole('link', { name: /View users/ })).not.toBeInTheDocument()
+    // The role definitions themselves do not depend on the service.
+    expect(within(supervisor).getByText('Web application')).toBeInTheDocument()
+  })
+})
 
 describe('Roles & Permissions · Permission Matrix', { timeout: 30_000 }, () => {
-  it('searches by name or code, filters by role and module, and shows read-only details', async () => {
+  it('searches, filters by role and module, clears filters and shows read-only details', async () => {
     const user = userEvent.setup()
-    renderRoles('/admin/roles')
-    expect(await screen.findByRole('tab', { name: 'Permission Matrix', selected: true }, { timeout: 10_000 })).toBeInTheDocument()
-    expect(screen.getByText('13 permissions match')).toBeInTheDocument()
-    expect(screen.getByText('Core role permissions are read-only')).toBeInTheDocument()
+    renderRoles('/admin/roles?tab=matrix')
+    expect(await screen.findByText('13 permissions match', {}, { timeout: 10_000 })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Permission legend' })).toBeInTheDocument()
 
     await user.type(screen.getByRole('searchbox', { name: 'Search permissions' }), 'quarantine')
     expect(screen.getByText('1 permission matches')).toBeInTheDocument()
@@ -98,163 +162,134 @@ describe('Roles & Permissions · Permission Matrix', { timeout: 30_000 }, () => 
     expect(screen.getByText('2 permissions match')).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('button', { name: 'Clear filters' })[0]!)
-    await pickFilter(user, 'Module', 'Cases')
+    await pickFilter(user, 'Module', 'Disease diagnosis & cases')
     expect(screen.getByText('3 permissions match')).toBeInTheDocument()
     await pickFilter(user, 'Role', 'Field worker')
     expect(screen.getByText('0 permissions match')).toBeInTheDocument()
     expect(screen.getByText('No permissions match')).toBeInTheDocument()
-    await user.click(within(screen.getByText('No permissions match').closest('div')!.parentElement!).getByRole('button', { name: 'Clear filters' }))
+    await user.click(screen.getAllByRole('button', { name: 'Clear filters' }).at(-1)!)
     expect(screen.getByText('13 permissions match')).toBeInTheDocument()
 
-    await user.click(screen.getByText('Decide quarantine'))
-    expect(screen.getByText('Limited to the holder’s assigned estates or divisions (and any active temporary grant).')).toBeInTheDocument()
-    expect(screen.getByText('No · core role permission, read-only')).toBeInTheDocument()
-    expect(screen.queryByRole('checkbox', { name: /Granted/ })).not.toBeInTheDocument()
+    await pickFilter(user, 'Role', 'Supervisor')
+    const table = screen.getByRole('table', { name: 'Permission matrix' })
+    expect(within(within(table).getAllByRole('row')[0]!).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual(['Permission', 'Supervisor'])
+    await user.click(screen.getAllByRole('button', { name: 'Clear filters' })[0]!)
+
+    await user.click(screen.getByRole('button', { name: /Decide quarantine/ }))
+    const details = screen.getByRole('region', { name: 'Permission details' })
+    expect(within(details).getByText('Limited to the holder’s assigned estates or divisions.')).toBeInTheDocument()
+    expect(within(details).getByText('No · core role permission, read-only')).toBeInTheDocument()
+    expect(within(details).getByText('Observation review')).toBeInTheDocument()
+    // Read-only: no toggles anywhere in the matrix.
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+  })
+
+  it('shows allowed, scoped and not-allowed cells with text labels, grouped by module', async () => {
+    renderRoles('/admin/roles?tab=matrix')
+    const table = await screen.findByRole('table', { name: 'Permission matrix' }, { timeout: 10_000 })
+    const groups = within(table).getAllByRole('button', { expanded: true }).map((button) => button.textContent?.replace(/\s*\(\d+\)$/, ''))
+    expect(groups).toEqual(['Identity & user management', 'Estate & division administration', 'Observation review', 'Disease diagnosis & cases', 'Observation capture', 'Reporting & analytics'])
+
+    const row = (name: RegExp) => within(table).getByRole('button', { name }).closest('tr')!
+    expect(within(row(/Decide quarantine/)).getByRole('img', { name: 'Allowed within scope for Supervisor' })).toBeInTheDocument()
+    expect(within(row(/Decide quarantine/)).getByRole('img', { name: 'Not allowed for Field worker' })).toBeInTheDocument()
+    expect(within(row(/Read disease catalog/)).getByRole('img', { name: 'Allowed for Disease expert' })).toBeInTheDocument()
+    expect(within(row(/Manage users and scopes/)).getByRole('img', { name: 'Allowed for Administrator' })).toBeInTheDocument()
+    expect(within(row(/Read own observations/)).getByRole('img', { name: 'Allowed within scope for Field worker' })).toBeInTheDocument()
+  })
+
+  it('collapses and expands module groups with the mouse and the keyboard', async () => {
+    const user = userEvent.setup()
+    renderRoles('/admin/roles?tab=matrix')
+    const table = await screen.findByRole('table', { name: 'Permission matrix' }, { timeout: 10_000 })
+    const review = within(table).getByRole('button', { name: /^Observation review/ })
+    await user.click(review)
+    expect(review).toHaveAttribute('aria-expanded', 'false')
+    expect(within(table).queryByRole('button', { name: /Decide quarantine/ })).not.toBeInTheDocument()
+
+    review.focus()
+    await user.keyboard('{Enter}')
+    expect(review).toHaveAttribute('aria-expanded', 'true')
+    expect(within(table).getByRole('button', { name: /Decide quarantine/ })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Collapse all' }))
+    expect(within(table).queryAllByRole('button', { expanded: true })).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Collapse all' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Expand all' }))
+    expect(within(table).queryAllByRole('button', { expanded: false })).toHaveLength(0)
+
+    // While a search is active every matching group stays open.
+    await user.click(review)
+    await user.type(screen.getByRole('searchbox', { name: 'Search permissions' }), 'quarantine')
+    expect(within(table).getByRole('button', { name: /^Observation review/ })).toBeDisabled()
+    expect(within(table).getByRole('button', { name: /Decide quarantine/ })).toBeInTheDocument()
+  })
+
+  it('compares two roles from the same permission data', async () => {
+    const user = userEvent.setup()
+    renderRoles('/admin/roles?tab=matrix')
+    const compare = await screen.findByRole('region', { name: 'Compare roles' }, { timeout: 10_000 })
+    expect(within(compare).getByRole('region', { name: 'Only Supervisor' })).toHaveTextContent('Decide quarantine')
+    expect(within(compare).getByRole('region', { name: 'Only Disease expert' })).toHaveTextContent('Write diagnosis')
+    expect(within(compare).getByRole('region', { name: 'Shared' })).toHaveTextContent('None')
+    expect(within(compare).getByText(/Supervisor: Assigned estates/)).toBeInTheDocument()
+
+    await pickFilter(user, 'Second role', 'Field worker')
+    expect(within(compare).getByText(/Field worker: Mobile app only/)).toBeInTheDocument()
+    expect(within(compare).getByRole('region', { name: 'Only Field worker' })).toHaveTextContent('Create observation, mobile')
+    await pickFilter(user, 'Second role', 'Supervisor')
+    expect(within(compare).getByText('Choose two different roles to compare them.')).toBeInTheDocument()
   })
 })
 
-describe('Roles & Permissions · Temporary Access', { timeout: 30_000 }, () => {
-  it('requests access for a supervisor; the request stays Pending approval and is recorded in history', async () => {
+describe('Roles & Permissions · Access History', { timeout: 30_000 }, () => {
+  it('lists only identity events from the audit log and filters by event type, actor, employee and date', async () => {
     const user = userEvent.setup()
-    renderRoles('/admin/roles?tab=temporary')
-    expect(await screen.findByText('No temporary access', {}, { timeout: 10_000 })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Request temporary access' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Request temporary access' })
-    await user.selectOptions(within(dialog).getByLabelText(/Employee/), 'USR-003')
-    expect(within(dialog).getByText('USR-003')).toBeInTheDocument()
-    expect(within(dialog).queryByRole('checkbox', { name: /Riverbend/ })).not.toBeInTheDocument()
-    await user.click(within(dialog).getByRole('checkbox', { name: 'Mist Valley Tea Estate (EST-003)' }))
-    fireEvent.change(within(dialog).getByLabelText(/Expiry/), { target: { value: '2026-10-24T17:00' } })
-    await user.type(within(dialog).getByLabelText(/Business reason/), 'Harvest cover')
-    expect(within(dialog).getByText('Unchanged · the role’s existing permissions apply in the added scope')).toBeInTheDocument()
-    await user.click(within(dialog).getByRole('button', { name: 'Submit request' }))
+    renderRoles('/admin/roles?tab=history')
+    const table = await screen.findByRole('table', { name: 'Access history' }, { timeout: 10_000 })
+    expect(await within(table).findByText('Device access revoked')).toBeInTheDocument()
+    expect(within(table).getByText('Permanent scope changed')).toBeInTheDocument()
+    expect(within(table).queryByText(/Temporary access/)).not.toBeInTheDocument()
+    expect(within(table).getAllByText('Anika Perera').length).toBeGreaterThan(0)
+    expect(within(table).getByRole('link', { name: 'View Sewmi Raj' })).toHaveAttribute('href', '/admin/users/USR-011')
 
-    expect(await screen.findByText('Temporary access requested')).toBeInTheDocument()
-    expect(screen.getByText(/TAG-001 for Malini Fernando · Status: Pending approval/)).toBeInTheDocument()
-    const table = screen.getByRole('table', { name: 'Temporary access grants' })
-    expect(within(table).getByText('Pending approval')).toBeInTheDocument()
-    expect(within(table).queryByText('Active')).not.toBeInTheDocument()
-
-    await openTab(user, 'Access History')
-    const history = await screen.findByRole('table', { name: 'Access history' })
-    expect(within(history).getByText('Temporary access requested')).toBeInTheDocument()
-    await pickFilter(user, 'Action', 'Permanent scope changed')
-    expect(within(history).queryByText('Temporary access requested')).not.toBeInTheDocument()
-    expect(within(history).getByText('Permanent scope changed')).toBeInTheDocument()
-  })
-
-  it('blocks a self-grant, explains that Administrators have no options and rejects inactive accounts', async () => {
-    const user = userEvent.setup()
-    const { store } = renderRoles('/admin/roles?tab=temporary')
-    store.write((db) => {
-      db.users.find((item) => item.id === 'USR-002')!.status = 'inactive'
-    })
-    await user.click(await screen.findByRole('button', { name: 'Request temporary access' }, { timeout: 10_000 }))
-    const dialog = await screen.findByRole('dialog', { name: 'Request temporary access' })
-    await user.selectOptions(within(dialog).getByLabelText(/Employee/), 'USR-001')
-    expect(within(dialog).getByText('Not available for this role')).toBeInTheDocument()
-    expect(within(dialog).getByText(/separate high-risk workflow/)).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: 'Submit request' })).toBeDisabled()
-
-    await user.selectOptions(within(dialog).getByLabelText(/Employee/), 'USR-002')
-    await user.click(within(dialog).getByRole('button', { name: 'Submit request' }))
-    expect(await within(dialog).findByText(/not active, so it cannot receive temporary access/)).toBeInTheDocument()
-    expect(screen.queryByText('Temporary access requested')).not.toBeInTheDocument()
-  })
-
-  it('limits a Field Worker to divisions of their own estate and shows the Disease Expert dependency', async () => {
-    const user = userEvent.setup()
-    renderRoles('/admin/roles?tab=temporary')
-    await user.click(await screen.findByRole('button', { name: 'Request temporary access' }, { timeout: 10_000 }))
-    const dialog = await screen.findByRole('dialog', { name: 'Request temporary access' })
-    await user.selectOptions(within(dialog).getByLabelText(/Employee/), 'USR-007')
-    expect(within(dialog).getByText(/Mobile app only/)).toBeInTheDocument()
-    expect(within(dialog).getByRole('checkbox', { name: /Lower Slope \(DIV-003\)/ })).toBeInTheDocument()
-    expect(within(dialog).queryByRole('checkbox', { name: /DIV-004/ })).not.toBeInTheDocument()
-    expect(within(dialog).queryByRole('checkbox', { name: /DIV-001/ })).not.toBeInTheDocument()
-
-    await user.selectOptions(within(dialog).getByLabelText(/Employee/), 'USR-005')
-    expect(within(dialog).getByText(/case-access contract/)).toBeInTheDocument()
-  })
-
-  it('shows backend statuses, marks elapsed grants as expired and filters expiring-soon grants', async () => {
-    const user = userEvent.setup()
-    renderRoles('/admin/roles?tab=temporary', stubPort().port)
-    await screen.findByRole('button', { name: 'Revoke TAG-101 for Malini Fernando' }, { timeout: 10_000 })
-    const table = screen.getByRole('table', { name: 'Temporary access grants' })
-    const row = (name: string) => within(table).getByText(name).closest('tr')!
-    expect(within(row('Malini Fernando')).getByText('Active')).toBeInTheDocument()
-    expect(within(row('Malini Fernando')).getByText('Expiring soon')).toBeInTheDocument()
-    expect(within(row('Dr Tara Wijesinghe')).getByText('Scheduled')).toBeInTheDocument()
-    expect(within(row('Nimal Silva')).getByText('Expired')).toBeInTheDocument()
-    expect(within(row('Nimal Silva')).queryByRole('button')).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('checkbox', { name: 'Expiring within 24 hours' }))
-    expect(within(table).getByText('Malini Fernando')).toBeInTheDocument()
-    expect(within(table).queryByText('Nimal Silva')).not.toBeInTheDocument()
+    await pickFilter(user, 'Event type', 'Device access revoked')
+    expect(within(table).getByText('Sewmi Raj')).toBeInTheDocument()
+    expect(within(table).queryByText('Permanent scope changed')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
-    await pickFilter(user, 'Status', 'Expired')
-    expect(within(table).getByText('Nimal Silva')).toBeInTheDocument()
-    expect(within(table).queryByText('Malini Fernando')).not.toBeInTheDocument()
+
+    await pickFilter(user, 'Actor', 'Anika Perera')
+    expect(within(table).getByText('Device access revoked')).toBeInTheDocument()
+    await user.type(screen.getByRole('searchbox', { name: 'Employee' }), 'USR-005')
+    expect(within(table).getByText('Permanent scope changed')).toBeInTheDocument()
+    expect(within(table).queryByText('Sewmi Raj')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2030-01-01' } })
+    expect(await screen.findByText('No records match these filters')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2029-01-01' } })
+    expect(screen.getByText('The end date is before the start date')).toBeInTheDocument()
   })
 
-  it('revokes an active grant only after confirmation with a reason', async () => {
-    const user = userEvent.setup()
-    const { port, endGrant } = stubPort()
-    renderRoles('/admin/roles?tab=temporary', port)
-    await user.click(await screen.findByRole('button', { name: 'Revoke TAG-101 for Malini Fernando' }, { timeout: 10_000 }))
-    const dialog = await screen.findByRole('dialog', { name: 'Revoke temporary access?' })
-    expect(within(dialog).getByText(/loses EST-003 immediately/)).toBeInTheDocument()
-    // The row button opens only the confirmation, not the row's details.
-    expect(screen.queryByRole('dialog', { name: 'Temporary access TAG-101' })).not.toBeInTheDocument()
-    await user.click(within(dialog).getByRole('button', { name: 'Revoke access' }))
-    expect(within(dialog).getByText('Enter the reason')).toBeInTheDocument()
-    expect(endGrant).not.toHaveBeenCalled()
-    await user.type(within(dialog).getByLabelText(/Reason/), 'Harvest finished early')
-    await user.click(within(dialog).getByRole('button', { name: 'Revoke access' }))
-    await waitFor(() => expect(endGrant).toHaveBeenCalledWith('TAG-101', 'revoke', 'Harvest finished early'))
-    expect(await screen.findByText('Access revoked')).toBeInTheDocument()
-  })
-
-  it('cancels a scheduled grant from its details, which link to permanent scope', async () => {
-    const user = userEvent.setup()
-    const { port, endGrant } = stubPort()
-    renderRoles('/admin/roles?tab=temporary', port)
-    await user.click(await screen.findByText('Dr Tara Wijesinghe', {}, { timeout: 10_000 }))
-    const details = await screen.findByRole('dialog', { name: 'Temporary access TAG-102' })
-    expect(within(details).getByText(/Approval Authority/)).toBeInTheDocument()
-    expect(within(details).getByRole('link', { name: 'Change permanent access for Dr Tara Wijesinghe' })).toHaveAttribute('href', '/admin/users/USR-005/scope')
-    await user.click(within(details).getByRole('button', { name: 'Cancel request' }))
-    const dialog = await screen.findByRole('dialog', { name: 'Cancel temporary access?' })
-    await user.type(within(dialog).getByLabelText(/Reason/), 'Visit postponed')
-    await user.click(within(dialog).getByRole('button', { name: 'Cancel grant' }))
-    await waitFor(() => expect(endGrant).toHaveBeenCalledWith('TAG-102', 'cancel', 'Visit postponed'))
-    expect(await screen.findByText('Request cancelled')).toBeInTheDocument()
-  })
-
-  it('keeps the dialog open and shows no success when revoking fails', async () => {
-    const user = userEvent.setup()
-    const { port } = stubPort()
-    port.endGrant = vi.fn(async () => {
-      throw new AppError('conflict', 'This grant can no longer be changed.')
+  it('shows a recorded role change with the previous and new role', async () => {
+    // Test-only audit record, of the kind Edit User writes (see adminDashboard.test.ts).
+    renderRoles('/admin/roles?tab=history', (_, store) => {
+      store.write((db) => {
+        db.auditEvents.push({ id: 'AUD-900', at: '2026-10-21T09:30:00+05:30', kind: 'role_changed', actorId: 'USR-001', userId: 'USR-013', previousValue: 'REPORTING_USER', newValue: 'SUPERVISOR', estateIds: [], provenance: 'fixture-assigned' })
+      })
     })
-    renderRoles('/admin/roles?tab=temporary', port)
-    await user.click(await screen.findByRole('button', { name: 'Revoke TAG-101 for Malini Fernando' }, { timeout: 10_000 }))
-    const dialog = await screen.findByRole('dialog', { name: 'Revoke temporary access?' })
-    await user.type(within(dialog).getByLabelText(/Reason/), 'Done')
-    await user.click(within(dialog).getByRole('button', { name: 'Revoke access' }))
-    expect(await within(dialog).findByText('This grant can no longer be changed.')).toBeInTheDocument()
-    expect(screen.queryByText('Access revoked')).not.toBeInTheDocument()
+    const table = await screen.findByRole('table', { name: 'Access history' }, { timeout: 10_000 })
+    const row = (await within(table).findByText('Permanent role changed')).closest('tr')!
+    expect(within(row).getByText('Reporting user')).toBeInTheDocument()
+    expect(within(row).getByText('Supervisor')).toBeInTheDocument()
   })
 
-  it('shows the unavailable state for both tabs when the backend contracts are pending', async () => {
-    const user = userEvent.setup()
-    const pending = () => Promise.reject(new AppError('contract_pending', 'Not connected.'))
-    renderRoles('/admin/roles?tab=temporary', { listGrants: pending, requestGrant: pending, endGrant: pending, listAccessHistory: pending })
-    expect(await screen.findByText('Temporary access is not available yet', {}, { timeout: 10_000 })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Request temporary access' })).not.toBeInTheDocument()
-    await openTab(user, 'Access History')
-    expect(await screen.findByText('Access history is not available yet')).toBeInTheDocument()
+  it('shows the unavailable state, and no records, when the access-history contract is pending', async () => {
+    renderRoles('/admin/roles?tab=history', (adapters) => {
+      adapters.identity.accessGrants.listAccessHistory = pending
+    })
+    expect(await screen.findByText('Access history is not available yet', {}, { timeout: 10_000 })).toBeInTheDocument()
     expect(screen.queryByRole('table', { name: 'Access history' })).not.toBeInTheDocument()
   })
 })

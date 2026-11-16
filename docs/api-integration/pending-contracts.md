@@ -31,20 +31,30 @@ substitutes fixture data.
 | `identity.activation.activate` | same | Identity OpenAPI: token + new password; returns "activated" or an MFA enrollment session for Administrators |
 | `users.create` | `features/identity/infrastructure/httpIdentityAdapters.ts` | P8, Identity OpenAPI. The response must return the stored account with its backend-assigned Company User ID and an invitation status (`sent`, `pending` or `not_sent`). |
 
-## Implemented as pending (Temporary access and access history)
+## Implemented as pending (Access history; temporary access retained for Supervisor)
 
 `features/identity/infrastructure/pendingAccessGrantAdapter.ts` sends no requests. The backend has
-no grant, approval or audit-history contract (audit logging is "Planned"). In API mode the
-Temporary Access and Access History tabs show "not available yet"; they never fall back to
-fixtures. Fixture mode starts with no grants and keeps requests in memory as **Pending approval**:
-nothing is approved, activated or enforced, and no history record is invented.
+no grant, approval or audit-history contract (audit logging is "Planned").
+
+**Access history.** Roles & Permissions → Access History lists identity and authorization events
+only: permanent role changed, permanent scope changed, account enabled / disabled and device access
+revoked. Fieldwork (operational) assignments are not authorization changes and are not shown. In
+API mode the tab shows "Access history is not available yet" and never falls back to fixtures. In
+fixture mode the entries come from the demonstration audit log; Edit User and Scope Assignment
+record role, scope (with the previous scope) and account-status changes as their own audit events.
+
+**Temporary access.** The Temporary Access tab, its request form and the dashboard overview were
+removed from the Administrator UI: temporary access will be requested and managed by Supervisors in
+a later phase. The grant domain model, `AccessGrantPort`, its use cases and the fixture / pending
+adapters below are kept unchanged for that workflow; no Administrator screen calls the grant
+operations.
 
 | Operation | Needs |
 | --- | --- |
 | `identity.accessGrants.list` | Grants visible to the caller: employee (id, name, role), type (`additional_estate` / `additional_division`), estate or division ids, `startsAt` / `expiresAt` (ISO 8601), backend status (`pending_approval`, `scheduled`, `active`, `rejected`, `expired`, `revoked`, `cancelled`), reason, requester, decider, end details. Pagination and filter names. |
 | `identity.accessGrants.request` | Body `{ employeeId, type, estateIds, divisionIds, startsAt, expiresAt, reason }`. The backend decides the status; validation errors per field (`employeeId`, `type`, `estateIds`, `divisionIds`, `startsAt`, `expiresAt`, `reason`); `409` for overlapping open grants. Must refuse self-grants and inactive accounts. |
 | `identity.accessGrants.end` | `{ action: "revoke" or "cancel", reason }`. Revoke applies to active grants, cancel to pending or scheduled ones; `409` when the status has changed. |
-| `identity.accessHistory.list` | Read-only audit entries: time, employee, action (temporary requested / approved / rejected / activated / expired / revoked / cancelled; permanent role / scope changed), previous and new access, performer, reason, result. Server-side filters for employee, role, action, date range and result; pagination. |
+| `identity.accessHistory.list` | Read-only audit entries: time, employee (id, name, role), action (`permanent_role_changed`, `permanent_scope_changed`, `account_enabled`, `account_disabled`, `device_access_revoked`; the temporary-access actions once the Supervisor workflow exists), previous and new value, performer (actor), reason, result. Server-side filters for employee, actor, role, action, date range and result; pagination. |
 
 Policy decisions still open:
 
@@ -54,6 +64,32 @@ Policy decisions still open:
 4. The "expiring soon" threshold (the frontend uses 24 hours, list filter only).
 5. Whether `cancelled` is a distinct backend status or a kind of `revoked`.
 6. Temporary Administrator delegation is out of scope here and needs its own workflow.
+7. Whether the Administrator UI should later show Supervisor-managed temporary grants read-only.
+
+## Implemented as pending (Administrator Dashboard)
+
+The dashboard reads `identity.dashboard.get`, `identity.securityAlerts.list` (both in
+`features/identity/infrastructure/httpIdentityAdapters.ts`). It no longer reads the
+temporary-access operations. In API mode every section shows "Not available yet"; no count, alert
+or activity is taken from fixtures, and no empty list stands in for a missing contract.
+
+| Operation | Needs |
+| --- | --- |
+| `identity.dashboard.get` | Active and total users, estates (with division counts and status), total and active divisions, active device sessions, sessions revoked in the last 7 days, active users by role, the newest audit events (time, kind, actor, target), accounts requiring attention with reasons, and open device-session recoveries. |
+| `identity.securityAlerts.list` | `{ alerts, reportedKinds }`. Each alert: id, kind (`failed_sign_in`, `account_locked`, `session_flagged`, `mfa_enrollment_pending`, `device_session_revoked`), time, employee (id, name, role) or null, session id and device or null, severity (`high`, `medium`, `low`) **only when the backend assigns one**, reason code. `reportedKinds` lists the kinds the service records, so the screen can say which are not reported instead of showing "none". |
+
+Fixture mode records device sessions only: a revoked session without a recovery request is the
+only alert it produces (no severity). It has no sign-in attempts, lockouts, session flags, MFA
+enrollment, invitation or activation status, and the dashboard says so.
+
+Decisions still open:
+
+1. The security rules behind `failed_sign_in`, `account_locked` and `session_flagged` (thresholds,
+   lockout policy). The frontend never infers suspicious activity from ordinary sign-in failures.
+2. Invitation and activation statuses (`invited`, `pending_activation`) for the account summary and
+   pending actions; the Identity model currently has `active` and `inactive` only.
+3. Whether the design's ID-02 "Users requiring attention" entries with no recorded reason
+   (USR-007, USR-006, USR-004) should stay in the demonstration data.
 
 ## Implemented as pending (Phase 5 — Review)
 
