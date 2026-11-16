@@ -40,7 +40,7 @@ const sidebar = () => screen.getByRole('complementary', { name: 'Sidebar' })
 const accountButton = (name: string, role: string) => screen.findByRole('button', { name: `Account menu for ${name}, ${role}` }, { timeout: 5000 })
 
 describe('sidebar navigation', () => {
-  it('groups the Administrator navigation into the reference sections', async () => {
+  it('lists the Administrator navigation in order with no visible section headings', async () => {
     signInAs('ADMINISTRATOR')
     await renderApp('/admin')
     const nav = await mainNav()
@@ -55,7 +55,7 @@ describe('sidebar navigation', () => {
       { label: 'Account', items: ['My Profile'] },
     ])
     for (const heading of ['Overview', 'Identity & Access', 'Estate Management', 'Account']) {
-      expect(within(nav).getByText(heading)).toBeInTheDocument()
+      expect(within(nav).queryByText(heading)).not.toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
   })

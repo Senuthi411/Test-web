@@ -28,7 +28,7 @@ interface Tooltip {
 }
 
 /**
- * Application sidebar: brand, role navigation grouped by section, and the signed-in
+ * Application sidebar: brand, role navigation (one continuous list), and the signed-in
  * employee's account menu. Expanded (260 px) or icon-only (72 px) with tooltips; inside the
  * mobile drawer it is always expanded.
  */
@@ -85,13 +85,8 @@ export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo
       <nav className={styles.nav} aria-label="Main" onScroll={hideTooltip}>
         {navigation.groups.map((group, index) => (
           <div key={group.label} className={styles.group}>
-            {collapsed ? (
-              index > 0 && <hr className={styles.groupDivider} aria-hidden="true" />
-            ) : (
-              <p className={styles.section} aria-hidden="true">
-                {group.label}
-              </p>
-            )}
+            {/* No visible section headings; the icon-only form keeps a thin divider between groups. */}
+            {collapsed && index > 0 && <hr className={styles.groupDivider} aria-hidden="true" />}
             <ul className={styles.list} aria-label={group.label}>
               {group.items.map((item) => (
                 <li key={item.to}>
