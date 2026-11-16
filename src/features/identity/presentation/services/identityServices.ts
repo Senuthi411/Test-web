@@ -3,6 +3,7 @@ import type { AppErrorKind } from '@/shared/api'
 import type { Clock } from '@/shared/utilities/clock'
 import type { AccountUseCases, IdentityAdminUseCases } from '../../application/identityUseCases'
 import type { AccountActivationUseCases, PasswordRecoveryUseCases } from '../../application/authFlowUseCases'
+import type { AccessGrantUseCases } from '../../application/accessGrantUseCases'
 
 /** What the Identity screens need from the composition root. */
 export interface IdentityServices {
@@ -12,6 +13,8 @@ export interface IdentityServices {
   recovery: PasswordRecoveryUseCases
   /** First-time activation from an invitation link. */
   activation: AccountActivationUseCases
+  /** Temporary access grants and access history (pending backend contracts in API mode). */
+  accessGrants: AccessGrantUseCases
   clock: Clock
   /**
    * True in fixture mode: screens label their data as demonstration data and may offer

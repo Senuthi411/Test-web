@@ -78,3 +78,22 @@
   font: 400 12px/1.3 var(--tl-font-family);
   color: var(--tl-text-muted);
 }
+
+/* Inline badge group (permission roles, grant status). */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Temporary access: impact preview in the request form. */
+.impact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--tl-border-default);
+  border-radius: var(--tl-radius-card-sm);
+  background: var(--tl-bg-subtle, #f7faf4);
+}

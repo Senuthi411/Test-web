@@ -81,6 +81,9 @@ describe('sidebar navigation', () => {
       expect(within(nav).queryByRole('link', { name: label })).not.toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'My Profile' })).toHaveAttribute('href', '/profile')
+    for (const heading of ['Overview', 'Review', 'Fieldwork', 'Cases', 'Analytics', 'Reporting', 'Account']) {
+      expect(within(nav).queryByText(heading, { exact: true })).not.toBeInTheDocument()
+    }
   })
 
   it('collapses to icons with accessible names and tooltips, and remembers the choice', async () => {
@@ -92,6 +95,7 @@ describe('sidebar navigation', () => {
     const users = within(nav).getByRole('link', { name: 'Users' })
     expect(users).not.toHaveTextContent('Users')
     expect(within(nav).queryByText('Identity & Access')).not.toBeInTheDocument()
+    expect(nav.querySelector('hr')).toBeNull()
     await user.hover(users)
     expect(within(sidebar()).getByText('Users')).toBeInTheDocument()
     await user.unhover(users)

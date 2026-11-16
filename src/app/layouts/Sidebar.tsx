@@ -83,10 +83,9 @@ export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo
       </div>
 
       <nav className={styles.nav} aria-label="Main" onScroll={hideTooltip}>
-        {navigation.groups.map((group, index) => (
+        {navigation.groups.map((group) => (
+          // One continuous list: no visible headings or dividers between groups.
           <div key={group.label} className={styles.group}>
-            {/* No visible section headings; the icon-only form keeps a thin divider between groups. */}
-            {collapsed && index > 0 && <hr className={styles.groupDivider} aria-hidden="true" />}
             <ul className={styles.list} aria-label={group.label}>
               {group.items.map((item) => (
                 <li key={item.to}>

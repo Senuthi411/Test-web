@@ -119,24 +119,11 @@ export function RoleDetailsFields({ register, errors, role, reportsToOptions, su
       return (
         <section aria-label={title} className={styles.form}>
           <h3 className={styles.sectionTitle}>{title}</h3>
-          <Checkbox
-            label={
-              <>
-                Require multi-factor sign-in
-                <span aria-hidden="true"> *</span>
-                <span className="tl-visually-hidden"> (required)</span>
-              </>
-            }
-            description="Required for Administrators. Enforced by the sign-in service, not by this form."
-            aria-invalid={Boolean(errors.mfaRequired) || undefined}
-            aria-describedby={errors.mfaRequired ? 'mfa-required-error' : undefined}
-            {...register('mfaRequired')}
-          />
-          {errors.mfaRequired && (
-            <p id="mfa-required-error" className={styles.fieldError} role="alert">
-              {errors.mfaRequired.message}
-            </p>
-          )}
+          {/* Not an option: Administrator two-factor authentication is mandatory and cannot be turned off here. */}
+          <Banner tone="info" title="Two-factor authentication is mandatory">
+            The Administrator sets up an authenticator app (TOTP) when activating the account. The sign-in service
+            enforces it; it cannot be turned off here.
+          </Banner>
         </section>
       )
     case 'SUPERVISOR':

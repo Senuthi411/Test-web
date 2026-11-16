@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import {
   Badge,
   Banner,
@@ -9,9 +9,11 @@ import {
   EmptyState,
   ErrorState,
   PageHeader,
+  Tabs,
+  tabPanelProps,
   usePageBreadcrumbs,
+  type TabItem,
 } from '@/shared/components'
-import { Icon } from '@/shared/design-system'
 import { ROLE_LABELS, type UserRole } from '@/shared/types'
 import type { IdentityUser } from '../../../domain/models'
 import { PERMISSIONS, ROLE_CATALOG, roleBySlug, type PermissionDefinition, type RoleDefinition } from '../../../domain/roles'
@@ -19,6 +21,9 @@ import { useExportAction, userPath } from '../../components/helpers'
 import { useUsers } from '../../services/queries'
 import styles from '../../components/identity.module.css'
 import roleStyles from './RolesPage.module.css'
+import { AccessHistoryTab } from './roles/AccessHistoryTab'
+import { PermissionMatrixTab } from './roles/PermissionMatrixTab'
+import { TemporaryAccessTab } from './roles/TemporaryAccessTab'
 
 const countLabel = (count: number | undefined) => (count === undefined ? '…' : `${count} ${count === 1 ? 'user' : 'users'}`)
 
@@ -30,24 +35,25 @@ function useRoleCounts(): Partial<Record<UserRole, number>> {
   return counts
 }
 
-function GrantCell({ granted, role }: { granted: boolean; role: string }) {
-  return granted ? (
-    <span className={roleStyles.granted}>
-      <Icon name="check" size={16} label={`Granted to ${role}`} />
-    </span>
-  ) : (
-    <span className={styles.muted} aria-label={`Not granted to ${role}`}>
-      —
-    </span>
-  )
-}
+type RolesTab = 'matrix' | 'temporary' | 'history'
 
-/** ID-07 Roles and Permissions (Figma 16:2). */
+const ROLES_TABS: readonly TabItem<RolesTab>[] = [
+  { id: 'matrix', label: 'Permission Matrix' },
+  { id: 'temporary', label: 'Temporary Access' },
+  { id: 'history', label: 'Access History' },
+]
+
+const isRolesTab = (value: string | null): value is RolesTab => ROLES_TABS.some((tab) => tab.id === value)
+
+/** ID-07 Roles and Permissions (Figma 16:2): permission matrix, temporary access and access history. */
 export function RolesPage() {
   usePageBreadcrumbs([{ label: 'Administration', to: '/admin' }, { label: 'Roles & Permissions' }])
   const counts = useRoleCounts()
   const users = useUsers()
   const exportAction = useExportAction('permission-matrix')
+  const [params, setParams] = useSearchParams()
+  const requested = params.get('tab')
+  const tab: RolesTab = isRolesTab(requested) ? requested : 'matrix'
 
   return (
     <div className={styles.page}>
@@ -55,55 +61,49 @@ export function RolesPage() {
         title="Roles and Permissions"
         subtitle="Permission codes are illustrative fixture values; enforcement happens in the backend"
         actions={
-          <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
-            Export matrix
-          </Button>
+          tab === 'matrix' ? (
+            <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
+              Export matrix
+            </Button>
+          ) : undefined
         }
       />
-      {users.isError && <ErrorState error={users.error} onRetry={() => void users.refetch()} />}
-      <div className={styles.sideFirst}>
-        <Card title="Roles">
-          <ul className={roleStyles.roleList}>
-            {ROLE_CATALOG.map((definition) => (
-              <li key={definition.role}>
-                <Link to={`/admin/roles/${definition.slug}`} className={roleStyles.roleItem}>
-                  <span className={roleStyles.roleTop}>
-                    <span className={roleStyles.roleName}>{ROLE_LABELS[definition.role]}</span>
-                    <Badge tone="neutral" dot={false}>
-                      {countLabel(counts[definition.role] ?? (users.data ? 0 : undefined))}
-                    </Badge>
-                  </span>
-                  <span className={styles.muted}>{definition.description}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card title="Permission matrix" action={<span className={styles.muted}>All roles · select a role to open it</span>}>
-          <DataTable<PermissionDefinition>
-            caption="Permission matrix"
-            rows={PERMISSIONS}
-            rowKey={(permission) => permission.code}
-            columns={[
-              {
-                id: 'capability',
-                header: 'Capability',
-                cell: (permission) => (
-                  <span>
-                    {permission.label} <span className={styles.muted}>({permission.code})</span>
-                  </span>
-                ),
-              },
-              ...ROLE_CATALOG.map((definition) => ({
-                id: definition.role,
-                header: ROLE_LABELS[definition.role],
-                cell: (permission: PermissionDefinition) => (
-                  <GrantCell granted={definition.permissions.includes(permission.code)} role={ROLE_LABELS[definition.role]} />
-                ),
-              })),
-            ]}
-          />
-        </Card>
+      <Tabs
+        items={ROLES_TABS}
+        value={tab}
+        onChange={(next) => setParams(next === 'matrix' ? {} : { tab: next }, { replace: true })}
+        label="Roles and permissions sections"
+        idBase="roles"
+      />
+      <div {...tabPanelProps('roles', tab)} className={styles.stack}>
+        {tab === 'matrix' && (
+          <>
+            {users.isError && <ErrorState error={users.error} onRetry={() => void users.refetch()} />}
+            <PermissionMatrixTab
+              aside={
+              <Card title="Roles">
+                <ul className={roleStyles.roleList}>
+                  {ROLE_CATALOG.map((definition) => (
+                    <li key={definition.role}>
+                      <Link to={`/admin/roles/${definition.slug}`} className={roleStyles.roleItem}>
+                        <span className={roleStyles.roleTop}>
+                          <span className={roleStyles.roleName}>{ROLE_LABELS[definition.role]}</span>
+                          <Badge tone="neutral" dot={false}>
+                            {countLabel(counts[definition.role] ?? (users.data ? 0 : undefined))}
+                          </Badge>
+                        </span>
+                        <span className={styles.muted}>{definition.description}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+              }
+            />
+          </>
+        )}
+        {tab === 'temporary' && <TemporaryAccessTab />}
+        {tab === 'history' && <AccessHistoryTab />}
       </div>
     </div>
   )

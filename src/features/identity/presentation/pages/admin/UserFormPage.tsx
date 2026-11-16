@@ -371,6 +371,15 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
   const cancelTo = user ? userPath(user.id) : '/admin/users'
   const definition = role ? roleDefinition(role) : null
   const conflict = isAppError(failure) && failure.kind === 'conflict'
+  const failureTitle = !isAppError(failure)
+    ? 'The user was not saved'
+    : failure.kind === 'conflict'
+      ? '409 · Changed by another administrator'
+      : failure.kind === 'forbidden'
+        ? 'You are not allowed to make this change'
+        : ['contract_pending', 'unavailable', 'timeout', 'offline'].includes(failure.kind)
+          ? 'User service unavailable · the user was not saved'
+          : 'The user was not saved'
   const required = (field: UserDraftField) => isFieldRequired(field, role)
 
   const estateName = (id: string) => estates.find((estate) => estate.id === id)?.name ?? id
@@ -386,7 +395,7 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
   const reviewRoleDetails = (draft: UserDraft) => {
     switch (draft.role) {
       case 'ADMINISTRATOR':
-        return [{ label: 'Multi-factor sign-in', value: draft.mfaRequired ? 'Required' : 'Not set' }]
+        return [{ label: 'Two-factor authentication', value: 'Required · set up at account activation' }]
       case 'SUPERVISOR':
         return [
           { label: 'Reports to', value: draft.reportsToId ? userName(draft.reportsToId) : 'No reporting line' },
@@ -441,7 +450,7 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
       {failure !== null && (
         <Banner
           tone="error"
-          title={conflict ? '409 · Changed by another administrator' : 'The user was not saved'}
+          title={failureTitle}
           action={
             conflict && user ? (
               <Button variant="secondary" onClick={onReload}>

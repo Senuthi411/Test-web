@@ -101,7 +101,7 @@ function UserDetailView({ detail }: { detail: UserDetail }) {
   const details = user.roleDetails
   const roleDetailItems =
     details.role === 'ADMINISTRATOR'
-      ? [{ label: 'Multi-factor sign-in', value: details.mfaRequired ? 'Required' : 'Not set' }]
+      ? [{ label: 'Two-factor authentication', value: details.mfaRequired ? 'Required' : 'Not set' }]
       : details.role === 'SUPERVISOR'
         ? [
             { label: 'Reports to', value: detail.reportsTo ? `${detail.reportsTo.fullName} (${detail.reportsTo.id})` : '—' },
@@ -122,7 +122,7 @@ function UserDetailView({ detail }: { detail: UserDetail }) {
 
   const savedMessage =
     saved === 'created'
-      ? `${user.fullName} (${user.id}) was created with the scope shown below.`
+      ? `${user.fullName} was created with Company User ID ${user.id}. Account status: ${user.status === 'active' ? 'Active' : 'Inactive'}.`
       : saved === 'scope'
         ? `The scope of ${user.fullName} was updated.`
         : `The changes to ${user.fullName} were saved.`

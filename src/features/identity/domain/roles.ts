@@ -11,23 +11,63 @@ import type { UserRole } from '@/shared/types'
 export interface PermissionDefinition {
   code: string
   label: string
+  /** What the capability allows, in plain words. */
+  description: string
 }
 
 export const PERMISSIONS: readonly PermissionDefinition[] = [
-  { code: 'identity.users.manage', label: 'Manage users and scopes' },
-  { code: 'identity.estates.manage', label: 'Manage estates and divisions' },
-  { code: 'review.queue.read_scoped', label: 'Read scoped review queue' },
-  { code: 'review.decision.write_scoped', label: 'Write review decisions' },
-  { code: 'review.correction.manage_scoped', label: 'Manage corrections' },
-  { code: 'review.quarantine.decide_scoped', label: 'Decide quarantine' },
-  { code: 'cases.assigned.read_scoped', label: 'Read assigned cases' },
-  { code: 'cases.diagnosis.write_scoped', label: 'Write diagnosis' },
-  { code: 'cases.catalog.read', label: 'Read disease catalog' },
-  { code: 'capture.observation.create_scoped', label: 'Create observation, mobile' },
-  { code: 'capture.own.read', label: 'Read own observations' },
-  { code: 'capture.own.revise', label: 'Revise own observations' },
-  { code: 'analytics.division.read_scoped', label: 'Read division analytics' },
+  { code: 'identity.users.manage', label: 'Manage users and scopes', description: 'Create and edit user accounts and assign their estate or division scope.' },
+  { code: 'identity.estates.manage', label: 'Manage estates and divisions', description: 'Create and edit estates and divisions and change their status.' },
+  { code: 'review.queue.read_scoped', label: 'Read scoped review queue', description: 'See observations waiting for review in the holder’s estates.' },
+  { code: 'review.decision.write_scoped', label: 'Write review decisions', description: 'Verify or flag observations in the holder’s estates.' },
+  { code: 'review.correction.manage_scoped', label: 'Manage corrections', description: 'Request, approve and reject corrections to observations in scope.' },
+  { code: 'review.quarantine.decide_scoped', label: 'Decide quarantine', description: 'Release or reject quarantined observations in scope.' },
+  { code: 'cases.assigned.read_scoped', label: 'Read assigned cases', description: 'Open cases referred to the expert in their assigned estates.' },
+  { code: 'cases.diagnosis.write_scoped', label: 'Write diagnosis', description: 'Record and confirm a diagnosis on an assigned case.' },
+  { code: 'cases.catalog.read', label: 'Read disease catalog', description: 'Read the disease catalog and its reference material.' },
+  { code: 'capture.observation.create_scoped', label: 'Create observation, mobile', description: 'Capture observations in the mobile app within assigned divisions.' },
+  { code: 'capture.own.read', label: 'Read own observations', description: 'See observations the holder captured.' },
+  { code: 'capture.own.revise', label: 'Revise own observations', description: 'Correct observations the holder captured, as revisions.' },
+  { code: 'analytics.division.read_scoped', label: 'Read division analytics', description: 'See aggregate analytics for divisions in scope; no observation-level data.' },
 ]
+
+export type PermissionModule = 'Identity' | 'Capture' | 'Review' | 'Cases' | 'Analytics'
+
+const MODULES: Record<string, PermissionModule> = {
+  identity: 'Identity',
+  capture: 'Capture',
+  review: 'Review',
+  cases: 'Cases',
+  analytics: 'Analytics',
+}
+
+/** Module of a permission, from its code prefix (`review.queue.read_scoped` → Review). */
+export function permissionModule(code: string): PermissionModule {
+  const module = MODULES[code.split('.')[0] ?? '']
+  if (!module) throw new Error(`Unknown permission module in ${code}`)
+  return module
+}
+
+/** Modules present in the registry, in registry order. */
+export const PERMISSION_MODULES: readonly PermissionModule[] = [...new Set(PERMISSIONS.map((permission) => permissionModule(permission.code)))]
+
+/** The scope limit a permission carries, from its code. */
+export function permissionScopeRestriction(code: string): string {
+  if (code.endsWith('_scoped')) return 'Limited to the holder’s assigned estates or divisions (and any active temporary grant).'
+  if (code.includes('.own.')) return 'Limited to the holder’s own records.'
+  return 'Not limited by estate or division.'
+}
+
+/** Roles holding a permission, in matrix order. */
+export function rolesWithPermission(code: string): UserRole[] {
+  return ROLE_CATALOG.filter((definition) => definition.permissions.includes(code)).map((definition) => definition.role)
+}
+
+/**
+ * The five system roles and their permissions are fixed in this version. No screen edits
+ * them; a system-wide role-policy mechanism would need its own approval.
+ */
+export const ROLE_PERMISSIONS_CONFIGURABLE = false
 
 export interface RoleDefinition {
   role: UserRole

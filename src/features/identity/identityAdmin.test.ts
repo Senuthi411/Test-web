@@ -133,9 +133,9 @@ describe('form validation', () => {
 
   it('requires the fields of the selected role only', () => {
     const base = { ...EMPTY_USER_DRAFT, ...CONTACT, fullName: 'Test', email: 'test@example.test' }
-    expect(validateUserDraft({ ...base, role: 'ADMINISTRATOR', mfaRequired: false }, context)).toEqual({
-      mfaRequired: 'Multi-factor sign-in is required for Administrators',
-    })
+    // Administrator two-factor authentication is mandatory: a draft can never opt out.
+    expect(validateUserDraft({ ...base, role: 'ADMINISTRATOR', mfaRequired: false }, context)).toEqual({})
+    expect(roleDetailsFromDraft({ ...base, role: 'ADMINISTRATOR', mfaRequired: false })).toEqual({ role: 'ADMINISTRATOR', mfaRequired: true })
     expect(validateUserDraft({ ...base, role: 'SUPERVISOR' }, context)).toEqual({ estateIds: 'Select at least one estate' })
     expect(validateUserDraft({ ...base, role: 'DISEASE_EXPERT', estateIds: ['EST-001'] }, context)).toEqual({
       registrationNumber: 'Registration number is required',

@@ -126,20 +126,9 @@
   scrollbar-color: var(--tl-sidebar-divider) transparent;
 }
 
-/* Expanded: groups sit at the same 2px gap as items, so the list reads as one. */
+/* Groups sit at the same 2px gap as items, so the list reads as one. */
 .group + .group {
   margin-top: 2px;
-}
-
-.collapsed .group + .group {
-  margin-top: 6px;
-}
-
-.groupDivider {
-  width: 40px;
-  margin: 10px auto;
-  border: 0;
-  border-top: 1px solid var(--tl-sidebar-divider);
 }
 
 .group:first-child {

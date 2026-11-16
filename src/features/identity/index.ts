@@ -7,6 +7,7 @@ export type { MfaChallenge, Session, SessionUser, SignInCredentials, SignInResul
 export { ACCOUNT_DISABLED, INVALID_CREDENTIALS, MFA_CODE_REJECTED, WEB_ACCESS_NOT_PERMITTED } from './domain/session'
 export { ROLE_HOME_PATH } from './domain/roleHome'
 export type {
+  AccessGrantPort,
   AccountActivationPort,
   AccountPort,
   AuthPort,
@@ -16,6 +17,7 @@ export type {
   SessionPersistencePort,
 } from './application/ports'
 export type * from './domain/authFlows'
+export { createAccessGrantUseCases, type AccessGrantUseCases } from './application/accessGrantUseCases'
 export {
   createAccountUseCases,
   createIdentityAdminUseCases,

@@ -29,6 +29,7 @@ import type {
   PasswordRecoveryRequest,
   ResetAuthorization,
 } from '../domain/authFlows'
+import type { AccessGrant, AccessHistoryEntry, GrantRequestInput } from '../domain/accessGrants'
 
 /** Authenticates a web user. Implemented by the fixture and HTTP adapters. */
 export interface AuthPort {
@@ -54,6 +55,21 @@ export interface PasswordRecoveryPort {
   resendCode(recovery: PasswordRecoveryRequest, signal?: AbortSignal): Promise<PasswordRecoveryRequest>
   verifyCode(recovery: PasswordRecoveryRequest, code: string, signal?: AbortSignal): Promise<ResetAuthorization>
   completeReset(authorization: ResetAuthorization, newPassword: string, signal?: AbortSignal): Promise<void>
+}
+
+/**
+ * Temporary access grants and the access history (Roles & Permissions). The backend decides
+ * approval, activation and expiry and enforces grants during authorisation; this port only
+ * requests and reads. PENDING CONTRACT: no Identity API operations exist yet.
+ */
+export interface AccessGrantPort {
+  listGrants(signal?: AbortSignal): Promise<AccessGrant[]>
+  /** Submits a request. The returned status is the backend's (never assumed approved). */
+  requestGrant(input: GrantRequestInput): Promise<AccessGrant>
+  /** Revokes a running grant or cancels one that has not started, with a reason. */
+  endGrant(grantId: string, action: 'revoke' | 'cancel', reason: string): Promise<AccessGrant>
+  /** Read-only audit history of temporary and permanent access changes. */
+  listAccessHistory(signal?: AbortSignal): Promise<AccessHistoryEntry[]>
 }
 
 /** First-time activation from an Administrator-created invitation. */

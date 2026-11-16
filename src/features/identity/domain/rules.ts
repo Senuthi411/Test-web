@@ -248,7 +248,8 @@ const optional = (value: string): string | null => (value.trim() ? value.trim() 
 export function roleDetailsFromDraft(draft: UserDraft): RoleDetails | null {
   switch (draft.role) {
     case 'ADMINISTRATOR':
-      return { role: 'ADMINISTRATOR', mfaRequired: draft.mfaRequired }
+      // Approved policy: every Administrator enrols an authenticator (TOTP) at activation.
+      return { role: 'ADMINISTRATOR', mfaRequired: true }
     case 'SUPERVISOR':
       return { role: 'SUPERVISOR', reportsToId: draft.reportsToId || null, officePhone: draft.officePhone.trim() ? normalisePhone(draft.officePhone) : null }
     case 'DISEASE_EXPERT':

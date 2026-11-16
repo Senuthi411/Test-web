@@ -323,6 +323,7 @@ describe('identity administration screens', () => {
     expect(await screen.findByText('User created')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/admin/users/USR-014')
     expect(screen.getByRole('heading', { name: 'Test Worker', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText(/Test Worker was created with Company User ID USR-014\. Account status: Active\./)).toBeInTheDocument()
     // The invitation status comes from the create result: fixture mode never sends one.
     expect(screen.getByText(/No invitation was sent \(demonstration data\)\./)).toBeInTheDocument()
     expect(screen.queryByText(/Invitation sent/)).not.toBeInTheDocument()
@@ -345,14 +346,16 @@ describe('identity administration screens', () => {
 
     await user.selectOptions(role, 'ADMINISTRATOR')
     expect(screen.getByText('All estates')).toBeInTheDocument()
-    expect(screen.getByRole('checkbox', { name: /Require multi-factor sign-in/ })).toBeChecked()
+    expect(screen.getByText('Two-factor authentication is mandatory')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: /multi-factor|two-factor/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: /Estates/ })).not.toBeInTheDocument()
     expect(screen.getByText('Manage users and scopes')).toBeInTheDocument()
 
     await user.selectOptions(role, 'SUPERVISOR')
     expect(screen.getByRole('group', { name: /Estates/ })).toBeInTheDocument()
     expect(screen.getByLabelText(/Reports to/)).toBeInTheDocument()
     expect(screen.getByLabelText(/Office phone/)).toBeInTheDocument()
-    expect(screen.queryByRole('checkbox', { name: /Require multi-factor sign-in/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('Two-factor authentication is mandatory')).not.toBeInTheDocument()
     expect(screen.getByText('Read scoped review queue')).toBeInTheDocument()
 
     await user.selectOptions(role, 'DISEASE_EXPERT')
@@ -452,6 +455,76 @@ describe('identity administration screens', () => {
     expect(screen.getByText('Select at least one estate')).toBeInTheDocument()
     expect(screen.getByLabelText(/Registration number/)).toHaveAccessibleDescription('Registration number is required')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('creates an Administrator with mandatory two-factor authentication and global access', async () => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    renderFixtureApp('/admin/users/new')
+    await user.type(await screen.findByLabelText(/Full name/), 'New Admin')
+    await user.type(screen.getByLabelText(/Email/), 'new.admin@example.test')
+    await fillContact(user)
+    await user.selectOptions(screen.getByLabelText(/Role/), 'ADMINISTRATOR')
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Review and create user' })
+    expect(within(dialog).getByText('All estates')).toBeInTheDocument()
+    expect(within(dialog).getByText('Required · set up at account activation')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Create user' }))
+    expect(await screen.findByText('User created')).toBeInTheDocument()
+    expect(screen.getByText('Two-factor authentication')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['unavailable', 'User service unavailable · the user was not saved'],
+    ['forbidden', 'You are not allowed to make this change'],
+  ] as const)('keeps the form and reports a %s error when creating fails', async (kind, title) => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    const { router, store } = renderFixtureApp('/admin/users/new')
+    await user.type(await screen.findByLabelText(/Full name/), 'Failed Create')
+    await user.type(screen.getByLabelText(/Email/), 'failed.create@example.test')
+    await fillContact(user)
+    await user.selectOptions(screen.getByLabelText(/Role/), 'REPORTING_USER')
+    await user.click(screen.getByRole('checkbox', { name: 'Highland Tea Estate (EST-001)' }))
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Review and create user' })
+    store.failNext(kind)
+    await user.click(within(dialog).getByRole('button', { name: 'Create user' }))
+    expect(await screen.findByText(title)).toBeInTheDocument()
+    expect(screen.queryByText('User created')).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin/users/new')
+    expect(screen.getByLabelText(/Full name/)).toHaveValue('Failed Create')
+  })
+
+  it('edits a supervisor and saves the change (ID-06)', async () => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    const { router } = renderFixtureApp('/admin/users/USR-003/edit')
+    expect(await screen.findByRole('heading', { name: 'Edit User' }, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.getByText(/USR-003 · Changes are saved/)).toBeInTheDocument()
+    expect(screen.queryByText('Company User ID')).not.toBeInTheDocument()
+    const office = screen.getByLabelText(/Office phone/)
+    await user.clear(office)
+    await user.type(office, '0112345678')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin/users/USR-003')
+    expect(screen.getByText('0112345678')).toBeInTheDocument()
+  })
+
+  it('does not keep estate scope when an edit changes a supervisor to a field worker', async () => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    renderFixtureApp('/admin/users/USR-003/edit')
+    const role = await screen.findByLabelText(/Role/, {}, { timeout: 5000 })
+    await user.selectOptions(role, 'FIELD_WORKER')
+    const dialog = await screen.findByRole('dialog', { name: 'Change role to Field worker?' })
+    expect(within(dialog).getByText('Estates')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Change role' }))
+    expect(screen.getByRole('combobox', { name: /Estate/ })).toHaveValue('')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText('Estate is required')).toBeInTheDocument()
+    expect(screen.getByText('Division is required')).toBeInTheDocument()
   })
 
   it('rejects a duplicate Employee / Staff ID on the field', async () => {

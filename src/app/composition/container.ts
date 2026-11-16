@@ -1,4 +1,5 @@
 import {
+  createAccessGrantUseCases,
   createAccountActivationUseCases,
   createAccountUseCases,
   createAuthUseCases,
@@ -72,6 +73,7 @@ export function assembleContainer(
       account: createAccountUseCases(adapters.identity.account),
       recovery: createPasswordRecoveryUseCases(adapters.identity.recovery, persistence),
       activation: createAccountActivationUseCases(adapters.identity.activation),
+      accessGrants: createAccessGrantUseCases(adapters.identity.accessGrants),
       clock,
       demo: config.dataSource === 'fixtures',
       simulateNextFailure: fixtures ? (kind) => fixtures.failNext(kind) : null,

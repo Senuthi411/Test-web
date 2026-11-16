@@ -31,6 +31,30 @@ substitutes fixture data.
 | `identity.activation.activate` | same | Identity OpenAPI: token + new password; returns "activated" or an MFA enrollment session for Administrators |
 | `users.create` | `features/identity/infrastructure/httpIdentityAdapters.ts` | P8, Identity OpenAPI. The response must return the stored account with its backend-assigned Company User ID and an invitation status (`sent`, `pending` or `not_sent`). |
 
+## Implemented as pending (Temporary access and access history)
+
+`features/identity/infrastructure/pendingAccessGrantAdapter.ts` sends no requests. The backend has
+no grant, approval or audit-history contract (audit logging is "Planned"). In API mode the
+Temporary Access and Access History tabs show "not available yet"; they never fall back to
+fixtures. Fixture mode starts with no grants and keeps requests in memory as **Pending approval**:
+nothing is approved, activated or enforced, and no history record is invented.
+
+| Operation | Needs |
+| --- | --- |
+| `identity.accessGrants.list` | Grants visible to the caller: employee (id, name, role), type (`additional_estate` / `additional_division`), estate or division ids, `startsAt` / `expiresAt` (ISO 8601), backend status (`pending_approval`, `scheduled`, `active`, `rejected`, `expired`, `revoked`, `cancelled`), reason, requester, decider, end details. Pagination and filter names. |
+| `identity.accessGrants.request` | Body `{ employeeId, type, estateIds, divisionIds, startsAt, expiresAt, reason }`. The backend decides the status; validation errors per field (`employeeId`, `type`, `estateIds`, `divisionIds`, `startsAt`, `expiresAt`, `reason`); `409` for overlapping open grants. Must refuse self-grants and inactive accounts. |
+| `identity.accessGrants.end` | `{ action: "revoke" or "cancel", reason }`. Revoke applies to active grants, cancel to pending or scheduled ones; `409` when the status has changed. |
+| `identity.accessHistory.list` | Read-only audit entries: time, employee, action (temporary requested / approved / rejected / activated / expired / revoked / cancelled; permanent role / scope changed), previous and new access, performer, reason, result. Server-side filters for employee, role, action, date range and result; pagination. |
+
+Policy decisions still open:
+
+1. Who approves a temporary grant (approval authority); whether an Administrator's own request can ever be auto-approved (the frontend assumes never).
+2. Disease Expert access to individual cases inside a granted estate (needs the case-access contract).
+3. Reporting User scope level (estate, division or both); the current estate-level model is used.
+4. The "expiring soon" threshold (the frontend uses 24 hours, list filter only).
+5. Whether `cancelled` is a distinct backend status or a kind of `revoked`.
+6. Temporary Administrator delegation is out of scope here and needs its own workflow.
+
 ## Implemented as pending (Phase 5 — Review)
 
 `features/review/infrastructure/httpReviewAdapter.ts` sends no requests. Every operation

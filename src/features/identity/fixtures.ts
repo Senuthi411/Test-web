@@ -1,6 +1,7 @@
 /** Fixture-mode adapters for Identity. Imported only by the composition root. */
 import type { FixtureStore } from '@/fixtures'
-import type { AccountActivationPort, AccountPort, AuthPort, IdentityAdminPort, PasswordRecoveryPort } from './application/ports'
+import type { AccessGrantPort, AccountActivationPort, AccountPort, AuthPort, IdentityAdminPort, PasswordRecoveryPort } from './application/ports'
+import { createFixtureAccessGrantAdapter } from './infrastructure/fixtureAccessGrantAdapter'
 import { createPendingAccountActivationAdapter, createPendingPasswordRecoveryAdapter } from './infrastructure/pendingAuthFlowAdapters'
 import { createFixtureAccountAdapter } from './infrastructure/fixtureAccountAdapter'
 import { createFixtureAuthAdapter } from './infrastructure/fixtureAuthAdapter'
@@ -12,6 +13,7 @@ export interface IdentityAdapters {
   account: AccountPort
   recovery: PasswordRecoveryPort
   activation: AccountActivationPort
+  accessGrants: AccessGrantPort
 }
 
 export function createIdentityFixtureAdapters(store: FixtureStore, options: FixtureIdentityOptions): IdentityAdapters {
@@ -21,5 +23,6 @@ export function createIdentityFixtureAdapters(store: FixtureStore, options: Fixt
     account: createFixtureAccountAdapter(store),
     recovery: createPendingPasswordRecoveryAdapter(),
     activation: createPendingAccountActivationAdapter(),
+    accessGrants: createFixtureAccessGrantAdapter(store, options),
   }
 }

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DivisionId, EstateId, UserId } from '@/shared/types'
 import type { DivisionInput, EstateInput, ScopeChangeInput, UserInput, VersionedInput } from '../../application/ports'
 import type { ExportKind, NotificationPreferenceKey, Profile } from '../../domain/models'
+import type { GrantRequestInput } from '../../domain/accessGrants'
 import { useIdentityServices } from './identityServices'
 
 /** Every Identity query key starts with this, so a write can refresh all Identity screens. */
@@ -18,6 +19,8 @@ export const identityKeys = {
   sessions: () => [...IDENTITY_KEY, 'device-sessions'] as const,
   recovery: (sessionId: string) => [...IDENTITY_KEY, 'recovery', sessionId] as const,
   profile: (id: UserId) => [...IDENTITY_KEY, 'profile', id] as const,
+  accessGrants: () => [...IDENTITY_KEY, 'access-grants'] as const,
+  accessHistory: () => [...IDENTITY_KEY, 'access-history'] as const,
 }
 
 export function useAdminDashboard() {
@@ -145,5 +148,28 @@ export function useSetNotificationPreference(userId: UserId) {
   const { account } = useIdentityServices()
   return useIdentityMutation(({ key, enabled }: { key: NotificationPreferenceKey; enabled: boolean }) =>
     account.setNotificationPreference(userId, key, enabled),
+  )
+}
+
+export function useAccessGrants() {
+  const { accessGrants } = useIdentityServices()
+  return useQuery({ queryKey: identityKeys.accessGrants(), queryFn: ({ signal }) => accessGrants.listGrants(signal), retry: false })
+}
+
+export function useAccessHistory() {
+  const { accessGrants } = useIdentityServices()
+  return useQuery({ queryKey: identityKeys.accessHistory(), queryFn: ({ signal }) => accessGrants.listAccessHistory(signal), retry: false })
+}
+
+/** Sends a grant REQUEST. The backend decides its status; nothing is approved here. */
+export function useRequestAccessGrant() {
+  const { accessGrants } = useIdentityServices()
+  return useIdentityMutation((input: GrantRequestInput) => accessGrants.requestGrant(input))
+}
+
+export function useEndAccessGrant() {
+  const { accessGrants } = useIdentityServices()
+  return useIdentityMutation(({ id, action, reason }: { id: string; action: 'revoke' | 'cancel'; reason: string }) =>
+    accessGrants.endGrant(id, action, reason),
   )
 }

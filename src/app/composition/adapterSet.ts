@@ -1,4 +1,4 @@
-import type { AccountActivationPort, AccountPort, AuthPort, IdentityAdminPort, PasswordRecoveryPort } from '@/features/identity'
+import type { AccessGrantPort, AccountActivationPort, AccountPort, AuthPort, IdentityAdminPort, PasswordRecoveryPort } from '@/features/identity'
 import type { AppErrorKind } from '@/shared/api'
 import type { CaptureReadPort } from '@/features/capture'
 import type { ReviewPort } from '@/features/review'
@@ -20,6 +20,7 @@ export interface AdapterSet {
     account: AccountPort
     recovery: PasswordRecoveryPort
     activation: AccountActivationPort
+    accessGrants: AccessGrantPort
   }
   review: ReviewPort
   fixtures: FixtureControls | null
