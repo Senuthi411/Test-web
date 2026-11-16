@@ -19,7 +19,7 @@ describe('fixture dataset', () => {
   it('has the Figma record counts', () => {
     expect(db.estates).toHaveLength(3)
     expect(db.divisions).toHaveLength(9)
-    expect(db.users).toHaveLength(13)
+    expect(db.users).toHaveLength(16)
     expect(db.diseases).toHaveLength(4)
     expect(db.observations).toHaveLength(48)
     expect(db.observations[0]?.id).toBe('OBS-001')

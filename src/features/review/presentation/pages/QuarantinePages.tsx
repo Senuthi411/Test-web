@@ -6,7 +6,6 @@ import { QueryBoundary, QuarantineBadge } from '../components/badges'
 import { formatDate, formatDateTime, reviewPaths } from '../components/format'
 import { Fields, IdLink } from '../components/parts'
 import { useReviewWorkspace } from '../services/queries'
-import { useReviewServices } from '../services/reviewServices'
 import styles from '../components/review.module.css'
 
 const STATES: Array<{ state: QuarantineState; tone: KpiTone }> = [
@@ -22,7 +21,6 @@ const actionLabel = (state: QuarantineState) => (state === 'pending_decision' ? 
 export function QuarantineQueuePage() {
   usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Quarantine Queue' }])
   const query = useReviewWorkspace()
-  const { demo } = useReviewServices()
   const navigate = useNavigate()
   return (
     <QueryBoundary query={query} label="quarantine queue">
@@ -30,14 +28,12 @@ export function QuarantineQueuePage() {
         <div className={styles.page}>
           <PageHeader
             title="Quarantine Queue"
-            subtitle="Offline items held for supervisor decision"
             actions={
               <Button variant="secondary" icon="refresh" onClick={() => void query.refetch()} loading={query.isFetching}>
                 Refresh
               </Button>
             }
           />
-          {demo && <Banner tone="info">Demonstration data. The list is scoped to your estates ({workspace.estates.map((estate) => estate.id).join(', ')}), as production requires.</Banner>}
           <div className={styles.kpiRow4}>
             {STATES.map(({ state, tone }) => {
               const items = workspace.quarantine.filter((item) => item.state === state)

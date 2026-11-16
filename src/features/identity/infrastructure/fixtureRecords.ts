@@ -110,7 +110,8 @@ export function estateStats(db: Db, estateId: string) {
   return {
     observations: observations.length,
     pendingReview: observations.filter((observation) => PENDING_REVIEW.has(observation.reviewStatus)).length,
-    correctionsRequested: observations.filter((observation) => observation.reviewStatus === 'correction_requested').length,
+    // A resubmitted observation is still in its correction loop until a Supervisor decides on the new revision.
+    correctionsRequested: observations.filter((observation) => observation.reviewStatus === 'correction_requested' || observation.reviewStatus === 'resubmitted').length,
     expertConfirmedCases: db.cases.filter((item) => observationIds.has(item.observationId)).length,
   }
 }

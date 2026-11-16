@@ -17,6 +17,7 @@ import {
   canApplyRevision,
   canApproveCorrection,
   canRejectCorrection,
+  canResubmit,
   correctionSteps,
 } from "../../domain/rules";
 import { QueryBoundary } from "../components/badges";
@@ -27,6 +28,7 @@ import {
   reviewPaths,
 } from "../components/format";
 import { Fields } from "../components/parts";
+import { SimulateResubmission } from "../components/revisions";
 import { useReviewActions, useReviewWorkspace } from "../services/queries";
 import { useReviewServices } from "../services/reviewServices";
 import styles from "../components/review.module.css";
@@ -86,7 +88,6 @@ function Detail({ correction: c }: { correction: Correction }) {
   const { demo } = useReviewServices();
   const toast = useToast();
   const actions = useReviewActions();
-  const [notice, setNotice] = useState(true);
   const [applyError, setApplyError] = useState<unknown>(null);
   const o = c.observation;
 
@@ -268,14 +269,6 @@ function Detail({ correction: c }: { correction: Correction }) {
                   </tbody>
                 </table>
               </div>
-              {c.status === "resubmitted" && notice && (
-                <div className={styles.evidenceMeta}>
-                  <Banner tone="warning" onDismiss={() => setNotice(false)}>
-                    Approving records your decision only. The revision is
-                    applied separately.
-                  </Banner>
-                </div>
-              )}
               {c.status === "approved" && (
                 <div className={styles.evidenceMeta}>
                   <Banner
@@ -313,10 +306,29 @@ function Detail({ correction: c }: { correction: Correction }) {
               ) : null}
             </>
           ) : (
-            <p className={styles.note}>
-              No revision submitted yet. The field worker has not responded to
-              this correction request.
-            </p>
+            <>
+              <p className={styles.note}>
+                No revision submitted yet. The field worker has not responded to
+                this correction request.
+              </p>
+              {demo && canResubmit(c.status, o.reviewStatus) && (
+                <SimulateResubmission
+                  observationId={o.id}
+                  currentNote={null}
+                  request={{
+                    correctionId: c.id,
+                    onRevision: c.requestedRevision - 1,
+                    requestedRevision: c.requestedRevision,
+                    requestedBy: c.requestedBy.fullName,
+                    requestedAt: c.requestedAt,
+                    items: c.items,
+                    message: c.message,
+                    status: c.status,
+                    version: c.version,
+                  }}
+                />
+              )}
+            </>
           )}
         </Card>
       </div>

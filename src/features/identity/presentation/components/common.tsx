@@ -36,6 +36,7 @@ export function SessionStatusBadge({ status }: { status: DeviceSessionStatus }) 
 
 const REVIEW_STATUS: Record<ObservationReviewStatus, { label: string; tone: BadgeTone }> = {
   submitted: { label: 'Submitted', tone: 'info' },
+  resubmitted: { label: 'Resubmitted', tone: 'teal' },
   in_review: { label: 'In review', tone: 'warning' },
   flagged: { label: 'Flagged', tone: 'danger' },
   correction_requested: { label: 'Correction requested', tone: 'warning' },

@@ -26,6 +26,15 @@ export interface AppContainer {
   fixtures: FixtureControls | null
 }
 
+/** sessionStorage, or null where the browser blocks it (private mode, blocked site data). */
+function browserSessionStorage(): Storage | null {
+  try {
+    return window.sessionStorage
+  } catch {
+    return null
+  }
+}
+
 /**
  * The composition root: the only place that chooses between fixture and HTTP adapters.
  * Only the chosen adapter set is loaded, so fixture records and development accounts are
@@ -40,7 +49,7 @@ export async function createContainer(config: AppConfig): Promise<AppContainer> 
   if (config.dataSource === 'fixtures') {
     const fixtureModule = await import('./fixtureAdapters')
     clock = fixtureModule.fixtureClock
-    adapters = fixtureModule.createFixtureAdapterSet(currentUserId)
+    adapters = fixtureModule.createFixtureAdapterSet(currentUserId, undefined, undefined, browserSessionStorage())
   } else {
     adapters = (await import('./httpAdapters')).createHttpAdapterSet(config, () => persistence.load()?.accessToken ?? null)
   }

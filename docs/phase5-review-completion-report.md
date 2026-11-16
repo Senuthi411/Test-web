@@ -127,7 +127,7 @@ Where the designs are silent, these conservative interpretations apply:
 
 | # | Interpretation | Reason |
 | --- | --- | --- |
-| I-1 | Decisions are allowed only on `in_review`. `submitted` records are read-only and state that no claim action is designed | REV-03 history shows "Claimed for review" before decisions, but no claim screen exists |
+| I-1 | Opening a `submitted` observation claims it (`in_review`). `in_review` offers all four decisions; `flagged` offers only Request correction; `verified` offers only Refer to expert; `correction_requested` and `referred` offer none | REV-03 history shows "Claimed for review" before decisions; the flagged and verified follow-ups come from the Supervisor Review Queue requirements |
 | I-2 | The verification checklist and the two approval confirmations must all be ticked | They are presented as confirmations. Requiring them is the safer reading; confirm with the product owner |
 | I-3 | The "Open" correction tab = requested + resubmitted + approved | Approved is not final until Applied |
 | I-4 | Rejection does not change the observation's review status | "The original observation and evidence remain unchanged"; no transition is designed |
@@ -223,13 +223,13 @@ recommended but was not changed here.
 - No Review backend contract exists. All operations listed in
   [pending-contracts.md](api-integration/pending-contracts.md) are `contract_pending`.
 - Not modelled (no design or rule):
-  - claim for review;
   - REV-16 quarantine release/reject;
   - quarantine ingest retry;
   - field-worker resubmission (mobile);
   - case creation and linking (Cases, Phase 6);
   - notifications actually being sent ("Notify field worker" is stored only).
-- Demonstration changes live only in tab memory and reset on reload.
+- Demonstration changes live only in tab memory and reset on reload, except Review state,
+  which is kept in sessionStorage for the current tab.
 - REV-18–24 frames missing from the export are not verified against visuals.
 
 ## 9. Files

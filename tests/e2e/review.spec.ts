@@ -29,7 +29,9 @@ test('review decisions, correction lifecycle and history stay consistent across 
   await expect(page.getByText('No revision submitted yet.')).toBeVisible()
 
   // REV-08 → REV-09 → REV-10: approve COR-005, then the simulated RevisionApplied event.
-  await nav(page).getByRole('link', { name: 'Correction Queue' }).click()
+  // The Correction Queue opens from the Review Queue header (it has no sidebar item).
+  await nav(page).getByRole('link', { name: 'Review Queue' }).click()
+  await page.getByRole('link', { name: 'Correction Queue', exact: true }).click()
   await page.getByRole('link', { name: 'COR-005', exact: true }).click()
   await page.getByRole('link', { name: 'Compare revisions' }).click()
   await expect(page.getByRole('heading', { name: 'Original vs Revised' })).toBeVisible()
@@ -70,7 +72,26 @@ test('referral and keyboard-only verification', async ({ page }) => {
   await page.getByRole('button', { name: 'Confirm verification' }).focus()
   await page.keyboard.press('Enter')
   await expect(page.getByText('OBS-014 verified')).toBeVisible()
-  await expect(page.getByText('A decision has already been recorded.')).toBeVisible()
+  // A verified observation can only be referred to an expert.
+  await expect(page.getByRole('link', { name: 'Refer to expert' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Verify observation' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Flag observation' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Request correction' })).toHaveCount(0)
+})
+
+test('opening a Submitted observation claims it, and status persists across refresh', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/review/queue?status=submitted')
+  await page.getByRole('link', { name: 'OBS-013', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Observation Review · OBS-013' })).toBeVisible()
+  await expect(page.getByText('Review status', { exact: true }).locator('..')).toContainText('In review')
+  for (const name of ['Verify observation', 'Flag observation', 'Request correction', 'Refer to expert']) {
+    await expect(page.getByRole('link', { name })).toBeVisible()
+  }
+  await page.reload()
+  await expect(page.getByText('Review status', { exact: true }).locator('..')).toContainText('In review')
+  await page.goto('/review/queue')
+  await expect(page.locator('tr', { has: page.getByRole('link', { name: 'OBS-013', exact: true }) })).toContainText('In review')
 })
 
 test('referral creates a pending case link, never a case', async ({ page }) => {

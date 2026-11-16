@@ -15,7 +15,6 @@ export function ReferralsPage() {
   const [params] = useSearchParams()
   const sentId = params.get('sent')
   const [selectedId, setSelectedId] = useState<string | null>(sentId)
-  const [notice, setNotice] = useState(true)
   const [bannerOpen, setBannerOpen] = useState(true)
 
   return (
@@ -30,7 +29,6 @@ export function ReferralsPage() {
           <div className={styles.page}>
             <PageHeader
               title="Expert Referral Status"
-              subtitle="Track referrals from your scope to expert diagnosis"
               actions={
                 <ButtonLink icon="send" to={`${reviewPaths.queue}?status=in_review`}>
                   Refer an observation
@@ -78,11 +76,6 @@ export function ReferralsPage() {
                   <Timeline label={`${selected.id} progress`} items={progress(selected)} />
                 </Card>
                 <Card title="Suspected vs confirmed">
-                  {notice && (
-                    <Banner tone="info" onDismiss={() => setNotice(false)}>
-                      Suspected disease comes from the field. Confirmed disease is recorded only by an expert diagnosis.
-                    </Banner>
-                  )}
                   <div className={styles.evidenceMeta}>
                     <Fields
                       items={[

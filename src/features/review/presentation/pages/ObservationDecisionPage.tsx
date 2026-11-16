@@ -16,11 +16,12 @@ import {
   usePageBreadcrumbs,
   useToast,
 } from '@/shared/components'
-import { FLAG_CATEGORIES, FLAG_REASONS, VERIFICATION_CHECKLIST } from '../../domain/checklist'
+import { FLAG_CATEGORIES, FLAG_REASONS } from '../../domain/checklist'
 import { CORRECTION_ITEMS, type ObservationReview, type ReviewStatus } from '../../domain/models'
 import {
   RESULTING_STATUS,
   canDecide,
+  type ObservationDecision,
   correctionRequestErrors,
   flagErrors,
   referralErrors,
@@ -29,11 +30,18 @@ import {
 } from '../../domain/rules'
 import { QueryBoundary, ReviewStatusBadge } from '../components/badges'
 import { errorText, formatDate, isConflict, reviewPaths } from '../components/format'
-import { FieldError, Fields, NextSteps } from '../components/parts'
+import { FieldError, Fields } from '../components/parts'
 import { useObservationReview, useReviewActions } from '../services/queries'
 import styles from '../components/review.module.css'
 
 export type ObservationDecisionKind = 'verify' | 'flag' | 'request-correction' | 'refer'
+
+const DECISION_OF: Record<ObservationDecisionKind, ObservationDecision> = {
+  verify: 'verify',
+  flag: 'flag',
+  'request-correction': 'requestCorrection',
+  refer: 'refer',
+}
 
 const TITLES: Record<ObservationDecisionKind, string> = {
   verify: 'Verify Observation',
@@ -50,7 +58,7 @@ export function ObservationDecisionPage({ kind }: { kind: ObservationDecisionKin
   return (
     <QueryBoundary query={query} label={TITLES[kind]}>
       {(review) =>
-        canDecide(review.observation.reviewStatus) ? (
+        canDecide(review.observation.reviewStatus, DECISION_OF[kind]) ? (
           <DecisionForm key={`${review.observation.id}-${review.version}`} kind={kind} review={review} onRefresh={() => void query.refetch()} />
         ) : (
           <div className={styles.page}>
@@ -59,7 +67,7 @@ export function ObservationDecisionPage({ kind }: { kind: ObservationDecisionKin
               title="No decision can be recorded"
               message={
                 <>
-                  {review.observation.id} is <ReviewStatusBadge status={review.observation.reviewStatus} />. Decisions are available only for observations that are In review.
+                  {review.observation.id} is <ReviewStatusBadge status={review.observation.reviewStatus} />. {TITLES[kind]} is not available for an observation with this status.
                 </>
               }
               icon="info"
@@ -85,9 +93,7 @@ function DecisionForm({ kind, review, onRefresh }: { kind: ObservationDecisionKi
   const [idempotencyKey] = useState(newIdempotencyKey)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [failure, setFailure] = useState<unknown>(null)
-  const [notice, setNotice] = useState(true)
 
-  const [checklist, setChecklist] = useState<boolean[]>(() => VERIFICATION_CHECKLIST.map(() => false))
   const [note, setNote] = useState('')
   const [reason, setReason] = useState<string>(FLAG_REASONS[0])
   const [category, setCategory] = useState<string>(FLAG_CATEGORIES[0])
@@ -107,7 +113,7 @@ function DecisionForm({ kind, review, onRefresh }: { kind: ObservationDecisionKi
     setFailure(null)
     const found =
       kind === 'verify'
-        ? verifyErrors({ checklist, note }, VERIFICATION_CHECKLIST.length)
+        ? verifyErrors({ note })
         : kind === 'flag'
           ? flagErrors({ reason, category, explanation, notifyFieldWorker: notify })
           : kind === 'request-correction'
@@ -117,7 +123,7 @@ function DecisionForm({ kind, review, onRefresh }: { kind: ObservationDecisionKi
     if (Object.keys(found).length) return
     try {
       if (kind === 'verify') {
-        await actions.verify.mutateAsync({ id: o.id, input: { checklist, note }, meta })
+        await actions.verify.mutateAsync({ id: o.id, input: { note }, meta })
         toast.show({ tone: 'success', title: `${o.id} verified`, message: 'The decision was added to the decision history.' })
         navigate(back)
       } else if (kind === 'flag') {
@@ -212,26 +218,16 @@ function DecisionForm({ kind, review, onRefresh }: { kind: ObservationDecisionKi
 
   if (kind === 'verify') {
     form = (
-      <Card title="Verification checklist">
+      <Card title="Verification">
         <div className={styles.form}>
-          {notice && (
-            <Banner tone="info" onDismiss={() => setNotice(false)}>
-              Verified means the observation record is accepted. It is not an expert diagnosis.
-            </Banner>
+          {review.expertDecision && (
+            <Fields
+              items={[
+                { label: 'Expert decision', value: `${review.expertDecision.disease} · ${review.expertDecision.expert}` },
+                { label: 'Expert explanation', value: review.expertDecision.statement },
+              ]}
+            />
           )}
-          <fieldset className={styles.fieldset} aria-describedby={errors.checklist ? 'checklist-error' : undefined}>
-            <legend>Confirm each item</legend>
-            {VERIFICATION_CHECKLIST.map((item, index) => (
-              <Checkbox
-                key={item.id}
-                label={item.label(o.gpsAccuracyM)}
-                description={'hint' in item ? item.hint : undefined}
-                checked={checklist[index]}
-                onChange={(event) => setChecklist((list) => list.map((value, position) => (position === index ? event.target.checked : value)))}
-              />
-            ))}
-            <FieldError id="checklist-error" message={errors.checklist} />
-          </fieldset>
           <TextAreaField label="Verification note (optional)" placeholder="Add a short note for the decision history" rows={4} value={note} onChange={(event) => setNote(event.target.value)} />
           {resultingLine}
         </div>
@@ -241,11 +237,6 @@ function DecisionForm({ kind, review, onRefresh }: { kind: ObservationDecisionKi
     form = (
       <Card title="Flag details">
         <div className={styles.form}>
-          {notice && (
-            <Banner tone="info" onDismiss={() => setNotice(false)}>
-              Flagging marks a concern for follow up. It does not delete or change the original evidence.
-            </Banner>
-          )}
           <SelectField label="Reason" required options={FLAG_REASONS.map((value) => ({ value, label: value }))} value={reason} onChange={(event) => setReason(event.target.value)} error={errors.reason} />
           <SelectField label="Concern category" options={FLAG_CATEGORIES.map((value) => ({ value, label: value }))} value={category} onChange={(event) => setCategory(event.target.value)} />
           <Fields items={[{ label: 'Review version', value: review.version }]} />
@@ -257,17 +248,8 @@ function DecisionForm({ kind, review, onRefresh }: { kind: ObservationDecisionKi
     )
   } else if (kind === 'request-correction') {
     summary = (
-      <Card title="What happens next">
-        <NextSteps
-          label="What happens next"
-          steps={[
-            { title: 'Request sent', detail: 'Status: requested' },
-            { title: `Field worker submits revision ${review.nextRevisionNumber}`, detail: 'Status: resubmitted' },
-            { title: 'You approve or reject', detail: 'Approval is not application' },
-            { title: 'RevisionApplied', detail: 'Only then does review return to in_review' },
-          ]}
-        />
-        <div className={styles.evidenceMeta}>
+      <Card title="Request summary">
+        <div>
           <Fields
             items={[
               { label: 'Requested revision number', value: review.nextRevisionNumber },
@@ -275,7 +257,6 @@ function DecisionForm({ kind, review, onRefresh }: { kind: ObservationDecisionKi
             ]}
           />
         </div>
-        <p className={styles.caption}>The original image stays preserved. The field worker submits a new revision; the original is never overwritten.</p>
       </Card>
     )
     form = (
@@ -308,22 +289,12 @@ function DecisionForm({ kind, review, onRefresh }: { kind: ObservationDecisionKi
     )
   } else {
     summary = (
-      <Card title="After sending">
-        <NextSteps
-          label="After sending"
-          steps={[
-            { title: 'Referral sent', detail: 'Status: referred' },
-            { title: 'Case created and linked', detail: 'Referral becomes linked' },
-            { title: 'Expert diagnosis', detail: 'Confirmed disease recorded' },
-          ]}
-        />
-        <h3 className={styles.subheading}>Evidence shared with the expert</h3>
+      <Card title="Evidence shared with the expert">
         <ul className={styles.note}>
           <li>Original image{review.evidence ? ` (${review.evidence.imageId})` : ''}</li>
           <li>GPS provenance and capture metadata</li>
           <li>Field note and suspected disease</li>
         </ul>
-        <p className={styles.caption}>Referral creates a case for the expert. If the case link is delayed, the referral shows pending case link until it is reconciled.</p>
       </Card>
     )
     form = (

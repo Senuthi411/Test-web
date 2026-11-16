@@ -6,7 +6,7 @@ import styles from './Badge.module.css'
  * Tones from Badge/Status. Design rule (368:2128): Verified/Active/Assigned use success;
  * Flagged/Pending/Awaiting use warning; Suspected disease is warning, Confirmed is success.
  */
-export type BadgeTone = 'success' | 'warning' | 'info' | 'purple' | 'neutral' | 'danger' | 'lime'
+export type BadgeTone = 'success' | 'warning' | 'info' | 'purple' | 'neutral' | 'danger' | 'lime' | 'teal'
 
 export interface BadgeProps {
   tone: BadgeTone

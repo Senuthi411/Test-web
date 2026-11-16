@@ -181,7 +181,7 @@ describe('identity administration screens', () => {
     signInAs('ADMINISTRATOR')
     renderFixtureApp('/admin')
     const active = await screen.findByRole('region', { name: 'Active users' })
-    expect(within(active).getByText('13')).toBeInTheDocument()
+    expect(within(active).getByText('16')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Active device sessions' })).getByText('1 session revoked this week')).toBeInTheDocument()
     expect(screen.getByText('Session revoked')).toBeInTheDocument()
   })
@@ -190,12 +190,12 @@ describe('identity administration screens', () => {
     signInAs('ADMINISTRATOR')
     const user = userEvent.setup()
     renderFixtureApp('/admin/users')
-    expect(await screen.findByText('Showing 1–13 of 13 demo users')).toBeInTheDocument()
+    expect(await screen.findByText('Showing 1–15 of 16 demo users')).toBeInTheDocument()
     await user.type(screen.getByRole('searchbox', { name: 'Search users' }), 'hiruni')
     expect(await screen.findByText('Showing 1–1 of 1 demo users')).toBeInTheDocument()
     expect(screen.getByText('Hiruni Nadeesha')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reset filters' }))
-    expect(await screen.findByText('Showing 1–13 of 13 demo users')).toBeInTheDocument()
+    expect(await screen.findByText('Showing 1–15 of 16 demo users')).toBeInTheDocument()
   })
 
   it('requires a division, then creates the user after review (ID-05)', async () => {
@@ -217,7 +217,7 @@ describe('identity administration screens', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Create user' }))
 
     expect(await screen.findByText('User created')).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/admin/users/USR-014')
+    expect(router.state.location.pathname).toBe('/admin/users/USR-017')
     expect(screen.getByRole('heading', { name: 'Test Worker', level: 1 })).toBeInTheDocument()
   })
 

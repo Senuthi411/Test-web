@@ -57,6 +57,10 @@
   --tl-info-text: #164f8a;
   --tl-purple-bg: #ede7f8;
   --tl-purple-text: #52389a;
+  /* Resubmitted (corrected revision awaiting review): distinct from Submitted (info) and In review (purple). */
+  --tl-teal-bg: #d9f2ee;
+  --tl-teal-text: #0b5c55;
+  --tl-teal-stroke: #2c9a8e;
   --tl-danger-bg: #fde4e1;
   --tl-danger-text: #a8221a;
   --tl-danger-solid: #b3261e;

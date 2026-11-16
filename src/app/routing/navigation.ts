@@ -7,6 +7,11 @@ export interface NavItem {
   icon: IconName
   /** Match the path exactly (used for each role's dashboard). */
   end?: boolean
+  /**
+   * Other path prefixes that belong to this item's workflow and keep it highlighted, for
+   * screens that have no sidebar entry of their own (e.g. the Correction Queue under Review Queue).
+   */
+  activePaths?: readonly string[]
 }
 
 export interface RoleNavigation {
@@ -37,12 +42,11 @@ export const ROLE_NAVIGATION: Record<WebRole, RoleNavigation> = {
     searchPlaceholder: 'Search observations and records',
     items: [
       { label: 'Dashboard', to: '/review', icon: 'home', end: true },
-      { label: 'Review Queue', to: '/review/queue', icon: 'inbox' },
-      { label: 'Correction Queue', to: '/review/corrections', icon: 'edit' },
-      { label: 'Expert Referrals', to: '/review/referrals', icon: 'send' },
+      // Corrections, expert referrals and observation evidence are opened from the review
+      // workflow (Review Queue header, Dashboard KPIs, Observation Review), so they stay under it.
+      { label: 'Review Queue', to: '/review/queue', icon: 'inbox', activePaths: ['/review/observations', '/review/corrections', '/review/referrals', '/observations'] },
       { label: 'Quarantine Queue', to: '/review/quarantine', icon: 'archive' },
       { label: 'Decision History', to: '/review/history', icon: 'history' },
-      { label: 'Evidence Viewer', to: '/observations', icon: 'image' },
       { label: 'Fieldwork Assignments', to: '/assignments', icon: 'image' },
     ],
   },

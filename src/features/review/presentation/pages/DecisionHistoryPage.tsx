@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
+import { AssignmentHistorySection } from '@/features/capture'
 import { Button, Card, DataTable, EmptyState, FilterSelect, PageHeader, Pagination, SearchInput, Tabs, usePageBreadcrumbs } from '@/shared/components'
 import { useDebouncedValue } from '@/shared/hooks'
 import { paginate } from '@/shared/utilities/pagination'
-import { DECISION_OUTCOME_LABEL, DECISION_TYPE_LABEL, type DecisionOutcome, type DecisionType, type ReviewDecision } from '../../domain/models'
-import { OutcomeBadge, QueryBoundary } from '../components/badges'
-import { formatDate, reviewPaths } from '../components/format'
+import { DECISION_OUTCOME_LABEL, DECISION_TYPE_LABEL, type DecisionOutcome, type DecisionType, type ReviewDecision, type ReviewObservation, type ReviewWorkspace } from '../../domain/models'
+import { OutcomeBadge, QueryBoundary, ReviewStatusBadge } from '../components/badges'
+import { formatDate, formatDateTime, reviewPaths } from '../components/format'
 import { IdLink, Person } from '../components/parts'
 import { useReviewExport, useReviewWorkspace } from '../services/queries'
 import { useReviewClock } from '../services/useReviewClock'
@@ -26,7 +28,38 @@ function recordPath(decision: ReviewDecision): string {
 const instant = (iso: string) => new Date(iso.includes('T') ? iso : `${iso}T12:00:00+05:30`).getTime()
 
 /** REV-17 Review and Decision History. */
+type Section = 'observations' | 'assignments'
+
+/** Observations archived 24 hours after their final decision. Read-only: links open the review page, whose status allows no decision. */
+function ObservationHistory({ workspace }: { workspace: ReviewWorkspace }) {
+  const rows = workspace.observations.filter((item) => item.archivedAt)
+  const lastDecision = (id: string) => workspace.decisions.find((item) => item.targetId === id && item.type !== 'quarantine')
+  const expert = (id: string) => workspace.referrals.find((item) => item.observation.id === id && item.diagnosis)
+  return (
+    <Card title="Archived observations">
+      <DataTable<ReviewObservation>
+        caption="Observation history"
+        rows={rows}
+        rowKey={(row) => row.id}
+        empty={<EmptyState title="No archived observations" message="Verified and flagged observations move here 24 hours after the final decision." icon="history" />}
+        columns={[
+          { id: 'id', header: 'Observation', cell: (row) => <IdLink to={reviewPaths.observation(row.id)}>{row.id}</IdLink> },
+          { id: 'division', header: 'Division', cell: (row) => row.division.name },
+          { id: 'worker', header: 'Field worker', cell: (row) => <Person name={row.fieldWorker.fullName} /> },
+          { id: 'disease', header: 'Suspected disease', cell: (row) => row.suspectedDisease.name },
+          { id: 'final', header: 'Final decision', cell: (row) => <ReviewStatusBadge status={row.reviewStatus} /> },
+          { id: 'expert', header: 'Expert decision', cell: (row) => { const r = expert(row.id); return r?.diagnosis ? `${r.diagnosis.disease.name} (${r.id})` : '—' } },
+          { id: 'decided', header: 'Final decision date', cell: (row) => formatDate(lastDecision(row.id)?.decidedAt ?? row.finalisedAt ?? row.capturedAt) },
+          { id: 'archived', header: 'Archived', cell: (row) => (row.archivedAt ? formatDateTime(row.archivedAt) : '—') },
+        ]}
+      />
+    </Card>
+  )
+}
+
 export function DecisionHistoryPage() {
+  const [params, setParams] = useSearchParams()
+  const section: Section = params.get('section') === 'assignments' ? 'assignments' : 'observations'
   usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Decision History' }])
   const query = useReviewWorkspace()
   const now = useReviewClock()
@@ -34,12 +67,14 @@ export function DecisionHistoryPage() {
   const [tab, setTab] = useState<Tab>('all')
   const [search, setSearch] = useState('')
   const [outcome, setOutcome] = useState<'all' | DecisionOutcome>('all')
+  const [division, setDivision] = useState('all')
   const [date, setDate] = useState<DateFilter>('30')
   const [page, setPage] = useState(1)
   const term = useDebouncedValue(search.trim().toLowerCase(), 200)
   const reset = () => {
     setSearch('')
     setOutcome('all')
+    setDivision('all')
     setDate('30')
     setPage(1)
   }
@@ -58,23 +93,40 @@ export function DecisionHistoryPage() {
           (item) =>
             (tab === 'all' || item.type === tab) &&
             (outcome === 'all' || item.outcome === outcome) &&
+            (division === 'all' || item.divisionId === division) &&
             (date === 'all' || now.getTime() - instant(item.decidedAt) <= Number(date) * DAY) &&
-            (!term || `${item.recordId} ${item.targetId}`.toLowerCase().includes(term)),
+            (!term || `${item.recordId} ${item.targetId} ${item.revision?.id ?? ''}`.toLowerCase().includes(term)),
         )
         const outcomes = [...new Set(decisions.map((item) => item.outcome))]
-        const filtersActive = search !== '' || outcome !== 'all' || date !== '30'
+        const filtersActive = search !== '' || outcome !== 'all' || division !== 'all' || date !== '30'
         const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)))
         return (
           <div className={styles.page}>
             <PageHeader
               title="Review and Decision History"
-              subtitle="Audit trail of your review, correction, referral and quarantine decisions"
               actions={
                 <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
                   Export
                 </Button>
               }
             />
+            <Tabs<Section>
+              label="History section"
+              value={section}
+              onChange={(value) => setParams(value === 'assignments' ? { section: value } : {}, { replace: true })}
+              items={[
+                { id: 'observations', label: 'Observation History', count: workspace.observations.filter((item) => item.archivedAt).length },
+                { id: 'assignments', label: 'Assignment History' },
+              ]}
+            />
+            {section === 'assignments' ? (
+              <Card title="Archived assignments">
+                <AssignmentHistorySection />
+              </Card>
+            ) : (
+            <>
+            <ObservationHistory workspace={workspace} />
+            <h2 className={styles.sectionHeading}>Decision log</h2>
             <Tabs<Tab>
               label="Decision type"
               value={tab}
@@ -93,6 +145,7 @@ export function DecisionHistoryPage() {
                   onChange={withReset(setOutcome)}
                   options={[{ value: 'all', label: 'All' }, ...outcomes.map((value) => ({ value, label: DECISION_OUTCOME_LABEL[value] }))]}
                 />
+                <FilterSelect label="Division" value={division} onChange={withReset(setDivision)} options={[{ value: 'all', label: 'All' }, ...workspace.divisions.map((item) => ({ value: item.id, label: item.name }))]} />
                 <FilterSelect<DateFilter>
                   label="Date"
                   value={date}
@@ -117,6 +170,9 @@ export function DecisionHistoryPage() {
                   { id: 'type', header: 'Type', cell: (row) => DECISION_TYPE_LABEL[row.type] },
                   { id: 'record', header: 'Record', cell: (row) => <IdLink to={recordPath(row)}>{row.recordId}</IdLink> },
                   { id: 'target', header: 'Target', cell: (row) => row.targetId },
+                  { id: 'division', header: 'Division', cell: (row) => workspace.divisions.find((item) => item.id === row.divisionId)?.name ?? '—' },
+                  // The revision the decision was made on, so decisions on different versions stay distinct.
+                  { id: 'revision', header: 'Revision', cell: (row) => (row.revision ? <span title={row.revision.id}>V{row.revision.number} · {row.revision.id}</span> : '—') },
                   { id: 'decision', header: 'Decision', cell: (row) => <OutcomeBadge outcome={row.outcome} /> },
                   { id: 'by', header: 'Decided by', cell: (row) => <Person name={row.decidedBy.fullName} /> },
                   { id: 'note', header: 'Note', cell: (row) => row.note ?? '—' },
@@ -124,6 +180,8 @@ export function DecisionHistoryPage() {
               />
               {filtered.length > 0 && <Pagination page={currentPage} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} itemLabel="decisions" />}
             </Card>
+            </>
+            )}
           </div>
         )
       }}

@@ -35,9 +35,6 @@ describe('Capture observation foundation', () => {
     const { store, capture } = setup()
     const created = await capture.createAssignment(assignmentInput)
     const started = await capture.simulateAssignment(created.id, 'start', created.version)
-    store.write((db) => { db.observations.find((row) => row.id === 'OBS-014')!.fieldWorkerId = 'USR-010' })
-    await expect(capture.simulateAssignment(created.id, 'submit', started.version)).rejects.toMatchObject({ kind: 'contract_mismatch' })
-    expect((await capture.getWorkspace()).assignments.find((row) => row.id === created.id)?.status).toBe('in_progress')
     store.write((db) => { db.assignments.find((row) => row.id === created.id)!.estateId = 'EST-001' })
     expect((await capture.getWorkspace()).assignments.some((row) => row.id === created.id)).toBe(false)
     await expect(capture.simulateAssignment(created.id, 'submit', started.version)).rejects.toMatchObject({ kind: 'not_found' })
@@ -54,7 +51,8 @@ describe('Capture observation foundation', () => {
     expect((await setup('USR-002').capture.getWorkspace()).assignments).toEqual([])
   })
 
-  const assignmentInput = { estateId: 'EST-002', divisionId: 'DIV-005', fieldWorkerId: 'USR-009', title: 'Inspect East Hills', instructions: 'Photograph affected leaves.', priority: 'High' as const, dueDate: '2026-10-16', status: 'assigned' as const }
+  // USR-014 (Kasun Perera) is free; USR-009 already holds ASG-003 In progress.
+  const assignmentInput = { estateId: 'EST-002', divisionId: 'DIV-005', fieldWorkerId: 'USR-014', title: 'Inspect East Hills', instructions: 'Photograph affected leaves.', priority: 'High' as const, dueDate: '2026-10-16', status: 'assigned' as const }
 
   it('creates an assignment and simulates start/submission without changing Review or evidence', async () => {
     const { capture, store } = setup()
@@ -66,10 +64,12 @@ describe('Capture observation foundation', () => {
     expect(started.status).toBe('in_progress')
     await expect(capture.simulateAssignment(created.id, 'submit', created.version)).rejects.toMatchObject({ kind: 'conflict' })
     const submitted = await capture.simulateAssignment(created.id, 'submit', started.version)
-    expect(submitted).toMatchObject({ status: 'submitted', observationIds: ['OBS-014'] })
+    // The inspection's own new observation is submitted; no existing observation is linked or changed.
+    expect(submitted).toMatchObject({ status: 'submitted', observationIds: ['OBS-049'] })
     await expect(capture.simulateAssignment(created.id, 'start', submitted.version)).rejects.toMatchObject({ kind: 'conflict' })
-    expect(store.read((db) => db.observations)).toEqual(observationsBefore)
-    expect(store.read((db) => db.captureEvidence)).toEqual(evidenceBefore)
+    expect(store.read((db) => db.observations.slice(0, observationsBefore.length))).toEqual(observationsBefore)
+    expect(store.read((db) => db.observations.find((row) => row.id === 'OBS-049'))).toMatchObject({ reviewStatus: 'submitted', fieldWorkerId: 'USR-014', divisionId: 'DIV-005' })
+    expect(store.read((db) => db.captureEvidence.slice(0, evidenceBefore.length))).toEqual(evidenceBefore)
   })
 
   it('rejects invalid fields, ineligible workers and cross-estate assignment requests', async () => {
@@ -93,7 +93,7 @@ describe('Capture observation foundation', () => {
   it('rechecks worker eligibility after Identity scope changes', async () => {
     const { capture, store } = setup()
     const created = await capture.createAssignment(assignmentInput)
-    store.write((db) => { db.users.find((row) => row.id === 'USR-009')!.divisionIds = ['DIV-004'] })
+    store.write((db) => { db.users.find((row) => row.id === 'USR-014')!.divisionIds = ['DIV-004'] })
     await expect(capture.simulateAssignment(created.id, 'start', created.version)).rejects.toMatchObject({ kind: 'forbidden' })
   })
 

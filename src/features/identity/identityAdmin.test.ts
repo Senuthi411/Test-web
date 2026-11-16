@@ -103,12 +103,12 @@ describe('fixture identity administration', () => {
   it('derives the ID-02 dashboard from the dataset', async () => {
     const { admin } = setup()
     const dashboard = await admin.getDashboard()
-    expect(dashboard.activeUsers).toBe(13)
+    expect(dashboard.activeUsers).toBe(16)
     expect(dashboard.estates).toHaveLength(3)
     expect(dashboard.divisionCount).toBe(9)
     expect(dashboard.activeDeviceSessions).toBe(5)
     expect(dashboard.revokedSessionsThisWeek).toBe(1)
-    expect(dashboard.usersByRole.map((entry) => entry.count)).toEqual([6, 3, 2, 1, 1])
+    expect(dashboard.usersByRole.map((entry) => entry.count)).toEqual([9, 3, 2, 1, 1])
     expect(dashboard.attention.map((row) => [row.user.id, row.status])).toEqual([
       ['USR-007', 'active'],
       ['USR-011', 'session_revoked'],
@@ -137,7 +137,7 @@ describe('fixture identity administration', () => {
     expect(westTerrace.supervisor?.id).toBe('USR-003')
   })
 
-  it('creates a scoped user as USR-014, visible on every screen, and records it', async () => {
+  it('creates a scoped user as USR-017, visible on every screen, and records it', async () => {
     const { admin } = setup()
     const created = await admin.createUser({
       fullName: '  Test Worker ',
@@ -146,11 +146,11 @@ describe('fixture identity administration', () => {
       status: 'active',
       scope: { estateIds: [], divisionIds: ['DIV-001'] },
     })
-    expect(created).toMatchObject({ id: 'USR-014', fullName: 'Test Worker', email: 'test.worker@example.test', divisionIds: ['DIV-001'], version: 1 })
-    expect((await admin.listUsers()).some((user) => user.id === 'USR-014')).toBe(true)
-    expect((await admin.getDivision('DIV-001')).division.fieldWorkers.map((worker) => worker.id)).toContain('USR-014')
+    expect(created).toMatchObject({ id: 'USR-017', fullName: 'Test Worker', email: 'test.worker@example.test', divisionIds: ['DIV-001'], version: 1 })
+    expect((await admin.listUsers()).some((user) => user.id === 'USR-017')).toBe(true)
+    expect((await admin.getDivision('DIV-001')).division.fieldWorkers.map((worker) => worker.id)).toContain('USR-017')
     const dashboard = await admin.getDashboard()
-    expect(dashboard.activeUsers).toBe(14)
+    expect(dashboard.activeUsers).toBe(17)
     expect(dashboard.recentActivity[0]?.title).toBe('User created: Test Worker')
   })
 
@@ -162,7 +162,7 @@ describe('fixture identity administration', () => {
     await expect(
       admin.createUser({ fullName: 'No Scope', email: 'no.scope@example.test', role: 'FIELD_WORKER', status: 'active', scope: { estateIds: [], divisionIds: [] } }),
     ).rejects.toMatchObject({ kind: 'validation' })
-    expect(await admin.listUsers()).toHaveLength(13)
+    expect(await admin.listUsers()).toHaveLength(16)
   })
 
   it('updates a scope with a reason and rejects a stale version with 409', async () => {
@@ -194,7 +194,7 @@ describe('fixture identity administration', () => {
     const input = { fullName: 'Invalid Email', email: 'invalid', role: 'ADMINISTRATOR' as const, status: 'active' as const, scope: { estateIds: [], divisionIds: [] } }
     await expect(admin.createUser(input)).rejects.toMatchObject({ kind: 'validation', details: [{ path: 'email' }] })
     await expect(admin.updateUser('USR-001', { ...input, expectedVersion: 1 })).rejects.toMatchObject({ kind: 'validation', details: [{ path: 'email' }] })
-    expect(await admin.listUsers()).toHaveLength(13)
+    expect(await admin.listUsers()).toHaveLength(16)
     expect((await admin.getUser('USR-001')).user.email).toBe('anika.perera@example.test')
   })
 

@@ -6,10 +6,10 @@ import {
   flagErrors,
   referralErrors,
   rejectErrors,
+  resubmissionErrors,
   verifyErrors,
   type FieldErrors,
 } from '../domain/rules'
-import { VERIFICATION_CHECKLIST } from '../domain/checklist'
 
 async function guard(errors: FieldErrors): Promise<void> {
   const details = Object.entries(errors).map(([path, message]) => ({ path, message }))
@@ -27,8 +27,12 @@ export function createReviewUseCases(port: ReviewPort): ReviewPort {
       if (!observationId.trim()) throw new AppError('validation', 'An observation ID is required.')
       return port.getObservationReview(observationId.trim(), signal)
     },
+    async claim(observationId) {
+      if (!observationId.trim()) throw new AppError('validation', 'An observation ID is required.')
+      return port.claim(observationId.trim())
+    },
     async verify(id, input, meta) {
-      await guard(verifyErrors(input, VERIFICATION_CHECKLIST.length))
+      await guard(verifyErrors(input))
       return port.verify(id, trimmed(input), meta)
     },
     async flag(id, input, meta) {
@@ -50,6 +54,10 @@ export function createReviewUseCases(port: ReviewPort): ReviewPort {
     async rejectCorrection(id, input, meta) {
       await guard(rejectErrors(input))
       return port.rejectCorrection(id, trimmed(input), meta)
+    },
+    async simulateResubmission(id, input, expectedVersion) {
+      await guard(resubmissionErrors(input))
+      return port.simulateResubmission(id, trimmed(input), expectedVersion)
     },
   }
 }

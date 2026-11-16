@@ -8,6 +8,8 @@ import type {
   FixtureStore,
   FixtureUser,
 } from '@/fixtures'
+import { latestRevisionOf, projectRevision, revisionIdOf, revisionsOf } from '@/fixtures'
+import { revisionDifferences } from '@/features/capture'
 import { AppError } from '@/shared/api'
 import type { Clock } from '@/shared/utilities/clock'
 import type { DecisionResult, ReviewPort } from '../application/ports'
@@ -22,7 +24,33 @@ import type {
   ReviewObservation,
   ReviewWorkspace,
 } from '../domain/models'
-import { RESULTING_STATUS, canApplyRevision, canApproveCorrection, canDecide, canRejectCorrection } from '../domain/rules'
+import { DECISION_OUTCOME_LABEL, REVIEW_STATUS_LABEL, type ReviewStatus } from '../domain/models'
+import {
+  RESULTING_STATUS,
+  allowedDecisions,
+  canApplyRevision,
+  canApproveCorrection,
+  isFinalReviewStatus,
+  observationArchivedAt,
+  canDecide,
+  canRejectCorrection,
+  canResubmit,
+  canStartReview,
+  type ObservationDecision,
+} from '../domain/rules'
+
+const DECISION_LABEL: Record<ObservationDecision, string> = {
+  verify: 'Verify observation',
+  flag: 'Flag observation',
+  requestCorrection: 'Request correction',
+  refer: 'Refer to expert',
+}
+
+/** REV-03 "Decision pending" detail, listing only the decisions the status allows. */
+function pendingDetail(decisions: readonly ObservationDecision[]): string {
+  if (decisions.length === 1) return DECISION_LABEL[decisions[0]]
+  return 'Verify, flag, request correction or refer'
+}
 
 type Db = FixtureDatabase
 type ReadDb = Readonly<FixtureDatabase>
@@ -65,6 +93,23 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
   const estateOfDivision = (db: ReadDb, divisionId: string) => db.divisions.find((item) => item.id === divisionId)?.estateId ?? null
   const inScope = (actor: FixtureUser, estateId: string | null) => estateId !== null && actor.estateIds.includes(estateId)
 
+  /**
+   * Review status as the Supervisor sees it. A Referred observation whose expert referral has a
+   * diagnosis is shown as Decision (the expert decision is available); this is derived, not stored.
+   */
+  const effectiveStatus = (db: ReadDb, observation: FixtureObservation): ReviewStatus =>
+    observation.reviewStatus === 'referred' && db.referrals.some((item) => item.observationId === observation.id && item.caseStatus === 'diagnosed' && item.diagnosis)
+      ? 'decision'
+      : observation.reviewStatus
+
+  /** The final decision's time for a Verified or Flagged observation (the last decision recorded on it). */
+  const finalisedAtOf = (db: ReadDb, observation: FixtureObservation): string | null => {
+    if (!isFinalReviewStatus(observation.reviewStatus)) return null
+    const times = db.reviewDecisions.filter((item) => item.targetId === observation.id && item.type !== 'quarantine').map((item) => item.decidedAt)
+    const instant = (iso: string) => new Date(iso.includes('T') ? iso : `${iso}T12:00:00+05:30`).getTime()
+    return times.sort((a, b) => instant(a) - instant(b)).at(-1) ?? observation.capturedAt
+  }
+
   const projectObservation = (db: ReadDb, observation: FixtureObservation): ReviewObservation => {
     const division = db.divisions.find((item) => item.id === observation.divisionId)
     const estate = db.estates.find((item) => item.id === division?.estateId)
@@ -77,9 +122,13 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
       fieldWorker: person(db, observation.fieldWorkerId),
       suspectedDisease: { id: disease.id, name: disease.name },
       capturedAt: observation.capturedAt,
-      reviewStatus: observation.reviewStatus,
+      reviewStatus: effectiveStatus(db, observation),
       gpsAccuracyM: observation.gpsAccuracyM,
       catalogVersion: observation.catalogVersion,
+      revisionNumber: latestRevisionOf(db, observation.id).number,
+      assignmentId: db.assignments.find((item) => item.observationIds.includes(observation.id))?.id ?? null,
+      finalisedAt: finalisedAtOf(db, observation),
+      archivedAt: observationArchivedAt(finalisedAtOf(db, observation), now()),
     }
   }
 
@@ -94,12 +143,17 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
   const projectCorrection = (db: ReadDb, item: FixtureCorrection): Correction => {
     const observation = db.observations.find((row) => row.id === item.observationId)!
     const evidence = db.captureEvidence.find((row) => row.observationId === item.observationId)
-    const revision = item.revisionId && evidence?.revisionId === item.revisionId && evidence.revisionSubmittedAt
+    // The Field Worker's revision answering this correction, compared with the revision before it.
+    const stored = item.revisionId ? db.observationRevisions.find((row) => row.id === item.revisionId) : undefined
+    const previous = stored ? revisionsOf(db, item.observationId).find((row) => row.number === stored.number - 1) : undefined
+    const revision = stored
       ? {
-          id: item.revisionId,
-          number: item.requestedRevision,
-          submittedAt: evidence.revisionSubmittedAt,
-          changes: evidence.revisedNote ? [{ field: 'Notes', before: evidence.note ?? 'Not provided', after: evidence.revisedNote }] : [],
+          id: stored.id,
+          number: stored.number,
+          submittedAt: stored.submittedAt,
+          changes: previous
+            ? revisionDifferences(projectRevision(db, previous), projectRevision(db, stored)).filter((row) => row.changed).map(({ field, before, after }) => ({ field, before, after }))
+            : [],
         }
       : null
     return {
@@ -167,6 +221,11 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
       decidedAt: item.decidedAt,
       // REV-17 shows "Linked to CASE-006" for linked referrals.
       note: referral?.linkStatus === 'linked' && referral.caseId ? `Linked to ${referral.caseId}` : item.note,
+      // Seeded decisions predate every resubmission, so they were made on revision 1.
+      revision: item.type === 'quarantine' ? null : { id: item.revisionId ?? revisionIdOf(item.targetId, item.revisionNumber ?? 1), number: item.revisionNumber ?? 1 },
+      divisionId: item.type === 'quarantine'
+        ? db.quarantineItems.find((row) => row.id === item.targetId)?.divisionId ?? null
+        : db.observations.find((row) => row.id === item.targetId)?.divisionId ?? null,
     }
   }
 
@@ -188,9 +247,13 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
     }
   }
 
-  const recordDecision = (db: Db, actor: FixtureUser, estateId: string, entry: Omit<FixtureReviewDecision, 'id' | 'decidedBy' | 'decidedAt' | 'estateId' | 'provenance'>) => {
+  const recordDecision = (db: Db, actor: FixtureUser, estateId: string, entry: Omit<FixtureReviewDecision, 'id' | 'decidedBy' | 'decidedAt' | 'estateId' | 'provenance' | 'revisionId' | 'revisionNumber'>) => {
+    // Every observation decision is recorded against the revision being reviewed: the latest one.
+    const revision = entry.type === 'quarantine' ? null : latestRevisionOf(db, entry.targetId)
     const decision: FixtureReviewDecision = {
       ...entry,
+      revisionId: revision?.id ?? null,
+      revisionNumber: revision?.number ?? null,
       id: nextId(db.reviewDecisions.map((item) => item.id), 'DEC-'),
       decidedBy: actor.id,
       decidedAt: now(),
@@ -201,8 +264,12 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
     return decision
   }
 
+  /** The correction whose resubmitted revision is waiting for review, if any. */
+  const openCorrectionOf = (db: Db, observationId: string) =>
+    db.corrections.find((item) => item.observationId === observationId && (item.status === 'resubmitted' || item.status === 'approved'))
+
   /** Shared preamble for the four observation decisions (REV-04/05/06/12). */
-  const observationDecision = (observationId: string, meta: DecisionMeta, apply: (db: Db, actor: FixtureUser, observation: FixtureObservation, estateId: string) => DecisionResult) =>
+  const observationDecision = (observationId: string, decisionKind: ObservationDecision, meta: DecisionMeta, apply: (db: Db, actor: FixtureUser, observation: FixtureObservation, estateId: string) => DecisionResult) =>
     store.run(() =>
       store.write((db) => {
         const actor = actorOf(db)
@@ -212,9 +279,23 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
         const record = db.reviewRecords.find((item) => item.observationId === observation.id)
         if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
         if (record.version !== meta.expectedVersion) throw new AppError('conflict', 'Another reviewer changed this record. Refresh before deciding.')
-        if (!canDecide(observation.reviewStatus)) throw new AppError('conflict', 'This observation is not in review, so no decision can be recorded.')
+        const status = effectiveStatus(db, observation)
+        if (!canDecide(status, decisionKind)) {
+          throw new AppError('conflict', `This decision is not available while the observation is ${REVIEW_STATUS_LABEL[status]}.`)
+        }
         const estateId = estateOfDivision(db, observation.divisionId)!
+        // A decision on a resubmitted revision (now In review) is the review of that corrected revision.
+        const answered = openCorrectionOf(db, observation.id)
         const result = apply(db, actor, observation, estateId)
+        if (answered) {
+          // The revision already reached the server as a new revision, so it is the reviewed
+          // (applied) revision from now on; the correction request is complete.
+          answered.status = 'applied'
+          answered.approvedAt ??= now()
+          answered.approvedBy ??= actor.id
+          answered.appliedAt = now()
+          answered.version += 1
+        }
         record.version += 1
         return result
       }),
@@ -242,6 +323,93 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
         return { ...result, correction: projectCorrection(db, correction) }
       }),
     )
+
+  /** REV-03 record, with a history that ends in the decisions the current status allows. */
+  const projectReview = (db: ReadDb, observation: FixtureObservation): ObservationReview => {
+    const record = db.reviewRecords.find((item) => item.observationId === observation.id)
+    if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
+    const evidence = db.captureEvidence.find((item) => item.observationId === observation.id)
+    const estateId = estateOfDivision(db, observation.divisionId)
+    const correction = [...db.corrections].reverse().find((item) => item.observationId === observation.id)
+    const referral = db.referrals.find((item) => item.observationId === observation.id)
+    const decisions = db.reviewDecisions.filter((item) => item.targetId === observation.id)
+    const revisions = revisionsOf(db, observation.id)
+    const latest = revisions[revisions.length - 1]
+    const corrected = revisions.length > 1
+    const history: ObservationReview['history'] = [
+      { id: 'submitted', title: 'Submitted', at: observation.capturedAt.slice(0, 10), by: null, detail: corrected ? 'received from mobile · version 1' : 'received from mobile', state: 'done' },
+    ]
+    if (record.claimedBy && record.claimedAt) {
+      history.push({ id: 'claimed', title: 'Claimed for review', at: record.claimedAt, by: person(db, record.claimedBy).fullName, detail: null, state: 'done' })
+    }
+    // Decisions and resubmitted revisions, in the order they happened.
+    const events: ObservationReview['history'] = [
+      ...decisions.map((decision) => ({
+        id: decision.id, title: decisionTitle(decision.outcome), at: decision.decidedAt, by: person(db, decision.decidedBy).fullName,
+        detail: corrected ? `on version ${decision.revisionNumber ?? 1}` : null, state: 'done' as const,
+      })),
+      ...revisions.slice(1).map((revision) => ({
+        id: revision.id, title: `Version ${revision.number} resubmitted`, at: revision.submittedAt, by: person(db, revision.submittedBy).fullName,
+        detail: `${revision.id} · received from mobile`, state: 'done' as const,
+      })),
+    ]
+    for (const start of record.reviewStarts ?? []) {
+      events.push({ id: `start-${start.revisionNumber}-${start.at}`, title: `Review started on version ${start.revisionNumber}`, at: start.at, by: person(db, start.by).fullName, detail: null, state: 'done' })
+    }
+    history.push(...events.sort((a, b) => (a.at ?? '').localeCompare(b.at ?? '')))
+    const status = effectiveStatus(db, observation)
+    if (canDecide(status)) {
+      history.push({ id: 'pending', title: 'Decision pending', at: null, by: null, detail: pendingDetail(allowedDecisions(status)), state: 'open' })
+    }
+    return {
+      observation: projectObservation(db, observation),
+      reviewId: record.id,
+      version: record.version,
+      evidence: evidence
+        ? { imageId: evidence.imageId, altText: evidence.altText, imageSource: { ...evidence.imageSource }, latitude: evidence.latitude, longitude: evidence.longitude, receivedAt: evidence.receivedAt }
+        : null,
+      // The Observation card shows what the latest revision says.
+      symptoms: [...latest.values.symptoms],
+      fieldNote: latest.values.note,
+      history,
+      nextRevisionNumber: latest.number + 1,
+      correctionId: correction?.id ?? null,
+      referralId: referral?.id ?? null,
+      experts: db.users
+        .filter((user) => user.role === 'DISEASE_EXPERT' && user.status === 'active' && estateId !== null && user.estateIds.includes(estateId))
+        .map((user) => ({
+          id: user.id,
+          fullName: user.fullName,
+          estateIds: [...user.estateIds],
+          awaitingCaseIds: db.referrals
+            .filter((item) => item.expertId === user.id && item.caseStatus === 'awaiting_diagnosis' && item.caseId)
+            .map((item) => item.caseId!)
+            .sort(),
+        })),
+      revisions: revisions.map((revision, index) => {
+        const on = decisions.filter((item) => (item.revisionNumber ?? 1) === revision.number)
+        const last = on[on.length - 1]
+        return {
+          ...projectRevision(db, revision),
+          statusLabel: index === revisions.length - 1 ? REVIEW_STATUS_LABEL[status] : last ? DECISION_OUTCOME_LABEL[last.outcome] : 'Superseded',
+          decisions: on.map((item) => ({ id: item.id, outcome: item.outcome, decidedAt: item.decidedAt, decidedBy: person(db, item.decidedBy).fullName, note: projectDecision(db, item).note })),
+        }
+      }),
+      expertDecision: (() => {
+        const decided = db.referrals.find((item) => item.observationId === observation.id && item.diagnosis)
+        const disease = decided?.diagnosis ? db.diseases.find((item) => item.id === decided.diagnosis!.diseaseId) : undefined
+        return decided?.diagnosis
+          ? { referralId: decided.id, caseId: decided.caseId, expert: person(db, decided.expertId).fullName, disease: disease ? `${disease.name} (${disease.id})` : decided.diagnosis.diseaseId, statement: decided.diagnosis.statement, decidedAt: decided.diagnosis.at }
+          : null
+      })(),
+      requests: db.corrections
+        .filter((item) => item.observationId === observation.id)
+        .map((item) => ({
+          correctionId: item.id, onRevision: item.requestedRevision - 1, requestedRevision: item.requestedRevision, requestedBy: person(db, item.requestedBy).fullName,
+          requestedAt: item.requestedAt, items: [...item.items], message: item.message, status: item.status, version: item.version,
+        })),
+    }
+  }
 
   return {
     getWorkspace(signal) {
@@ -278,59 +446,38 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
         () =>
           store.read((db): ObservationReview => {
             const actor = actorOf(db)
-            const observation = scopedObservation(db, actor, observationId)
-            const record = db.reviewRecords.find((item) => item.observationId === observation.id)
-            if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
-            const evidence = db.captureEvidence.find((item) => item.observationId === observation.id)
-            const detail = db.reviewObservationDetails.find((item) => item.observationId === observation.id)
-            const estateId = estateOfDivision(db, observation.divisionId)
-            const correction = [...db.corrections].reverse().find((item) => item.observationId === observation.id)
-            const referral = db.referrals.find((item) => item.observationId === observation.id)
-            const decisions = db.reviewDecisions.filter((item) => item.targetId === observation.id)
-            const history: ObservationReview['history'] = [
-              { id: 'submitted', title: 'Submitted', at: observation.capturedAt.slice(0, 10), by: null, detail: 'received from mobile', state: 'done' },
-            ]
-            if (record.claimedBy && record.claimedAt) {
-              history.push({ id: 'claimed', title: 'Claimed for review', at: record.claimedAt, by: person(db, record.claimedBy).fullName, detail: null, state: 'done' })
-            }
-            for (const decision of decisions) {
-              history.push({ id: decision.id, title: decisionTitle(decision.outcome), at: decision.decidedAt, by: person(db, decision.decidedBy).fullName, detail: null, state: 'done' })
-            }
-            if (canDecide(observation.reviewStatus)) {
-              history.push({ id: 'pending', title: 'Decision pending', at: null, by: null, detail: 'Verify, flag, request correction or refer', state: 'open' })
-            }
-            return {
-              observation: projectObservation(db, observation),
-              reviewId: record.id,
-              version: record.version,
-              evidence: evidence
-                ? { imageId: evidence.imageId, altText: evidence.altText, imageSource: { ...evidence.imageSource }, latitude: evidence.latitude, longitude: evidence.longitude, receivedAt: evidence.receivedAt }
-                : null,
-              symptoms: detail?.symptoms ?? [],
-              fieldNote: detail?.fieldNote ?? evidence?.note ?? null,
-              history,
-              nextRevisionNumber: 2 + db.corrections.filter((item) => item.observationId === observation.id && item.status === 'applied').length,
-              correctionId: correction?.id ?? null,
-              referralId: referral?.id ?? null,
-              experts: db.users
-                .filter((user) => user.role === 'DISEASE_EXPERT' && user.status === 'active' && estateId !== null && user.estateIds.includes(estateId))
-                .map((user) => ({
-                  id: user.id,
-                  fullName: user.fullName,
-                  estateIds: [...user.estateIds],
-                  awaitingCaseIds: db.referrals
-                    .filter((item) => item.expertId === user.id && item.caseStatus === 'awaiting_diagnosis' && item.caseId)
-                    .map((item) => item.caseId!)
-                    .sort(),
-                })),
-            }
+            return projectReview(db, scopedObservation(db, actor, observationId))
           }),
         signal,
       )
     },
 
+    claim(observationId) {
+      return store.run(() =>
+        store.write((db): ObservationReview => {
+          const actor = actorOf(db)
+          const observation = scopedObservation(db, actor, observationId)
+          const record = db.reviewRecords.find((item) => item.observationId === observation.id)
+          if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
+          // Submitted moves to In review when opened; Resubmitted when the Supervisor starts the
+          // review of the new revision. Any other status is returned unchanged.
+          if (observation.reviewStatus === 'submitted') {
+            observation.reviewStatus = 'in_review'
+            record.claimedBy = actor.id
+            record.claimedAt = now()
+            record.version += 1
+          } else if (canStartReview(observation.reviewStatus)) {
+            observation.reviewStatus = 'in_review'
+            record.reviewStarts = [...(record.reviewStarts ?? []), { revisionNumber: latestRevisionOf(db, observation.id).number, at: now(), by: actor.id }]
+            record.version += 1
+          }
+          return projectReview(db, observation)
+        }),
+      )
+    },
+
     verify(observationId, input, meta) {
-      return observationDecision(observationId, meta, (db, actor, observation, estateId) => {
+      return observationDecision(observationId, 'verify', meta, (db, actor, observation, estateId) => {
         observation.reviewStatus = RESULTING_STATUS.verify
         const decision = recordDecision(db, actor, estateId, {
           type: 'verification', outcome: 'verified', recordId: observation.id.replace('OBS-', 'REV-'), targetId: observation.id,
@@ -341,7 +488,7 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
     },
 
     flag(observationId, input, meta) {
-      return observationDecision(observationId, meta, (db, actor, observation, estateId) => {
+      return observationDecision(observationId, 'flag', meta, (db, actor, observation, estateId) => {
         observation.reviewStatus = RESULTING_STATUS.flag
         // "Flagging marks a concern for follow up" (REV-05).
         if (!db.reviewFollowUpObservationIds.includes(observation.id)) db.reviewFollowUpObservationIds.push(observation.id)
@@ -355,20 +502,25 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
     },
 
     requestCorrection(observationId, input, meta) {
-      return observationDecision(observationId, meta, (db, actor, observation, estateId) => {
-        if (db.corrections.some((item) => item.observationId === observation.id && ['requested', 'resubmitted', 'approved'].includes(item.status))) {
+      return observationDecision(observationId, 'requestCorrection', meta, (db, actor, observation, estateId) => {
+        // The correction answered by a resubmitted revision is completed by this decision, so only
+        // another still-open request blocks a new one.
+        const answered = openCorrectionOf(db, observation.id)
+        if (db.corrections.some((item) => item !== answered && item.observationId === observation.id && ['requested', 'resubmitted', 'approved'].includes(item.status))) {
           throw new AppError('conflict', 'An open correction already exists for this observation.')
         }
         const base = observation.id.replace('OBS-', 'COR-')
         const id = db.corrections.some((item) => item.id === base) ? nextId(db.corrections.map((item) => item.id), `${base}-`) : base
-        const previous = db.corrections.filter((item) => item.observationId === observation.id && item.status === 'applied').length
         const correction: FixtureCorrection = {
-          id, observationId: observation.id, requestedBy: actor.id, requestedAt: now(), requestedRevision: 2 + previous,
+          // The next revision is built from the latest submitted one.
+          id, observationId: observation.id, requestedBy: actor.id, requestedAt: now(), requestedRevision: latestRevisionOf(db, observation.id).number + 1,
           items: [...input.items], message: input.message, status: 'requested', version: 1, revisionId: null,
           approvedAt: null, approvedBy: null, appliedAt: null, rejection: null, provenance: 'fixture-assigned',
         }
         db.corrections.push(correction)
         observation.reviewStatus = RESULTING_STATUS.requestCorrection
+        // Requesting a correction is the follow-up to a flag: the open correction replaces the flag's attention item.
+        db.reviewFollowUpObservationIds = db.reviewFollowUpObservationIds.filter((id) => id !== observation.id)
         const decision = recordDecision(db, actor, estateId, {
           type: 'correction', outcome: 'correction_requested', recordId: id, targetId: observation.id, note: input.message, idempotencyKey: meta.idempotencyKey,
         })
@@ -377,7 +529,7 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
     },
 
     refer(observationId, input, meta) {
-      return observationDecision(observationId, meta, (db, actor, observation, estateId) => {
+      return observationDecision(observationId, 'refer', meta, (db, actor, observation, estateId) => {
         const expert = db.users.find((user) => user.id === input.expertId)
         if (!expert || expert.role !== 'DISEASE_EXPERT' || expert.status !== 'active' || !expert.estateIds.includes(estateId)) {
           throw new AppError('validation', 'The selected disease expert does not cover this estate.', { details: [{ path: 'expertId', message: 'Select a disease expert for this estate' }] })
@@ -415,7 +567,10 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
     rejectCorrection(correctionId, input, meta) {
       return correctionDecision(correctionId, meta, (db, actor, correction, estateId) => {
         if (!canRejectCorrection(correction.status)) throw new AppError('conflict', 'This correction can no longer be rejected.')
-        // "Rejecting leaves the original observation and evidence unchanged" (REV-11).
+        // "Rejecting leaves the original observation and evidence unchanged" (REV-11). A rejected
+        // resubmission returns the observation to Correction requested; the revision stays in its history.
+        const observation = db.observations.find((item) => item.id === correction.observationId)
+        if (observation?.reviewStatus === 'resubmitted') observation.reviewStatus = 'correction_requested'
         correction.status = 'rejected'
         correction.rejection = { at: now(), by: actor.id, reason: input.reason, message: input.message, notifyFieldWorker: input.notifyFieldWorker }
         const decision = recordDecision(db, actor, estateId, {
@@ -442,7 +597,7 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
           const { correction, observation } = scopedCorrection(db, actor, correctionId)
           if (correction.version !== expectedVersion) throw new AppError('conflict', 'This correction changed. Refresh before continuing.')
           if (!canApplyRevision(correction.status)) throw new AppError('conflict', 'RevisionApplied can only follow an approved correction.')
-          if (observation.reviewStatus !== 'correction_requested') throw new AppError('contract_mismatch', 'The observation is not awaiting this correction.')
+          if (!['correction_requested', 'resubmitted', 'in_review'].includes(observation.reviewStatus)) throw new AppError('contract_mismatch', 'The observation is not awaiting this correction.')
           correction.status = 'applied'
           correction.appliedAt = now()
           correction.version += 1
@@ -450,6 +605,41 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
           observation.reviewStatus = 'in_review'
           const record = db.reviewRecords.find((item) => item.observationId === observation.id)
           if (record) record.version += 1
+          return projectCorrection(db, correction)
+        }),
+      )
+    },
+
+    simulateResubmission(correctionId, input, expectedVersion) {
+      return store.run(() =>
+        store.write((db) => {
+          const actor = actorOf(db)
+          const { correction, observation } = scopedCorrection(db, actor, correctionId)
+          if (correction.version !== expectedVersion) throw new AppError('conflict', 'This correction changed. Refresh before continuing.')
+          if (!canResubmit(correction.status, observation.reviewStatus)) throw new AppError('conflict', 'Only a requested correction can be resubmitted.')
+          const revisions = revisionsOf(db, observation.id)
+          const latest = revisions[revisions.length - 1]
+          if (correction.requestedRevision !== latest.number + 1) throw new AppError('contract_mismatch', 'The correction does not follow the latest revision.')
+          const record = db.reviewRecords.find((item) => item.observationId === observation.id)
+          if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
+          // Keep the original submission as stored, so revision 1 can never change afterwards.
+          if (!db.observationRevisions.some((item) => item.observationId === observation.id && item.number === 1)) {
+            db.observationRevisions.push({ ...structuredClone(revisions[0]), provenance: 'fixture-assigned' })
+          }
+          // The new revision starts from the latest one; unchanged information is preserved.
+          const number = latest.number + 1
+          const base = (latest.values.imageId ?? observation.id.replace('OBS-', 'IMG-')).replace(/-V\d+$/, '')
+          db.observationRevisions.push({
+            id: revisionIdOf(observation.id, number), observationId: observation.id, number, submittedAt: now(), submittedBy: observation.fieldWorkerId,
+            correctionId: correction.id,
+            values: { ...structuredClone(latest.values), note: input.note, imageId: input.retakePhoto ? `${base}-V${number}` : latest.values.imageId },
+            provenance: 'fixture-assigned',
+          })
+          correction.status = 'resubmitted'
+          correction.revisionId = revisionIdOf(observation.id, number)
+          correction.version += 1
+          observation.reviewStatus = 'resubmitted'
+          record.version += 1
           return projectCorrection(db, correction)
         }),
       )

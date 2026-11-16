@@ -4,7 +4,7 @@ import { auditEvents, cases, dashboardAttentionUserIds } from './administration'
 import { deviceSessions } from './deviceSessions'
 import { observations } from './observations'
 import { diseases, divisions, estates, users } from './organisation'
-import { assignments, captureEvidence } from './capture'
+import { assignments, captureEvidence, observationRevisions } from './capture'
 import { corrections, quarantineItems, referrals, reviewDecisions, reviewFollowUpObservationIds, reviewObservationDetails, reviewRecords } from './review'
 
 /** "Today" in the approved designs ("Wed 21 Oct 2026", "Data as of 21 Oct 2026"). */
@@ -16,6 +16,7 @@ export function createSeedDatabase(): FixtureDatabase {
     estates,
     assignments,
     captureEvidence,
+    observationRevisions,
     divisions,
     users,
     diseases,

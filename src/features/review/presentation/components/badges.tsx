@@ -17,10 +17,12 @@ import {
 /** REV-02 status chip colours. */
 const REVIEW_TONE: Record<ReviewStatus, BadgeTone> = {
   submitted: 'info',
+  resubmitted: 'teal',
   in_review: 'purple',
   flagged: 'danger',
   correction_requested: 'warning',
   referred: 'lime',
+  decision: 'neutral',
   verified: 'success',
 }
 

@@ -91,6 +91,8 @@ export interface FixtureDisease {
 /** Review status values as labelled in the Review Queue tabs (REV-02). */
 export type FixtureReviewStatus =
   | 'submitted'
+  /** A corrected revision reached the server and waits for review (Review Queue "Resubmitted"). */
+  | 'resubmitted'
   | 'in_review'
   | 'flagged'
   | 'correction_requested'
@@ -183,6 +185,12 @@ export interface FixtureRecoveryRequest {
 /** The complete in-memory dataset. Later phases extend this with review, case and analytics records. */
 export interface FixtureDatabase {
   captureEvidence: FixtureCaptureEvidence[]
+  /**
+   * Submitted revisions of observations, never changed once stored. Revision 1 (the
+   * original submission) is derived from the observation and its evidence until a
+   * correction is resubmitted, when it is stored alongside the new revision.
+   */
+  observationRevisions: FixtureObservationRevision[]
   assignments: FixtureAssignment[]
   estates: FixtureEstate[]
   divisions: FixtureDivision[]
@@ -233,6 +241,32 @@ export interface FixtureCaptureEvidence {
   revisionSubmittedAt?: string
 }
 
+/** The values a Field Worker submitted in one revision of an observation. */
+export interface FixtureRevisionValues {
+  divisionId: string
+  suspectedDiseaseId: string
+  latitude: number | null
+  longitude: number | null
+  gpsAccuracyM: number
+  /** Photograph submitted with this revision; null when none is specified. */
+  imageId: string | null
+  symptoms: string[]
+  note: string | null
+}
+
+/** One submitted revision of a logical observation (OBSR-005-2 = OBS-005 revision 2). */
+export interface FixtureObservationRevision {
+  id: string
+  observationId: string
+  number: number
+  submittedAt: string
+  submittedBy: string
+  /** The correction request this revision answers; null for the original submission. */
+  correctionId: string | null
+  values: FixtureRevisionValues
+  provenance: FixtureProvenance
+}
+
 export interface FixtureImageSource {
   kind: 'synthetic_illustration' | 'licensed_photo'
   attribution: string
@@ -255,6 +289,37 @@ export interface FixtureAssignment {
   observationIds: string[]
   version: number
   activity: string[]
+  /** When the Field Worker accepted the task in the mobile app (simulated); null until then. */
+  acceptedAt: string | null
+  /** Task template the assignment was created from; null for custom tasks and older records. */
+  templateId?: string | null
+  /** Completion requirements configured by the Supervisor; absent on older records. */
+  requirements?: FixtureTaskRequirements | null
+  /** Shared by the per-worker assignments created together for one task. */
+  groupId?: string | null
+  /** Inspection (requests an observation) or Task (work with completion evidence); older records are inspections. */
+  type?: 'inspection' | 'task'
+  /** When the worker's submission was acknowledged (status submitted, shown as Done). */
+  submittedAt?: string | null
+  submission?: FixtureTaskSubmission | null
+  /** When the Supervisor completed the assignment; Assignment History is calculated from it. */
+  completedAt?: string | null
+}
+
+export interface FixtureTaskRequirements {
+  fields: Array<{ label: string; required: boolean }>
+  photos: { level: 'required' | 'optional' | 'not_required'; minimum: number }
+  completionNotes: 'required' | 'optional' | 'not_required'
+}
+
+/** A Field Worker's Task submission (simulated mobile-app data). */
+export interface FixtureTaskSubmission {
+  submittedAt: string
+  outcome: string
+  responses: Array<{ label: string; value: string }>
+  photoIds: string[]
+  completionNotes: string | null
+  gps: { latitude: number; longitude: number; accuracyM: number } | null
 }
 
 // ── Review (Phase 5) ─────────────────────────────────────────────────────────
@@ -267,6 +332,8 @@ export interface FixtureReviewRecord {
   version: number
   claimedBy: string | null
   claimedAt: string | null
+  /** Each time a Supervisor started reviewing a resubmitted revision (Resubmitted → In review). */
+  reviewStarts?: Array<{ revisionNumber: number; at: string; by: string }>
   provenance: FixtureProvenance
 }
 
@@ -281,6 +348,9 @@ export interface FixtureReviewDecision {
   decidedAt: string
   note: string | null
   idempotencyKey: string | null
+  /** The observation revision the decision was made on; absent on seeded decisions, which all predate any resubmission (revision 1). */
+  revisionId?: string | null
+  revisionNumber?: number | null
   details?: Record<string, string | boolean | string[]>
   provenance: FixtureProvenance
 }

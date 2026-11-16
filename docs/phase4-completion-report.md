@@ -73,9 +73,16 @@ same assignment-detail route. ASG-08 is a modal; ASG-07 uses the existing edit U
 - ASG-002 through ASG-007 are intentionally read-only. The PDFs explicitly state
   that only ASG-001 has a modelled full lifecycle. Their records are no longer
   pending placeholders and their list navigation now works.
-- Edit and cancellation are supported only for Assigned tasks without submitted
-  observations, matching the retrieved states. Edit requires a change reason;
-  cancellation requires its own reason and keeps the assignment record.
+- Edit and cancellation follow one rule (`assignmentLock` in
+  `features/capture/domain/assignment.ts`), shown in the UI and enforced again by the
+  data layer: a **Draft** can be edited (and assigned when ready) or cancelled; an
+  **Assigned** task can be edited or cancelled until the Field Worker accepts it in the
+  mobile app (`acceptedAt`, simulated on the web; starting work also counts as
+  acceptance); **accepted, In progress, Submitted, Completed, Cancelled and Reassigned**
+  tasks cannot be edited or cancelled. Editing an Assigned task requires a change reason;
+  cancellation requires its own reason and keeps the record (soft cancellation). The lock
+  is checked inside the same write as the version check, so a worker accepting while the
+  Supervisor edits always wins and the stale change is rejected.
 - Mutations recheck active Supervisor identity and current estate/division scope,
   current version and appropriate state. Editing rechecks active location and
   worker eligibility. Broken/unrelated submitted links prevent acceptance.

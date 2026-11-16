@@ -18,15 +18,6 @@ import type {
 
 export type FieldErrors = Record<string, string>
 
-/**
- * REV-03: the four decisions are offered on a record that is "In review" (claimed).
- * REV-06: "RevisionApplied — only then does review return to in_review", i.e. in_review
- * is the decision state. Other statuses are read-only here.
- */
-export function canDecide(status: ReviewStatus): boolean {
-  return status === 'in_review'
-}
-
 /** Status after each observation decision (REV-04/05/06/12 "Resulting status"). */
 export const RESULTING_STATUS = {
   verify: 'verified',
@@ -34,6 +25,63 @@ export const RESULTING_STATUS = {
   requestCorrection: 'correction_requested',
   refer: 'referred',
 } as const satisfies Record<string, ReviewStatus>
+
+export type ObservationDecision = keyof typeof RESULTING_STATUS
+
+/**
+ * Decisions a Supervisor may record in each review status.
+ * - In review (claimed, REV-03): all four decisions.
+ * - Flagged: the concern is followed up by requesting a correction from the field worker.
+ * - Verified: the observation may still be referred to a disease expert for confirmation.
+ * - Submitted is claimed (moved to In review) when the Supervisor opens it; Correction
+ *   requested and Referred wait for the field worker or the expert, so nothing is offered.
+ */
+// Resubmitted (a corrected revision) is reviewed like any other observation once the
+// Supervisor starts the review (Resubmitted → In review); decisions apply to the latest revision.
+// Submitted and Resubmitted wait for the Supervisor to start the review. Verified and Flagged
+// are final. Referred waits for the expert; once the expert decision is in (Decision) the
+// Supervisor finalises it by verifying or flagging.
+const ALLOWED_DECISIONS: Record<ReviewStatus, readonly ObservationDecision[]> = {
+  submitted: [],
+  resubmitted: [],
+  in_review: ['verify', 'flag', 'requestCorrection', 'refer'],
+  flagged: [],
+  verified: [],
+  correction_requested: [],
+  referred: [],
+  decision: ['verify', 'flag'],
+}
+
+/** Verified and Flagged are the final review outcomes (Referred and Decision are not). */
+export function isFinalReviewStatus(status: ReviewStatus): boolean {
+  return status === 'verified' || status === 'flagged'
+}
+
+const DAY_MS = 86_400_000
+const instantOf = (iso: string) => new Date(iso.includes('T') ? iso : `${iso}T12:00:00+05:30`).getTime()
+/** A finalised observation stays in the Review Queue for 24 hours after its final decision, then moves to Observation History. */
+export function observationArchivedAt(finalisedAt: string | null, nowIso: string): string | null {
+  if (!finalisedAt) return null
+  const archive = instantOf(finalisedAt) + DAY_MS
+  return instantOf(nowIso) >= archive ? new Date(archive).toISOString() : null
+}
+
+export function allowedDecisions(status: ReviewStatus): readonly ObservationDecision[] {
+  return ALLOWED_DECISIONS[status]
+}
+
+/** Whether `decision` (or, without one, any decision) may be recorded in `status`. */
+export function canDecide(status: ReviewStatus, decision?: ObservationDecision): boolean {
+  const allowed = ALLOWED_DECISIONS[status]
+  return decision ? allowed.includes(decision) : allowed.length > 0
+}
+
+/** Submitted and Resubmitted move to In review only when the Supervisor starts the review (never on opening). */
+export function canStartReview(status: ReviewStatus): boolean {
+  return status === 'submitted' || status === 'resubmitted'
+}
+/** Kept for callers: claiming is the same as starting the review. */
+export const canClaim = canStartReview
 
 /** REV-10: only a resubmitted revision can be compared and approved. */
 export function canApproveCorrection(status: CorrectionStatus): boolean {
@@ -55,20 +103,35 @@ export function isOpenCorrection(status: CorrectionStatus): boolean {
   return status === 'requested' || status === 'resubmitted' || status === 'approved'
 }
 
-/** REV-01 "Pending = submitted or in review." */
+/** REV-01 "Pending = submitted or in review." A resubmitted revision also waits for a review decision. */
 export function isPending(status: ReviewStatus): boolean {
-  return status === 'submitted' || status === 'in_review'
+  return status === 'submitted' || status === 'resubmitted' || status === 'in_review'
+}
+
+/** A Field Worker can resubmit only while the correction is requested and the observation waits for it. */
+export function canResubmit(status: CorrectionStatus, reviewStatus: ReviewStatus): boolean {
+  return status === 'requested' && reviewStatus === 'correction_requested'
+}
+
+/** Fixture-only stand-in input for the Capture mobile app's corrected resubmission. */
+export interface ResubmissionInput {
+  note: string
+  retakePhoto: boolean
+}
+
+export function resubmissionErrors(input: ResubmissionInput): FieldErrors {
+  return blank(input.note) ? { note: 'Enter the corrected field note' } : {}
 }
 
 const blank = (value: string) => value.trim() === ''
 
-/** REV-04: every checklist item must be confirmed before verifying. */
-export function verifyErrors(input: VerifyInput, checklistLength: number): FieldErrors {
-  const errors: FieldErrors = {}
-  if (input.checklist.length !== checklistLength || input.checklist.some((item) => !item)) {
-    errors.checklist = 'Confirm every checklist item before verifying'
-  }
-  return errors
+/**
+ * Verification has no mandatory checklist: the Supervisor decides from the evidence shown.
+ * The optional note needs no validation; the status rule is checked by the data layer.
+ */
+export function verifyErrors(input: VerifyInput): FieldErrors {
+  void input
+  return {}
 }
 
 /** REV-05: Reason * and Explanation * are required. */

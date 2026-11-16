@@ -10,6 +10,7 @@ export function createHttpReviewAdapter(http: HttpClient): ReviewPort {
   return {
     async getWorkspace() { return contractPending('review.workspace.get') },
     async getObservationReview() { return contractPending('review.observations.get') },
+    async claim() { return contractPending('review.observations.claim') },
     async verify() { return contractPending('review.observations.verify') },
     async flag() { return contractPending('review.observations.flag') },
     async requestCorrection() { return contractPending('review.observations.requestCorrection') },
@@ -18,5 +19,7 @@ export function createHttpReviewAdapter(http: HttpClient): ReviewPort {
     async rejectCorrection() { return contractPending('review.corrections.reject') },
     async exportList() { return contractPending('review.exports.create') },
     async simulateRevisionApplied() { return contractPending('review.corrections.revisionApplied.fixtureOnly') },
+    // Resubmission happens in the Capture mobile app; the web never submits revisions.
+    async simulateResubmission() { return contractPending('capture.observations.resubmitRevision.fixtureOnly') },
   }
 }

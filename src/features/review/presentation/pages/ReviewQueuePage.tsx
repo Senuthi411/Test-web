@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router'
 import {
   ActionMenu,
   Button,
+  ButtonLink,
   Card,
   DataTable,
   EmptyState,
@@ -12,10 +13,11 @@ import {
   SearchInput,
   Tabs,
   usePageBreadcrumbs,
+  type ActionMenuItem,
 } from '@/shared/components'
 import { useDebouncedValue } from '@/shared/hooks'
 import { paginate } from '@/shared/utilities/pagination'
-import { REVIEW_STATUSES, REVIEW_STATUS_LABEL, type ReviewObservation, type ReviewStatus } from '../../domain/models'
+import { REVIEW_STATUSES, REVIEW_STATUS_LABEL, type Correction, type ReviewObservation, type ReviewStatus } from '../../domain/models'
 import { countBy } from '../../domain/rules'
 import { QueryBoundary, ReviewStatusBadge } from '../components/badges'
 import { formatDate, reviewPaths } from '../components/format'
@@ -39,12 +41,38 @@ export function ReviewQueuePage() {
   const query = useReviewWorkspace()
   return (
     <QueryBoundary query={query} label="review queue">
-      {(workspace) => <Queue observations={workspace.observations} estateIds={workspace.estates.map((estate) => estate.id)} divisions={workspace.divisions} />}
+      {(workspace) => (
+        // Finalised observations leave the queue 24 hours after their final decision (Observation History).
+        <Queue
+          observations={workspace.observations.filter((item) => !item.archivedAt)}
+          archived={workspace.observations.filter((item) => item.archivedAt).length}
+          estateIds={workspace.estates.map((estate) => estate.id)}
+          divisions={workspace.divisions}
+          corrections={workspace.corrections}
+        />
+      )}
     </QueryBoundary>
   )
 }
 
-function Queue({ observations, estateIds, divisions }: { observations: ReviewObservation[]; estateIds: string[]; divisions: Array<{ id: string; name: string }> }) {
+/** The actions each review status allows, shown in the row menu. */
+function rowActions(row: ReviewObservation, corrections: Correction[]): ActionMenuItem[] {
+  const details = { id: 'details', label: 'View details', icon: 'eye' as const, to: reviewPaths.observation(row.id) }
+  const start = { id: 'start', label: 'Start review', icon: 'check' as const, to: `${reviewPaths.observation(row.id)}?start=1` }
+  const evidence = { id: 'evidence', label: 'Open evidence viewer', icon: 'image' as const, to: reviewPaths.evidence(row.id) }
+  const correction = [...corrections].reverse().find((item) => item.observation.id === row.id)
+  switch (row.reviewStatus) {
+    case 'submitted': return [start, details, evidence]
+    case 'resubmitted': return [start, { id: 'revision', label: 'View revision', icon: 'history', to: reviewPaths.observation(row.id) }, details]
+    case 'in_review': return [{ id: 'review', label: 'Open review', icon: 'eye', to: reviewPaths.observation(row.id) }, evidence]
+    case 'correction_requested': return [{ id: 'request', label: 'View request status', icon: 'edit', to: correction ? reviewPaths.correction(correction.id) : reviewPaths.corrections }, details]
+    case 'referred': return [{ id: 'referral', label: 'View referral', icon: 'send', to: reviewPaths.referrals }, details]
+    case 'decision': return [{ id: 'decision', label: 'View expert decision', icon: 'eye', to: reviewPaths.observation(row.id) }, details]
+    default: return [details, { id: 'history', label: 'View history', icon: 'history', to: reviewPaths.history }]
+  }
+}
+
+function Queue({ observations, archived, estateIds, divisions, corrections }: { observations: ReviewObservation[]; archived: number; estateIds: string[]; divisions: Array<{ id: string; name: string }>; corrections: Correction[] }) {
   const { demo } = useReviewServices()
   const now = useReviewClock()
   const navigate = useNavigate()
@@ -55,17 +83,22 @@ function Queue({ observations, estateIds, divisions }: { observations: ReviewObs
   const [search, setSearch] = useState('')
   const [division, setDivision] = useState('all')
   const [disease, setDisease] = useState('all')
+  const [worker, setWorker] = useState('all')
+  const [source, setSource] = useState<'all' | 'task' | 'independent'>('all')
   const [captured, setCaptured] = useState<CapturedFilter>('30')
   const [page, setPage] = useState(1)
   const term = useDebouncedValue(search.trim().toLowerCase(), 200)
 
   const counts = countBy(observations, (item) => item.reviewStatus, REVIEW_STATUSES)
+  const workers = [...new Map(observations.map((item) => [item.fieldWorker.id, item.fieldWorker.fullName])).entries()].sort((a, b) => a[1].localeCompare(b[1]))
   const diseases = [...new Map(observations.map((item) => [item.suspectedDisease.id, item.suspectedDisease.name])).entries()].sort((a, b) => a[1].localeCompare(b[1]))
   const filtered = observations.filter(
     (item) =>
       (tab === 'all' || item.reviewStatus === tab) &&
       (division === 'all' || item.division.id === division) &&
       (disease === 'all' || item.suspectedDisease.id === disease) &&
+      (worker === 'all' || item.fieldWorker.id === worker) &&
+      (source === 'all' || (source === 'task') === (item.assignmentId !== null)) &&
       (captured === 'all' || now.getTime() - new Date(item.capturedAt).getTime() <= Number(captured) * DAY) &&
       (!term || `${item.id} ${item.fieldWorker.fullName}`.toLowerCase().includes(term)),
   )
@@ -75,9 +108,10 @@ function Queue({ observations, estateIds, divisions }: { observations: ReviewObs
     disease: (row) => row.suspectedDisease.name,
     captured: (row) => row.capturedAt,
     worker: (row) => row.fieldWorker.fullName,
+    revision: (row) => String(row.revisionNumber).padStart(3, '0'),
     status: (row) => REVIEW_STATUS_LABEL[row.reviewStatus],
   })
-  const filtersActive = search !== '' || division !== 'all' || disease !== 'all' || captured !== '30'
+  const filtersActive = search !== '' || division !== 'all' || disease !== 'all' || worker !== 'all' || source !== 'all' || captured !== '30'
   const pageCountMax = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, pageCountMax)
 
@@ -95,6 +129,8 @@ function Queue({ observations, estateIds, divisions }: { observations: ReviewObs
     setSearch('')
     setDivision('all')
     setDisease('all')
+    setWorker('all')
+    setSource('all')
     setCaptured('30')
     setPage(1)
   }
@@ -103,11 +139,20 @@ function Queue({ observations, estateIds, divisions }: { observations: ReviewObs
     <div className={styles.page}>
       <PageHeader
         title="Observation Review Queue"
-        subtitle={`${observations.length} observations in ${estateIds.join(', ')}${demo ? ' · demo data' : ''}`}
+        subtitle={`${observations.length} observations in ${estateIds.join(', ')}${archived ? ` · ${archived} in Observation History` : ''}${demo ? ' · demo data' : ''}`}
         actions={
-          <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
-            Export
-          </Button>
+          <>
+            {/* The Correction Queue and Expert Referrals belong to this review workflow and open from here. */}
+            <ButtonLink variant="secondary" icon="edit" to={reviewPaths.corrections}>
+              Correction Queue
+            </ButtonLink>
+            <ButtonLink variant="secondary" icon="send" to={reviewPaths.referrals}>
+              Expert Referrals
+            </ButtonLink>
+            <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
+              Export
+            </Button>
+          </>
         }
       />
       <Tabs<Tab>
@@ -121,6 +166,17 @@ function Queue({ observations, estateIds, divisions }: { observations: ReviewObs
           <SearchInput label="Search observations" placeholder="Search by observation ID or field worker" width={420} value={search} onChange={(event) => withReset(setSearch)(event.target.value)} />
           <FilterSelect label="Division" value={division} onChange={withReset(setDivision)} options={[{ value: 'all', label: 'All' }, ...divisions.map((item) => ({ value: item.id, label: item.name }))]} />
           <FilterSelect label="Disease" value={disease} onChange={withReset(setDisease)} options={[{ value: 'all', label: 'All' }, ...diseases.map(([id, name]) => ({ value: id, label: name }))]} />
+          <FilterSelect label="Field worker" value={worker} onChange={withReset(setWorker)} options={[{ value: 'all', label: 'All' }, ...workers.map(([id, name]) => ({ value: id, label: name }))]} />
+          <FilterSelect<'all' | 'task' | 'independent'>
+            label="Source"
+            value={source}
+            onChange={withReset(setSource)}
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'task', label: 'Task-linked' },
+              { value: 'independent', label: 'Independent' },
+            ]}
+          />
           <FilterSelect<CapturedFilter>
             label="Captured"
             value={captured}
@@ -153,6 +209,8 @@ function Queue({ observations, estateIds, divisions }: { observations: ReviewObs
             { id: 'disease', header: 'Suspected disease', sortable: true, cell: (row) => row.suspectedDisease.name },
             { id: 'captured', header: 'Captured', sortable: true, cell: (row) => formatDate(row.capturedAt) },
             { id: 'worker', header: 'Field worker', sortable: true, cell: (row) => <Person name={row.fieldWorker.fullName} /> },
+            // Revisions of one observation stay one row: the latest revision number is shown.
+            { id: 'revision', header: 'Revision', sortable: true, cell: (row) => <span title={`Latest revision: version ${row.revisionNumber}`}>V{row.revisionNumber}{row.revisionNumber > 1 ? ' · resubmission' : ''}</span> },
             { id: 'status', header: 'Review status', sortable: true, cell: (row) => <ReviewStatusBadge status={row.reviewStatus} /> },
             {
               id: 'actions',
@@ -160,13 +218,7 @@ function Queue({ observations, estateIds, divisions }: { observations: ReviewObs
               align: 'end',
               width: '56px',
               cell: (row) => (
-                <ActionMenu
-                  label={`Actions for ${row.id}`}
-                  items={[
-                    { id: 'review', label: 'Open review', icon: 'eye', to: reviewPaths.observation(row.id) },
-                    { id: 'evidence', label: 'Open evidence viewer', icon: 'image', to: reviewPaths.evidence(row.id) },
-                  ]}
-                />
+                <ActionMenu label={`Actions for ${row.id}`} items={rowActions(row, corrections)} />
               ),
             },
           ]}

@@ -29,7 +29,8 @@ describe('unified demonstration dataset', () => {
     const capture = await container.capture.getWorkspace()
     expect(review.observations.map((o) => o.id)).toEqual(capture.observations.map((o) => o.id))
     for (const observation of review.observations) {
-      expect(capture.observations.find((o) => o.id === observation.id)?.reviewStatus).toBe(observation.reviewStatus)
+      // Review shows Decision for a referred observation whose expert decision is in; the stored status stays referred.
+      expect(capture.observations.find((o) => o.id === observation.id)?.reviewStatus).toBe(observation.reviewStatus === 'decision' ? 'referred' : observation.reviewStatus)
     }
     as('USR-001')
     const divisions = await container.identity.admin.listDivisions()
@@ -39,7 +40,8 @@ describe('unified demonstration dataset', () => {
     }
     const estate = await container.identity.admin.getEstate('EST-002')
     expect(estate.stats.observations).toBe(review.observations.length)
-    expect(estate.stats.correctionsRequested).toBe(review.observations.filter((o) => o.reviewStatus === 'correction_requested').length)
+    // A resubmitted observation is still in its correction loop until it is reviewed.
+    expect(estate.stats.correctionsRequested).toBe(review.observations.filter((o) => o.reviewStatus === 'correction_requested' || o.reviewStatus === 'resubmitted').length)
   })
 
   it('propagates review decisions to Capture and Identity without touching assignments or evidence', async () => {

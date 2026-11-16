@@ -1,11 +1,11 @@
-import { Link, NavLink } from 'react-router'
+import { Link, NavLink, useLocation } from 'react-router'
 import logoMark from '@/assets/brand/logo-mark.png'
 import type { SessionUser } from '@/features/identity'
 import { Avatar } from '@/shared/components'
 import { Icon } from '@/shared/design-system'
 import { ROLE_LABELS } from '@/shared/types'
 import { cx } from '@/shared/utilities/classNames'
-import type { RoleNavigation } from '../routing/navigation'
+import type { NavItem, RoleNavigation } from '../routing/navigation'
 import styles from './Sidebar.module.css'
 
 export interface SidebarProps {
@@ -21,8 +21,14 @@ export interface SidebarProps {
   onNavigate?: () => void
 }
 
+/** True when `pathname` is one of the item's related workflow screens (see NavItem.activePaths). */
+function belongsTo(item: NavItem, pathname: string): boolean {
+  return (item.activePaths ?? []).some((path) => pathname === path || pathname.startsWith(`${path}/`))
+}
+
 export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo, mobile = false, onNavigate }: SidebarProps) {
   const home = navigation.items[0]?.to ?? '/'
+  const { pathname } = useLocation()
   return (
     <aside className={cx(styles.sidebar, collapsed && styles.collapsed, mobile && styles.mobile)} aria-label="Sidebar">
       <Link to={home} className={styles.brand} aria-label="TeaLeaf Field Scout home" onClick={onNavigate}>
@@ -60,7 +66,7 @@ export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo
                 to={item.to}
                 onClick={onNavigate}
                 end={item.end}
-                className={({ isActive }) => cx(styles.link, isActive && styles.active)}
+                className={({ isActive }) => cx(styles.link, (isActive || belongsTo(item, pathname)) && styles.active)}
                 aria-label={collapsed ? item.label : undefined}
                 title={collapsed ? item.label : undefined}
               >

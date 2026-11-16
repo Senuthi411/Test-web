@@ -62,6 +62,11 @@ export const users: FixtureUser[] = [
   user({ id: 'USR-011', fullName: 'Sewmi Raj', email: 'sewmi.raj@example.test', role: 'FIELD_WORKER', estateIds: [], divisionIds: ['DIV-007', 'DIV-008'] }),
   user({ id: 'USR-012', fullName: 'Pasan Fernando', email: 'pasan.fernando@example.test', role: 'FIELD_WORKER', estateIds: [], divisionIds: ['DIV-009'] }),
   user({ id: 'USR-013', fullName: 'Maya Dissanayake', email: 'maya.dissanayake@example.test', role: 'REPORTING_USER', estateIds: ['EST-001', 'EST-002'], divisionIds: [] }),
+  // Fixture-assigned Riverbend Field Workers (not in Figma), so a division has several workers
+  // and one task can be assigned to multiple Field Workers in the Supervisor module.
+  user({ id: 'USR-014', fullName: 'Kasun Perera', email: 'kasun.perera@example.test', role: 'FIELD_WORKER', estateIds: [], divisionIds: ['DIV-004', 'DIV-005'] }),
+  user({ id: 'USR-015', fullName: 'Nethmi Silva', email: 'nethmi.silva@example.test', role: 'FIELD_WORKER', estateIds: [], divisionIds: ['DIV-005'] }),
+  user({ id: 'USR-016', fullName: 'Tharindu Jayasuriya', email: 'tharindu.jayasuriya@example.test', role: 'FIELD_WORKER', estateIds: [], divisionIds: ['DIV-005', 'DIV-006'] }),
 ]
 
 export const diseases: FixtureDisease[] = [
