@@ -26,12 +26,23 @@ for (const [width, height] of VIEWPORTS) {
     expect(dimensions.width).toBeLessThanOrEqual(width)
     if (width >= 1024) expect(dimensions.height).toBeLessThanOrEqual(height)
 
-    // One card, centred horizontally, with no side panel or background image at any size.
-    await expect(page.getByRole('region', { name: 'About TeaLeaf Field Scout' })).toHaveCount(0)
-    await expect(page.locator('main img')).toHaveCount(1)
+    // Desktop: introduction on the left, card on the right. Below 1024px: one centred column,
+    // and on phones the description and feature list give way to the form.
     const card = await page.getByRole('form', { name: 'Log in' }).locator('..').boundingBox()
-    if (!card) throw new Error('missing card box')
-    expect(Math.abs(card.x + card.width / 2 - width / 2)).toBeLessThan(2)
+    const intro = page.getByRole('region', { name: 'Tea Estate Health Monitoring' })
+    const introBox = await intro.boundingBox()
+    if (!card || !introBox) throw new Error('missing card or introduction box')
+    await expect(page.getByRole('img')).toHaveCount(0) // logo images are decorative (alt="")
+    if (width >= 1024) {
+      expect(card.x).toBeGreaterThanOrEqual(introBox.x + introBox.width - 1)
+      expect(card.x + card.width).toBeLessThanOrEqual(width)
+    } else {
+      expect(Math.abs(card.x + card.width / 2 - width / 2)).toBeLessThan(2)
+      expect(card.y).toBeGreaterThan(introBox.y)
+    }
+    const features = intro.getByRole('list')
+    if (width < 768) await expect(features).toBeHidden()
+    else await expect(features).toBeVisible()
 
     const logIn = page.getByRole('button', { name: 'Log In', exact: true })
     for (const control of [

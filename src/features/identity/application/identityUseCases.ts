@@ -1,4 +1,5 @@
 import { AppError } from '@/shared/api'
+import { USER_ROLES } from '@/shared/types'
 import { systemClock, type Clock } from '@/shared/utilities/clock'
 import { formatIsoDate } from '@/shared/utilities/format'
 import { scopeLevelFor, validateScope } from '../domain/scope'
@@ -22,6 +23,11 @@ function checkUserInput(input: UserInput, today: string): void {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) errors.email = 'Enter a valid email address'
   Object.assign(errors, commonFieldErrors(input, today))
   if (!isPreferredLanguage(input.preferredLanguage)) errors.preferredLanguage ??= 'Preferred language is required'
+  // Only the five predefined system roles can be assigned; custom roles are not supported.
+  if (!(USER_ROLES as readonly string[]).includes(input.role)) {
+    errors.role = 'Select one of the predefined roles'
+    rejectIfInvalid(errors)
+  }
   const level = scopeLevelFor(input.role)
   const scopeProblem = validateScope(level, input.scope)
   if (scopeProblem) errors[level === 'division' ? 'divisionIds' : 'estateIds'] = scopeProblem
