@@ -69,10 +69,16 @@ describe('AUTH-01 login', () => {
     expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '/forgot-password')
     expect(screen.getByText('Secure Access')).toBeInTheDocument()
     expect(screen.getByText('Authorized company personnel only')).toBeInTheDocument()
-    // A single centred card: the marketing side panel and its story are gone.
-    expect(screen.queryByRole('region', { name: 'About TeaLeaf Field Scout' })).not.toBeInTheDocument()
-    expect(screen.queryByText(/Tea Health|Estate Intelligence Platform/)).not.toBeInTheDocument()
-    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    // The introduction beside the card (reference design); the card keeps the only h1.
+    const intro = screen.getByRole('region', { name: 'Tea Estate Health Monitoring' })
+    expect(within(intro).getByRole('heading', { level: 2, name: 'Tea Estate Health Monitoring' })).toBeInTheDocument()
+    expect(within(intro).getByText(/From field observations to expert decisions/)).toBeInTheDocument()
+    expect(within(intro).getAllByRole('listitem').map((item) => item.textContent?.trim())).toEqual(['Field Observations', 'Expert Decisions', 'Healthier Tea Estates'])
+    expect(screen.getByText('Estate Intelligence Platform')).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 }).map((heading) => heading.textContent)).toEqual(['Welcome Back'])
+    // Decorative images are hidden from assistive technology.
+    for (const image of document.querySelectorAll('main img')) expect(image).toHaveAttribute('alt', '')
+    expect(screen.getByRole('button', { name: 'Log In' })).toHaveAttribute('type', 'submit')
     for (const removed of [/email/i, /sign up/i, /google/i, /microsoft/i, /development accounts/i, /demonstration data/i]) {
       expect(screen.queryByText(removed)).not.toBeInTheDocument()
     }
