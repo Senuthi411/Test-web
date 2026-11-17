@@ -20,11 +20,12 @@ async function expectNoPageOverflow(page: Page, label: string) {
 
 const SETTINGS_TABS = ['General Settings', 'Feature Center', 'Business Rules', 'Workflow Configuration', 'Maintenance Mode', 'Configuration History'] as const
 
-test('administrator navigation: section headings and every new module reachable from the sidebar', async ({ page }) => {
+test('administrator navigation: no section headings, every new module reachable from the sidebar', async ({ page }) => {
   await signIn(page)
   const nav = page.getByRole('navigation', { name: 'Main' })
+  await expect(nav.getByRole('heading')).toHaveCount(0)
   for (const heading of ['Overview', 'Organization Management', 'Security & Governance', 'Enterprise Configuration', 'Account']) {
-    await expect(nav.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+    await expect(nav.getByText(heading, { exact: true })).toHaveCount(0)
   }
   for (const [label, heading] of [
     ['Audit Logs', 'Audit Logs'],

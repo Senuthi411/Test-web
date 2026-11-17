@@ -40,12 +40,12 @@ const sidebar = () => screen.getByRole('complementary', { name: 'Sidebar' })
 const accountButton = (name: string, role: string) => screen.findByRole('button', { name: `Account menu for ${name}, ${role}` }, { timeout: 5000 })
 
 describe('sidebar navigation', () => {
-  it('lists the Administrator navigation in order under compact section headings', async () => {
+  it('lists the Administrator navigation in order, with no visible section headings', async () => {
     signInAs('ADMINISTRATOR')
     await renderApp('/admin')
     const nav = await mainNav()
     const groups = within(nav).getAllByRole('list').map((list) => ({
-      label: list.getAttribute('aria-labelledby') ? document.getElementById(list.getAttribute('aria-labelledby')!)?.textContent : null,
+      label: list.getAttribute('aria-label'),
       items: within(list).getAllByRole('link').map((link) => link.textContent?.trim()),
     }))
     expect(groups).toEqual([
@@ -55,8 +55,9 @@ describe('sidebar navigation', () => {
       { label: 'Enterprise Configuration', items: ['System Settings'] },
       { label: 'Account', items: ['My Profile'] },
     ])
+    expect(within(nav).queryByRole('heading')).not.toBeInTheDocument()
     for (const heading of ['Overview', 'Organization Management', 'Security & Governance', 'Enterprise Configuration', 'Account']) {
-      expect(within(nav).getByRole('heading', { name: heading, level: 2 })).toBeInTheDocument()
+      expect(within(nav).queryByText(heading, { exact: true })).not.toBeInTheDocument()
     }
     expect(within(nav).getByRole('list', { name: 'Security & Governance' })).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
