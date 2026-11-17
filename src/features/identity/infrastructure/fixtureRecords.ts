@@ -108,18 +108,6 @@ export function toDivisionSummary(db: Db, division: FixtureDivision): DivisionSu
   }
 }
 
-export function estateStats(db: Db, estateId: string) {
-  const divisions = divisionIdsOf(db, estateId)
-  const observations = db.observations.filter((observation) => divisions.has(observation.divisionId))
-  const observationIds = new Set(observations.map((observation) => observation.id))
-  return {
-    observations: observations.length,
-    pendingReview: observations.filter((observation) => PENDING_REVIEW.has(observation.reviewStatus)).length,
-    correctionsRequested: observations.filter((observation) => observation.reviewStatus === 'correction_requested').length,
-    expertConfirmedCases: db.cases.filter((item) => observationIds.has(item.observationId)).length,
-  }
-}
-
 /** Supervisors, experts and field workers working in the estate (ID-10 "Team"). */
 export function estateTeam(db: Db, estateId: string): TeamMember[] {
   const divisions = divisionIdsOf(db, estateId)

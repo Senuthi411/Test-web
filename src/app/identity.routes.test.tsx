@@ -334,6 +334,34 @@ describe('identity administration screens', () => {
     expect((await screen.findAllByText(/dr\.tara\.wijesinghe@example\.test/)).length).toBeGreaterThan(0)
   })
 
+  it('shows Administrator-focused estate KPIs instead of operational statistics (ID-10)', async () => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    renderFixtureApp('/admin/estates/EST-002')
+    const divisionsKpi = await screen.findByRole('region', { name: 'Total divisions' }, { timeout: 5000 })
+    expect(within(divisionsKpi).getByText('3')).toBeInTheDocument()
+    expect(within(divisionsKpi).getByText('3 active')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Assigned employees' })).getByText('4')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Estate status' })).getByText('Active')).toBeInTheDocument()
+    for (const removed of ['Observations', 'Pending review', 'Corrections requested', 'Expert-confirmed cases']) {
+      expect(screen.queryByRole('region', { name: removed })).not.toBeInTheDocument()
+    }
+
+    const divisions = screen.getByRole('table', { name: /Divisions of/ })
+    expect(within(divisions).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(['Division', 'ID', 'Field workers', 'Status'])
+    expect(screen.getByRole('button', { name: 'Edit estate' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Add division' })).toBeEnabled()
+
+    // The other tabs are unchanged; Team lists the employees counted above.
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Overview', 'Divisions', 'Team', 'Activity'])
+    await user.click(screen.getByRole('tab', { name: 'Team' }))
+    for (const name of ['Malini Fernando', 'Dr Tara Wijesinghe', 'Hiruni Nadeesha', 'Ravindu Kumara']) {
+      expect(screen.getByRole('link', { name })).toBeInTheDocument()
+    }
+    await user.click(screen.getByRole('tab', { name: 'Activity' }))
+    expect(screen.getByText(/Recent estate activity/)).toBeInTheDocument()
+  })
+
   it('requires a division, then creates the user after review (ID-05)', async () => {
     signInAs('ADMINISTRATOR')
     const user = userEvent.setup()

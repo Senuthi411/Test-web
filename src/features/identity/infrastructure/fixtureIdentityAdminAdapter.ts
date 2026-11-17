@@ -10,7 +10,6 @@ import { maskNic, sameEmployeeId, USER_FIELD_MESSAGES, type RoleDetails } from '
 import type { IdentityAdminPort, UserInput } from '../application/ports'
 import {
   auditActivity,
-  estateStats,
   estateTeam,
   findUser,
   nextId,
@@ -405,7 +404,6 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
             if (!estate) throw notFound('This estate')
             return {
               estate: toEstateSummary(db, estate),
-              stats: estateStats(db, estate.id),
               divisions: db.divisions.filter((division) => division.estateId === estate.id).map((division) => toDivisionSummary(db, division)),
               team: estateTeam(db, estate.id),
               activity: auditActivity(db, db.auditEvents.filter((event) => event.estateIds.includes(estate.id))),

@@ -138,12 +138,6 @@ export interface TeamMember extends PersonRef {
 
 export interface EstateDetail {
   estate: EstateSummary
-  stats: {
-    observations: number
-    pendingReview: number
-    correctionsRequested: number
-    expertConfirmedCases: number
-  }
   divisions: DivisionSummary[]
   team: TeamMember[]
   activity: ActivityEvent[]
