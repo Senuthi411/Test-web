@@ -47,7 +47,6 @@ export const ROLE_NAVIGATION: Record<WebRole, RoleNavigation> = {
         label: 'Organization Management',
         items: [
           { label: 'Users', to: '/admin/users', icon: 'users' },
-          { label: 'Roles & Permissions', to: '/admin/roles', icon: 'shield' },
           { label: 'Estates', to: '/admin/estates', icon: 'map' },
           { label: 'Divisions', to: '/admin/divisions', icon: 'layers' },
         ],

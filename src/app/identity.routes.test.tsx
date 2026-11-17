@@ -259,11 +259,13 @@ describe('identity administration screens', () => {
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
   })
 
-  it('redirects the removed per-role pages to the permission matrix', async () => {
+  it.each(['/admin/roles', '/admin/roles?tab=matrix', '/admin/roles/administrator'])('redirects the removed Roles & Permissions link %s to the Audit Logs', async (path) => {
     signInAs('ADMINISTRATOR')
-    const { router } = renderFixtureApp('/admin/roles/administrator')
-    expect(await screen.findByRole('heading', { name: 'Roles and Permissions' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/admin/roles')
+    const { router } = renderFixtureApp(path)
+    expect(await screen.findByRole('heading', { name: 'Audit Logs', level: 1 })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin/audit-logs')
+    expect(screen.queryByRole('table', { name: /Permission matrix/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /Permission Matrix|Access History/ })).not.toBeInTheDocument()
   })
 
   it('reloads the latest user after an edit conflict without resetting fixture changes', async () => {

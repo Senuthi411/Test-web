@@ -30,7 +30,7 @@ Simulated exports and informational recovery steps are explicitly identified.
 | ID-04 | User Detail (15:459) | Fully implemented | Fully implemented | Overview/scope/session/activity tabs, edit, scope links, estate/division/session links | Mobile session data illustrative |
 | ID-05 | Create User (15:712) | Fully implemented | Fully implemented | Role-aware estate/division fields, validation, duplicate errors, review confirmation and create | No invitations or credentials provisioned |
 | ID-06 | Edit User (15:891) | Fully implemented | Fully implemented | Role/status/name/email edits, multi-estate preservation, version conflict and record reload | Live account effects need API |
-| ID-07 | Roles and Permissions (16:2; role details 161:74 onward) | Partially implemented | Fully implemented | Role links/tabs, assigned-user links, counts, permission matrix, query failure/retry, export feedback | Permission model illustrative; export simulated |
+| ID-07 | Roles and Permissions (16:2; role details 161:74 onward) | Removed | Removed | Page, permission matrix, access history tab and export removed; `/admin/roles` redirects to the Audit Logs | Roles are assigned in User Management; access changes are in the Audit Logs |
 | ID-08 | User Scope Assignment (16:335) | Fully implemented | Fully implemented | Scope tree, expand/collapse, effective preview, reset, required reason, confirmation, 409 recovery | Backend remains authority on live scope |
 | ID-09 | Estate Management (16:596) | Partially implemented | Fully implemented | Search, region/status filters, sort, row/action links, add/edit, status confirmation | Summary counts use fixtures |
 | ID-10 | Estate Detail (16:865) | Fully implemented | Fully implemented | Overview/divisions/team/activity tabs, team links, edit, Add division, division navigation | Evidence/review summaries read-only |
@@ -79,7 +79,7 @@ This is a fixture implementation, not completed production Identity integration.
 - Recovery requests display the controlled process; worker verification, ticket
   completion, new session issuance and queued-record revalidation require backend
   and mobile capabilities. Revoked sessions remain revoked.
-- The role permission matrix is illustrative pending the approved permission model.
+- No permission matrix is shown; role permission codes remain illustrative pending the approved permission model.
 - Fixture exports are simulated; newly created users do not receive invitations or
   provisioned credentials. Self-service password reset is not approved.
 - Fixture mutations persist in memory until page reload. The session lasts for the

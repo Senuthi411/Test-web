@@ -37,7 +37,7 @@ export function activityLink(event: ActivityEvent): string | undefined {
     case 'estate':
       return `/admin/estates/${event.link.id}`
     case 'access_history':
-      return '/admin/roles?tab=history'
+      return '/admin/audit-logs'
   }
 }
 
@@ -59,7 +59,7 @@ export function useDemoWording() {
   }
 }
 
-/** Export buttons (ID-02, ID-03, ID-07, ID-11). Reports the real outcome only. */
+/** Export buttons (ID-02, ID-03, ID-11). Reports the real outcome only. */
 export function useExportAction(kind: ExportKind) {
   const toast = useToast()
   const exportMutation = useExport()

@@ -34,9 +34,9 @@ test('alerts and activity link to working screens, with no temporary access', as
   await signIn(page)
   await expect(page.getByText(/temporary access/i)).toHaveCount(0)
   const activity = page.getByRole('region', { name: 'Recent administrative activity' })
-  await activity.getByRole('link', { name: 'View access history' }).click()
-  await expect(page).toHaveURL(/\/admin\/roles\?tab=history/)
-  await expect(page.getByRole('tab', { name: 'Access History', selected: true })).toBeVisible()
+  await activity.getByRole('link', { name: 'View audit logs' }).click()
+  await expect(page).toHaveURL(/\/admin\/audit-logs$/)
+  await expect(page.getByRole('heading', { name: 'Audit Logs', level: 1 })).toBeVisible()
   await page.getByRole('link', { name: 'Dashboard' }).first().click()
 
   const alerts = page.getByRole('region', { name: 'Security & access alerts' })
@@ -54,7 +54,7 @@ for (const width of [3840, 1920, 1440, 1024, 768, 430, 375, 320]) {
     await expectNoPageOverflow(page, `/admin at ${width}px`)
     // Action links stay inside the viewport.
     for (const link of [
-      page.getByRole('link', { name: 'View access history' }),
+      page.getByRole('link', { name: 'View audit logs' }),
       page.getByRole('link', { name: 'Review device session DS-3012' }),
       page.getByRole('link', { name: 'View inactive users' }),
     ]) {

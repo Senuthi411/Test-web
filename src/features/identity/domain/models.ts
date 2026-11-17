@@ -243,4 +243,4 @@ export interface ExportResult {
   simulated: boolean
 }
 
-export type ExportKind = 'dashboard' | 'users' | 'divisions' | 'permission-matrix'
+export type ExportKind = 'dashboard' | 'users' | 'divisions'

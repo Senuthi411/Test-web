@@ -163,7 +163,7 @@ describe('Administrator Dashboard · demonstration data', { timeout: 30_000 }, (
     const activity = await section('Recent administrative activity')
     expect(within(activity).getByRole('link', { name: 'Scope updated for Dr Tara Wijesinghe' })).toHaveAttribute('href', '/admin/users/USR-005')
     expect(within(activity).getAllByText(/by Anika Perera/).length).toBeGreaterThan(0)
-    expect(within(activity).getByRole('link', { name: 'View access history' })).toHaveAttribute('href', '/admin/roles?tab=history')
+    expect(within(activity).getByRole('link', { name: 'View audit logs' })).toHaveAttribute('href', '/admin/audit-logs')
   })
 
   it('moves a revoked session from alerts to pending actions once recovery is requested, without listing the user twice', async () => {

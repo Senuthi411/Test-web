@@ -148,8 +148,7 @@ for (const width of [1440, 390]) {
     await signIn(page)
     const paths = [
       '/admin', '/admin/users', '/admin/users/new', '/admin/users/USR-001',
-      '/admin/users/USR-005/edit', '/admin/users/USR-005/scope', '/admin/roles',
-      '/admin/roles/administrator', '/admin/estates', '/admin/estates/EST-001',
+      '/admin/users/USR-005/edit', '/admin/users/USR-005/scope', '/admin/estates', '/admin/estates/EST-001',
       '/admin/divisions', '/admin/divisions/DIV-001', '/admin/device-sessions',
       '/admin/device-sessions/DS-3012/recovery', '/admin/security', '/admin/security?tab=authentication',
       '/admin/security?tab=devices', '/admin/security?tab=events', '/admin/audit-logs', '/admin/settings',
@@ -166,12 +165,13 @@ for (const width of [1440, 390]) {
   })
 }
 
-test('roles, user tabs and breadcrumbs connect Identity screens', async ({ page }) => {
+test('user tabs and breadcrumbs connect Identity screens; old role links open the Audit Logs', async ({ page }) => {
   await signIn(page)
   const nav = page.getByRole('navigation', { name: 'Main' })
-  await nav.getByRole('link', { name: 'Roles & Permissions' }).click()
-  await expect(page.getByRole('tab', { name: 'Permission Matrix', selected: true })).toBeVisible()
-  await expect(page.getByRole('table', { name: 'Permission matrix', exact: true }).getByRole('link')).toHaveCount(0)
+  await expect(nav.getByRole('link', { name: /Roles|Permissions/ })).toHaveCount(0)
+  await page.goto('/admin/roles?tab=matrix')
+  await expect(page).toHaveURL(/\/admin\/audit-logs$/)
+  await expect(page.getByRole('heading', { name: 'Audit Logs', level: 1 })).toBeVisible()
   await nav.getByRole('link', { name: 'Users' }).click()
   await page.getByRole('table', { name: 'Users', exact: true }).getByText('Anika Perera').click()
   await expect(page).toHaveURL(/\/users\/USR-001$/)

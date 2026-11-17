@@ -44,7 +44,7 @@ export function UsersPage() {
 
   const [search, setSearch] = useState('')
   const [params] = useSearchParams()
-  // "?role=" and "?status=" open the list pre-filtered (Dashboard and Roles & Permissions links).
+  // "?role=" and "?status=" open the list pre-filtered (Dashboard links).
   const [role, setRole] = useState<UserRole | 'all'>(() => {
     const requested = params.get('role')
     return USER_ROLES.find((item) => item === requested) ?? 'all'

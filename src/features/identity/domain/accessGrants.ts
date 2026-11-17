@@ -318,8 +318,8 @@ export type AccessHistoryAction =
   | 'device_access_revoked'
 
 /**
- * Identity and authorization events shown to Administrators (Roles & Permissions → Access
- * History). Temporary-access entries are operational and are not part of this view.
+ * Identity and authorization events shown to Administrators (dashboard activity; the full
+ * record is in the Audit Logs). Temporary-access entries are operational and are not part of this view.
  */
 export const IDENTITY_HISTORY_ACTIONS: readonly AccessHistoryAction[] = [
   'permanent_role_changed',

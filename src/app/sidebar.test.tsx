@@ -50,7 +50,7 @@ describe('sidebar navigation', () => {
     }))
     expect(groups).toEqual([
       { label: 'Overview', items: ['Dashboard'] },
-      { label: 'Organization Management', items: ['Users', 'Roles & Permissions', 'Estates', 'Divisions'] },
+      { label: 'Organization Management', items: ['Users', 'Estates', 'Divisions'] },
       { label: 'Security & Governance', items: ['Device Sessions', 'Security Center', 'Audit Logs'] },
       { label: 'Enterprise Configuration', items: ['System Settings'] },
       { label: 'Account', items: ['My Profile'] },
@@ -62,6 +62,7 @@ describe('sidebar navigation', () => {
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
     expect(within(nav).getByRole('link', { name: 'Audit Logs' })).toHaveAttribute('href', '/admin/audit-logs')
     expect(within(nav).getByRole('link', { name: 'System Settings' })).toHaveAttribute('href', '/admin/settings')
+    expect(within(nav).queryByRole('link', { name: /Roles|Permissions/ })).not.toBeInTheDocument()
   })
 
   it.each([
@@ -72,7 +73,6 @@ describe('sidebar navigation', () => {
     ['/admin/security?tab=policies', 'Security Center'],
     ['/admin/audit-logs', 'Audit Logs'],
     ['/admin/settings?tab=rules', 'System Settings'],
-    ['/admin/roles/administrator', 'Roles & Permissions'],
   ])('highlights the parent item on %s', async (path, label) => {
     signInAs('ADMINISTRATOR')
     await renderApp(path)
@@ -85,7 +85,7 @@ describe('sidebar navigation', () => {
     signInAs(role)
     await renderApp('/')
     const nav = await mainNav()
-    for (const label of ['Users', 'Roles & Permissions', 'Device Sessions', 'Estates', 'Divisions', 'Security Center', 'Audit Logs', 'System Settings']) {
+    for (const label of ['Users', 'Device Sessions', 'Estates', 'Divisions', 'Security Center', 'Audit Logs', 'System Settings']) {
       expect(within(nav).queryByRole('link', { name: label })).not.toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'My Profile' })).toHaveAttribute('href', '/profile')

@@ -30,12 +30,12 @@ test('administrator navigation: section headings and every new module reachable 
     ['Audit Logs', 'Audit Logs'],
     ['System Settings', 'System Settings'],
     ['Security Center', 'Security Center'],
-    ['Roles & Permissions', 'Roles and Permissions'],
   ] as const) {
     await nav.getByRole('link', { name: label }).click()
     await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible()
     await expect(nav.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page')
   }
+  await expect(nav.getByRole('link', { name: /Roles|Permissions/ })).toHaveCount(0)
 })
 
 test('dashboard quick actions open the screens where the work is done', async ({ page }) => {

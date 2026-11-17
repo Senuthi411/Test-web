@@ -21,7 +21,6 @@ import {
   ProfilePage,
   RecoveryCodePage,
   ResetPasswordPage,
-  RolesPage,
   ScreenLoading,
   SecurityCenterPage,
   SessionExpiredPage,
@@ -97,9 +96,10 @@ const IMPLEMENTED: Record<string, ReactNode> = {
   '/admin/users/:userId': <UserDetailPage />,
   '/admin/users/:userId/edit': <UserFormPage mode="edit" />,
   '/admin/users/:userId/scope': <UserScopePage />,
-  '/admin/roles': <RolesPage />,
-  // The per-role pages were removed; old links open the permission matrix.
-  '/admin/roles/:role': <Navigate to="/admin/roles" replace />,
+  // Roles & Permissions was removed: roles are assigned in User Management and access changes
+  // are recorded in the Audit Logs. Old links open the Audit Logs.
+  '/admin/roles': <Navigate to="/admin/audit-logs" replace />,
+  '/admin/roles/:role': <Navigate to="/admin/audit-logs" replace />,
   '/admin/estates': <EstatesPage />,
   '/admin/estates/:estateId': <EstateDetailPage />,
   '/admin/divisions': <DivisionsPage />,
