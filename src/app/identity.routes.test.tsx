@@ -245,15 +245,22 @@ describe('role-based access', () => {
 })
 
 describe('identity administration screens', () => {
-  it('shows a failed role-user query and lets the administrator retry', async () => {
+  it('shows a failed audit-log query and lets the administrator retry', async () => {
     signInAs('ADMINISTRATOR')
     const user = userEvent.setup()
-    const { store } = renderFixtureApp('/admin/roles/administrator')
+    const { store } = renderFixtureApp('/admin/audit-logs')
     store.failNext('conflict')
     await user.click(await screen.findByRole('button', { name: 'Try again' }))
-    const assigned = await screen.findByRole('table', { name: 'Users with the Administrator role' })
-    expect(await within(assigned).findByText('Anika Perera')).toBeInTheDocument()
+    const log = await screen.findByRole('table', { name: 'Administrative audit log' })
+    expect(await within(log).findByText('Dr Tara Wijesinghe')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+
+  it('redirects the removed per-role pages to the permission matrix', async () => {
+    signInAs('ADMINISTRATOR')
+    const { router } = renderFixtureApp('/admin/roles/administrator')
+    expect(await screen.findByRole('heading', { name: 'Roles and Permissions' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin/roles')
   })
 
   it('reloads the latest user after an edit conflict without resetting fixture changes', async () => {

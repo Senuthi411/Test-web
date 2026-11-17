@@ -178,7 +178,52 @@
   text-align: end;
 }
 
+/* Quick actions: a grid of shortcuts to the screens where the work is done. */
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quickAction {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--tl-border-default);
+  border-radius: 10px;
+  color: var(--tl-text-ink);
+  font: 600 14px/1.3 var(--tl-font-family);
+  text-decoration: none;
+}
+
+.quickAction:hover {
+  border-color: var(--tl-forest-600);
+  color: var(--tl-forest-600);
+}
+
+.quickAction:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+}
+
+/* Three balanced cards (charts). */
+.row3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
 @media (max-width: 1279px) {
+  .row3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .mainSide {
     grid-template-columns: minmax(0, 1fr);
   }

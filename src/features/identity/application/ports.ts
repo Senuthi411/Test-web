@@ -31,6 +31,8 @@ import type {
   ResetAuthorization,
 } from '../domain/authFlows'
 import type { AccessGrant, AccessHistoryEntry, GrantRequestInput } from '../domain/accessGrants'
+import type { AuditLogEntry } from '../domain/auditLog'
+import type { ConfigurationDocument, ConfigurationDraft, ConfigurationState, ConfigurationVersion } from '../domain/configuration'
 
 /** Authenticates a web user. Implemented by the fixture and HTTP adapters. */
 export interface AuthPort {
@@ -71,6 +73,27 @@ export interface AccessGrantPort {
   endGrant(grantId: string, action: 'revoke' | 'cancel', reason: string): Promise<AccessGrant>
   /** Read-only audit history of temporary and permanent access changes. */
   listAccessHistory(signal?: AbortSignal): Promise<AccessHistoryEntry[]>
+}
+
+/** The administrative audit trail. Read-only: there is no write, edit or delete operation. */
+export interface AuditLogPort {
+  /** Every audit record the caller may read, newest first. */
+  listAuditLog(signal?: AbortSignal): Promise<AuditLogEntry[]>
+}
+
+/**
+ * Versioned system configuration (System Settings). Every write names the version it was
+ * based on; a stale base is rejected with a `conflict` error rather than overwriting.
+ * Publishing and rollback each create a new version; no version is ever deleted.
+ */
+export interface ConfigurationPort {
+  getConfiguration(signal?: AbortSignal): Promise<ConfigurationState>
+  saveDraft(input: { document: ConfigurationDocument; baseVersion: number }): Promise<ConfigurationDraft>
+  discardDraft(input: { baseVersion: number }): Promise<void>
+  /** Publishes the saved draft as a new version. The backend validates it again. */
+  publishDraft(input: { baseVersion: number; reason: string }): Promise<ConfigurationVersion>
+  /** Restores an earlier version's content as a new version. */
+  rollback(input: { targetVersion: number; baseVersion: number; reason: string }): Promise<ConfigurationVersion>
 }
 
 /** First-time activation from an Administrator-created invitation. */

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import {
   ActionMenu,
   Badge,
@@ -10,6 +10,7 @@ import {
   EmptyState,
   ErrorState,
   FilterSelect,
+  KpiCard,
   PageHeader,
   SearchInput,
   usePageBreadcrumbs,
@@ -38,7 +39,13 @@ export function EstatesPage() {
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState('all')
   const [status, setStatus] = useState<StatusFilter>('active')
-  const [adding, setAdding] = useState(false)
+  const [params, setParams] = useSearchParams()
+  // `?create=1` (Dashboard › Add Estate) opens the form once.
+  const [adding, setAddingState] = useState(() => params.get('create') === '1')
+  const setAdding = (open: boolean) => {
+    setAddingState(open)
+    if (!open && params.has('create')) setParams({}, { replace: true })
+  }
   const [editing, setEditing] = useState<EstateSummary | null>(null)
   const [addingDivisionTo, setAddingDivisionTo] = useState<string | null>(null)
   const term = useDebouncedValue(search.trim().toLowerCase(), 200)
@@ -74,6 +81,16 @@ export function EstatesPage() {
           </Button>
         }
       />
+      {query.data && (
+        <div className={styles.kpiRow} aria-label="Estate statistics">
+          <KpiCard label="Total estates" value={estates.length} caption={`${regions.length} ${regions.length === 1 ? 'region' : 'regions'}`} icon="map" tone="info" />
+          <KpiCard label="Active estates" value={activeCount} caption="Open for scope assignment" icon="check" tone="success" />
+          <KpiCard label="Inactive estates" value={estates.length - activeCount} caption="Kept for history" icon="archive" tone="warning" />
+          <Link to="/admin/divisions" className={styles.kpiLink}>
+            <KpiCard label="Total divisions" value={divisionTotal} caption="Across all estates" icon="layers" tone="purple" />
+          </Link>
+        </div>
+      )}
       <Card>
         <div className={styles.filterBar}>
           <SearchInput label="Search estates" placeholder="Search estates" width={360} value={search} onChange={(event) => setSearch(event.target.value)} />

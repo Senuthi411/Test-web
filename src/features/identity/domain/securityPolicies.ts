@@ -2,7 +2,7 @@ import { CODE_LENGTH, RECOVERY_CODE_VALIDITY_MINUTES } from './authFlows'
 import { MIN_PASSWORD_LENGTH } from './rules'
 
 /**
- * Security policies shown read-only on Security & Settings. Each entry restates a decision
+ * Security policies shown read-only in the Security Center. Each entry restates a decision
  * the project has already recorded, or says plainly that none exists yet. Nothing here is
  * configuration: the backend enforces every policy, and editing waits for approved policy
  * contracts (see docs/api-integration/pending-contracts.md).

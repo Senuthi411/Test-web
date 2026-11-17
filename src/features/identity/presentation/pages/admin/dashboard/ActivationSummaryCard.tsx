@@ -13,8 +13,8 @@ export function ActivationSummaryCard() {
 
   return (
     <Card
-      title="Account activation summary"
-      aria-label="Account activation summary"
+      title="Account status distribution"
+      aria-label="Account status distribution"
       className={styles.section}
     >
       <SectionBoundary queries={[query]} unavailable="The Identity service does not report account statuses yet.">

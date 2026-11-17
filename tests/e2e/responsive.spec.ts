@@ -135,6 +135,8 @@ for (const width of [320, 375, 430]) {
     await page.goto('/admin/device-sessions?session=DS-3091')
     const details = page.getByRole('dialog', { name: 'Session DS-3091' })
     await expect(details).toBeVisible()
+    // The drawer slides in; measure it once its entry animation has finished.
+    await details.evaluate((node) => Promise.all(node.getAnimations({ subtree: true }).map((animation) => animation.finished)))
     const detailsBox = await details.boundingBox()
     expect(detailsBox!.x).toBeGreaterThanOrEqual(0)
     expect(detailsBox!.x + detailsBox!.width).toBeLessThanOrEqual(width + 1)

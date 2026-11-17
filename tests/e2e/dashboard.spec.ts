@@ -24,7 +24,9 @@ const SECTIONS = [
   'Users by role',
   'Estate coverage',
   'Recent administrative activity',
-  'Account activation summary',
+  'Account status distribution',
+  'Configuration summary',
+  'Quick actions',
   'Users requiring attention',
 ]
 

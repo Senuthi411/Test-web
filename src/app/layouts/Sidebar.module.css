@@ -135,6 +135,24 @@
   padding-top: 8px;
 }
 
+/* Compact section headings (Administrator workspace only). */
+.group.groupWithHeading + .group.groupWithHeading {
+  margin-top: 10px;
+}
+
+.groupHeading {
+  margin: 0;
+  padding: 6px 12px 4px;
+  font: 600 11px/1.3 var(--tl-font-family);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tl-text-on-dark);
+  opacity: 0.62;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .list {
   display: flex;
   flex-direction: column;

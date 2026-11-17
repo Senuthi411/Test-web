@@ -151,8 +151,10 @@ for (const width of [1440, 390]) {
       '/admin/users/USR-005/edit', '/admin/users/USR-005/scope', '/admin/roles',
       '/admin/roles/administrator', '/admin/estates', '/admin/estates/EST-001',
       '/admin/divisions', '/admin/divisions/DIV-001', '/admin/device-sessions',
-      '/admin/device-sessions/DS-3012/recovery', '/admin/security', '/admin/security?tab=mfa',
-      '/admin/security?tab=accounts', '/admin/security?tab=policies', '/admin/security?tab=audit', '/profile', '/forbidden',
+      '/admin/device-sessions/DS-3012/recovery', '/admin/security', '/admin/security?tab=authentication',
+      '/admin/security?tab=devices', '/admin/security?tab=events', '/admin/audit-logs', '/admin/settings',
+      '/admin/settings?tab=features', '/admin/settings?tab=rules', '/admin/settings?tab=workflows',
+      '/admin/settings?tab=maintenance', '/admin/settings?tab=history', '/profile', '/forbidden',
     ]
     for (const path of paths) {
       await page.goto(path)
@@ -164,14 +166,14 @@ for (const width of [1440, 390]) {
   })
 }
 
-test('role links, assigned users, user tabs and breadcrumbs connect Identity screens', async ({ page }) => {
+test('roles, user tabs and breadcrumbs connect Identity screens', async ({ page }) => {
   await signIn(page)
   const nav = page.getByRole('navigation', { name: 'Main' })
   await nav.getByRole('link', { name: 'Roles & Permissions' }).click()
   await expect(page.getByRole('tab', { name: 'Permission Matrix', selected: true })).toBeVisible()
-  await page.getByRole('link', { name: 'View details of the Administrator role' }).click()
-  await expect(page.getByRole('heading', { name: 'Administrator', exact: true })).toBeVisible()
-  await page.getByRole('table', { name: 'Users with the Administrator role' }).getByText('Anika Perera').click()
+  await expect(page.getByRole('table', { name: 'Permission matrix', exact: true }).getByRole('link')).toHaveCount(0)
+  await nav.getByRole('link', { name: 'Users' }).click()
+  await page.getByRole('table', { name: 'Users', exact: true }).getByText('Anika Perera').click()
   await expect(page).toHaveURL(/\/users\/USR-001$/)
   for (const name of ['Scope assignments', 'Device sessions', 'Activity', 'Overview']) {
     await page.getByRole('tab', { name, exact: true }).click()

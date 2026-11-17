@@ -14,7 +14,7 @@ import {
 } from '@/shared/components'
 import { ROLE_LABELS } from '@/shared/types'
 import { formatDateTime } from '@/shared/utilities/format'
-import type { AccessHistoryAction } from '../../../domain/accessGrants'
+import { SECURITY_EVENT_KINDS } from '../../../domain/auditLog'
 import { unreportedAlertKinds, type SecurityAlertKind } from '../../../domain/adminDashboard'
 import type { IdentityUser, OpenRecovery } from '../../../domain/models'
 import { POLICY_STATUS_LABELS, SECURITY_POLICY_GROUPS, type PolicyStatus, type SecurityPolicy } from '../../../domain/securityPolicies'
@@ -25,65 +25,68 @@ import styles from '../../components/identity.module.css'
 import { ALERT_KIND_LABELS } from './dashboard/dashboardLabels'
 import { SectionBoundary } from './dashboard/SectionBoundary'
 import { SecurityAlertsCard } from './dashboard/SecurityAlertsCard'
-import { AccessHistoryTab } from './roles/AccessHistoryTab'
+import { AuditLogTable } from './audit/AuditLogTable'
 
-type SecurityTab = 'overview' | 'mfa' | 'accounts' | 'policies' | 'audit'
+type SecurityTab = 'overview' | 'authentication' | 'devices' | 'events'
 
 const SECURITY_TABS: readonly TabItem<SecurityTab>[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'mfa', label: 'MFA' },
-  { id: 'accounts', label: 'Account Security' },
-  { id: 'policies', label: 'Policies' },
-  { id: 'audit', label: 'Security Audit Log' },
+  { id: 'overview', label: 'Security Overview' },
+  { id: 'authentication', label: 'Authentication Policies' },
+  { id: 'devices', label: 'Device Security' },
+  { id: 'events', label: 'Security Events' },
 ]
 
-const isSecurityTab = (value: string | null): value is SecurityTab => SECURITY_TABS.some((tab) => tab.id === value)
+/** Links to the earlier Security & Settings tabs keep working. */
+const LEGACY_TABS: Record<string, SecurityTab> = { mfa: 'authentication', accounts: 'overview', policies: 'authentication', audit: 'events' }
 
-/** Audit events with a security meaning; the same records as Roles & Permissions › Access History. */
-const SECURITY_AUDIT_ACTIONS: readonly AccessHistoryAction[] = ['account_enabled', 'account_disabled', 'device_access_revoked']
+function securityTab(value: string | null): SecurityTab {
+  if (SECURITY_TABS.some((tab) => tab.id === value)) return value as SecurityTab
+  return (value && LEGACY_TABS[value]) || 'overview'
+}
 
 const POLICY_TONES: Record<PolicyStatus, BadgeTone> = { approved: 'success', proposed: 'warning', not_defined: 'neutral' }
 
+const AUTHENTICATION_GROUPS = ['Authentication', 'Account recovery', 'Exceptional access']
+const DEVICE_GROUPS = ['Sessions and devices']
+
 /**
- * Administrator Security & Settings: security visibility and read-only policy information.
- * Every figure comes from a source that records it; anything a source does not record is
- * said to be "not reported". No security action is offered until its backend contract
- * exists, so nothing here can succeed only on screen.
+ * ID-17 Security Center: security visibility and read-only policy information. Every figure
+ * comes from a source that records it; anything a source does not record is said to be
+ * "not reported". No security control is offered until its backend contract and
+ * enforcement exist, so nothing here can succeed only on screen.
  */
-export function SecuritySettingsPage() {
-  usePageBreadcrumbs([{ label: 'Administration', to: '/admin' }, { label: 'Security & Settings' }])
+export function SecurityCenterPage() {
+  usePageBreadcrumbs([{ label: 'Administration', to: '/admin' }, { label: 'Security Center' }])
   const { demo } = useDemoWording()
   const [params, setParams] = useSearchParams()
-  const requested = params.get('tab')
-  const tab: SecurityTab = isSecurityTab(requested) ? requested : 'overview'
+  const tab = securityTab(params.get('tab'))
 
   return (
     <div className={styles.page}>
       <PageHeader
-        title="Security & Settings"
-        subtitle={`Account security, multi-factor sign-in, session policies and the security audit log.${demo ? ' Demonstration data: the backend enforces the real policies.' : ''}`}
+        title="Security Center"
+        subtitle={`Account security, authentication and device policies, and security events.${demo ? ' Demonstration data: the backend enforces the real policies.' : ''}`}
       />
       <Tabs
         items={SECURITY_TABS}
         value={tab}
         onChange={(next) => setParams(next === 'overview' ? {} : { tab: next }, { replace: true })}
-        label="Security and settings sections"
+        label="Security Center sections"
         idBase="security"
       />
       <div {...tabPanelProps('security', tab)} className={styles.stack}>
         {tab === 'overview' && <OverviewTab />}
-        {tab === 'mfa' && <MfaTab />}
-        {tab === 'accounts' && <AccountSecurityTab />}
-        {tab === 'policies' && <PoliciesTab />}
-        {tab === 'audit' && (
-          <AccessHistoryTab
-            actions={SECURITY_AUDIT_ACTIONS}
-            title="Security audit log"
-            emptyMessage="Account activation and suspension and device-access revocations appear here once they are recorded."
+        {tab === 'authentication' && <AuthenticationTab />}
+        {tab === 'devices' && <DeviceSecurityTab />}
+        {tab === 'events' && (
+          <AuditLogTable
+            title="Security events"
+            kinds={SECURITY_EVENT_KINDS}
+            emptyMessage="Role, scope and account-status changes, device-session revocations and rejected configuration publishes appear here once they are recorded."
             note={
               <>
-                Sign-in, MFA administration, account-recovery and policy-change events are not recorded by this audit source yet. Role and scope
-                changes are in <Link to="/admin/roles?tab=history" className={styles.link}>Roles &amp; Permissions › Access History</Link>.
+                The same records as <Link to="/admin/audit-logs" className={styles.link}>Audit Logs</Link>. Sign-in attempts, lockouts and MFA administration are
+                not recorded by this audit source yet.
               </>
             }
           />
@@ -114,13 +117,13 @@ function OverviewTab() {
           const recoveries = dashboard.data!.openRecoveries.length
           return (
             <div className={styles.kpiRow}>
-              <Link to="/admin/security?tab=accounts" className={styles.kpiLink}>
-                <KpiCard label="Inactive accounts" value={inactive} caption={`of ${all.length} accounts · disabled or suspended`} icon="users" tone="info" />
+              <Link to="/admin/users?status=inactive" className={styles.kpiLink}>
+                <KpiCard label="Inactive accounts" value={inactive} caption={`of ${all.length} accounts`} icon="users" tone="info" />
               </Link>
-              <Link to="/admin/security?tab=mfa" className={styles.kpiLink}>
+              <Link to="/admin/security?tab=authentication" className={styles.kpiLink}>
                 <KpiCard label="Administrators requiring MFA" value={administrators.length} caption="Enrollment status not reported" icon="lock" tone="purple" />
               </Link>
-              <Link to="/admin/security?tab=accounts" className={styles.kpiLink}>
+              <Link to="/admin/security?tab=devices" className={styles.kpiLink}>
                 <KpiCard label="Open recovery requests" value={recoveries} caption="Controlled device-session recovery" icon="refresh" tone="warning" />
               </Link>
               <Link to="/admin/device-sessions" className={styles.kpiLink}>
@@ -131,15 +134,25 @@ function OverviewTab() {
         }}
       </SectionBoundary>
       <SecurityAlertsCard />
+      <AccountSecuritySection />
     </>
   )
 }
 
 // ---------------------------------------------------------------------------------------
-// MFA
+// Authentication policies
 // ---------------------------------------------------------------------------------------
 
-function MfaTab() {
+function AuthenticationTab() {
+  return (
+    <>
+      <PolicyGroups titles={AUTHENTICATION_GROUPS} />
+      <AdministratorMfa />
+    </>
+  )
+}
+
+function AdministratorMfa() {
   const users = useUsers()
   const navigate = useNavigate()
   const { demo } = useDemoWording()
@@ -200,15 +213,14 @@ function MfaTab() {
 }
 
 // ---------------------------------------------------------------------------------------
-// Account security
+// Account security (Security Overview)
 // ---------------------------------------------------------------------------------------
 
 /** Alert kinds about accounts (sign-ins and lockouts), reported or not by the source. */
 const ACCOUNT_ALERT_KINDS: readonly SecurityAlertKind[] = ['account_locked', 'failed_sign_in']
 
-function AccountSecurityTab() {
+function AccountSecuritySection() {
   const users = useUsers()
-  const dashboard = useAdminDashboard()
   const alerts = useSecurityAlerts()
   const navigate = useNavigate()
   const { demo } = useDemoWording()
@@ -237,7 +249,7 @@ function AccountSecurityTab() {
         </SectionBoundary>
       </Card>
 
-      <Card title="Inactive accounts" aria-label="Inactive accounts" action={<Link to="/admin/users?status=inactive" className={styles.link}>Open in User Management</Link>}>
+      <Card title="Inactive account review" aria-label="Inactive account review" action={<Link to="/admin/users?status=inactive" className={styles.link}>Open in User Management</Link>}>
         <SectionBoundary queries={[users]} unavailable="User accounts are not available yet: the Identity service is not connected.">
           {() => (
             <DataTable<IdentityUser>
@@ -276,6 +288,39 @@ function AccountSecurityTab() {
         <p className={styles.caption}>Accounts are activated and disabled from the user’s page, with confirmation and an audit record.</p>
       </Card>
 
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------------------
+// Device security
+// ---------------------------------------------------------------------------------------
+
+function DeviceSecurityTab() {
+  const dashboard = useAdminDashboard()
+  const sessions = useDeviceSessions()
+  return (
+    <>
+      <SectionBoundary queries={[sessions]} unavailable="Device sessions come from an Identity service that is not connected yet, so no figures are shown.">
+        {() => {
+          const all = sessions.data!
+          const count = (status: string) => all.filter((session) => session.status === status).length
+          return (
+            <div className={styles.kpiRow}>
+              <Link to="/admin/device-sessions" className={styles.kpiLink}>
+                <KpiCard label="Active device sessions" value={count('active')} caption={`of ${all.length} recorded sessions`} icon="phone" tone="success" />
+              </Link>
+              <Link to="/admin/device-sessions" className={styles.kpiLink}>
+                <KpiCard label="Revoked device sessions" value={count('revoked')} caption="Revoked by an Administrator" icon="lock" tone="warning" />
+              </Link>
+              <Link to="/admin/device-sessions" className={styles.kpiLink}>
+                <KpiCard label="Signed out" value={count('signed_out')} caption="Ended on the device" icon="logout" tone="info" />
+              </Link>
+            </div>
+          )
+        }}
+      </SectionBoundary>
+      <PolicyGroups titles={DEVICE_GROUPS} />
       <Card title="Account recovery requests" aria-label="Account recovery requests">
         <SectionBoundary queries={[dashboard]} unavailable="Recovery requests come from an Identity service that is not connected yet.">
           {() => (
@@ -320,17 +365,17 @@ function AccountSecurityTab() {
 }
 
 // ---------------------------------------------------------------------------------------
-// Policies
+// Policies (read-only)
 // ---------------------------------------------------------------------------------------
 
-function PoliciesTab() {
+function PolicyGroups({ titles }: { titles: readonly string[] }) {
   return (
     <>
       <Banner tone="info" title="Read-only policy overview">
         These are the security decisions recorded for the project. The backend enforces them; this screen does not. Policies cannot be edited until
         the policy contracts and their enforcement rules are approved.
       </Banner>
-      {SECURITY_POLICY_GROUPS.map((group) => (
+      {SECURITY_POLICY_GROUPS.filter((group) => titles.includes(group.title)).map((group) => (
         <Card key={group.title} title={group.title} aria-label={`${group.title} policies`}>
           <DataTable<SecurityPolicy>
             caption={`${group.title} policies`}

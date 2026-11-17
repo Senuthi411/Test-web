@@ -10,7 +10,9 @@ export type {
   AccessGrantPort,
   AccountActivationPort,
   AccountPort,
+  AuditLogPort,
   AuthPort,
+  ConfigurationPort,
   IdentityAdminPort,
   PasswordRecoveryPort,
   RememberedUserIdPort,
@@ -18,6 +20,12 @@ export type {
 } from './application/ports'
 export type * from './domain/authFlows'
 export { createAccessGrantUseCases, type AccessGrantUseCases } from './application/accessGrantUseCases'
+export {
+  createAuditLogUseCases,
+  createConfigurationUseCases,
+  type AuditLogUseCases,
+  type ConfigurationUseCases,
+} from './application/configurationUseCases'
 export {
   createAccountUseCases,
   createIdentityAdminUseCases,

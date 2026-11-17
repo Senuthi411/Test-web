@@ -15,6 +15,11 @@ export type AuditKind =
   | 'session_recovery_requested'
   | 'role_changed'
   | 'account_status_changed'
+  | 'configuration_draft_saved'
+  | 'configuration_draft_discarded'
+  | 'configuration_published'
+  | 'configuration_rolled_back'
+  | 'configuration_publish_rejected'
 
 /** An audit record with the names it refers to already resolved. */
 export interface AuditEntry {
@@ -30,6 +35,10 @@ export interface AuditEntry {
   reasonCode?: string
   scope?: string[]
   status?: RecordStatus
+  /** Configuration version the event produced or concerns. */
+  configurationVersion?: number
+  /** Short description of a configuration change ("2 changes: Business Rules"). */
+  summary?: string
 }
 
 const STATUS_LABEL: Record<RecordStatus, string> = { active: 'active', inactive: 'inactive' }
@@ -95,5 +104,15 @@ export function describeAudit(entry: AuditEntry): ActivityEvent {
         detail: entry.status ? `Status ${STATUS_LABEL[entry.status]}` : '',
         link: entry.estate ? { kind: 'estate', id: entry.estate.id } : undefined,
       }
+    case 'configuration_draft_saved':
+      return { ...base, title: 'Configuration draft saved', detail: entry.summary ?? '' }
+    case 'configuration_draft_discarded':
+      return { ...base, title: 'Configuration draft discarded', detail: entry.summary ?? '' }
+    case 'configuration_published':
+      return { ...base, title: `Configuration version ${entry.configurationVersion ?? ''} published`.replace(/\s+/g, ' '), detail: entry.summary ?? '' }
+    case 'configuration_rolled_back':
+      return { ...base, title: `Configuration rolled back as version ${entry.configurationVersion ?? ''}`.replace(/\s+/g, ' '), detail: entry.summary ?? '' }
+    case 'configuration_publish_rejected':
+      return { ...base, title: 'Configuration publish rejected', detail: [entry.reasonCode, entry.summary].filter(Boolean).join(' · ') }
   }
 }

@@ -83,34 +83,47 @@ export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo
       </div>
 
       <nav className={styles.nav} aria-label="Main" onScroll={hideTooltip}>
-        {navigation.groups.map((group) => (
-          // One continuous list: no visible headings or dividers between groups.
-          <div key={group.label} className={styles.group}>
-            <ul className={styles.list} aria-label={group.label}>
-              {group.items.map((item) => (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    onClick={() => {
-                      hideTooltip()
-                      onNavigate?.()
-                    }}
-                    className={({ isActive }) => cx(styles.link, isActive && styles.active)}
-                    aria-label={collapsed ? item.label : undefined}
-                    onMouseEnter={showTooltip(item.label)}
-                    onMouseLeave={hideTooltip}
-                    onFocus={showTooltip(item.label)}
-                    onBlur={hideTooltip}
-                  >
-                    <Icon name={item.icon} size={22} />
-                    {!collapsed && <span className={styles.linkLabel}>{item.label}</span>}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {navigation.groups.map((group) => {
+          // Compact headings only where the role's navigation asks for them, and only when expanded.
+          const showHeading = Boolean(navigation.showHeadings) && !collapsed
+          const headingId = `tl-nav-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+          return (
+            <div key={group.label} className={cx(styles.group, showHeading && styles.groupWithHeading)}>
+              {showHeading && (
+                <h2 id={headingId} className={styles.groupHeading}>
+                  {group.label}
+                </h2>
+              )}
+              <ul
+                className={styles.list}
+                aria-label={showHeading ? undefined : group.label}
+                aria-labelledby={showHeading ? headingId : undefined}
+              >
+                {group.items.map((item) => (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      end={item.end}
+                      onClick={() => {
+                        hideTooltip()
+                        onNavigate?.()
+                      }}
+                      className={({ isActive }) => cx(styles.link, isActive && styles.active)}
+                      aria-label={collapsed ? item.label : undefined}
+                      onMouseEnter={showTooltip(item.label)}
+                      onMouseLeave={hideTooltip}
+                      onFocus={showTooltip(item.label)}
+                      onBlur={hideTooltip}
+                    >
+                      <Icon name={item.icon} size={22} />
+                      {!collapsed && <span className={styles.linkLabel}>{item.label}</span>}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
       </nav>
 
       <div className={styles.footer}>
