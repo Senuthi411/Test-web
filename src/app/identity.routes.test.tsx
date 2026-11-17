@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it } from 'vitest'
@@ -17,9 +17,11 @@ const API_CONFIG: AppConfig = { dataSource: 'api', apiBaseUrl: 'http://localhost
 const USERS: Partial<Record<WebRole, Session['user']>> = {
   ADMINISTRATOR: { id: 'USR-001', fullName: 'Anika Perera', email: 'anika.perera@example.test', role: 'ADMINISTRATOR', estateIds: ['EST-001', 'EST-002', 'EST-003'], divisionIds: [] },
   SUPERVISOR: { id: 'USR-003', fullName: 'Malini Fernando', email: 'malini.fernando@example.test', role: 'SUPERVISOR', estateIds: ['EST-002'], divisionIds: [] },
+  DISEASE_EXPERT: { id: 'USR-005', fullName: 'Dr Tara Wijesinghe', email: 'dr.tara.wijesinghe@example.test', role: 'DISEASE_EXPERT', estateIds: ['EST-001', 'EST-002'], divisionIds: [] },
+  REPORTING_USER: { id: 'USR-013', fullName: 'Maya Dissanayake', email: 'maya.dissanayake@example.test', role: 'REPORTING_USER', estateIds: ['EST-001', 'EST-002'], divisionIds: [] },
 }
 
-function signInAs(role: 'ADMINISTRATOR' | 'SUPERVISOR') {
+function signInAs(role: WebRole) {
   const user = USERS[role]
   if (!user) throw new Error('unknown test user')
   createBrowserSessionPersistence().save({ user, accessToken: null, source: 'fixtures', signedInAt: '2026-10-21T09:00:00+05:30' })
@@ -217,6 +219,20 @@ describe('role-based access', () => {
     expect(screen.getByText(/Your role \(Supervisor\) does not have access/)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'User Management' })).not.toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/admin/users')
+  })
+
+  it.each([
+    ['SUPERVISOR', '/admin/users/new'],
+    ['DISEASE_EXPERT', '/admin/users/USR-001/edit'],
+    ['REPORTING_USER', '/admin/audit-logs'],
+    ['DISEASE_EXPERT', '/admin/roles'],
+    ['REPORTING_USER', '/admin/roles/administrator'],
+  ] as const)('denies %s direct access to %s, including removed Roles & Permissions links', async (role, path) => {
+    signInAs(role)
+    const { router } = renderFixtureApp(path)
+    expect(await screen.findByRole('heading', { name: 'Access denied' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe(path.split('?')[0])
+    expect(screen.queryByRole('heading', { name: /Audit Logs|User Management|Create User|Edit User/, level: 1 })).not.toBeInTheDocument()
   })
 
   it('lets every role open its own profile', async () => {
@@ -572,6 +588,39 @@ describe('identity administration screens', () => {
     expect(await screen.findByText('Changes saved')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/admin/users/USR-003')
     expect(screen.getByText('0112345678')).toBeInTheDocument()
+  })
+
+  it('changes a role in Edit User, shows it in the details and the list, and records it in the Audit Logs (ID-06, ID-18)', async () => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    const { router } = renderFixtureApp('/admin/users/USR-003/edit')
+    await user.selectOptions(await screen.findByLabelText(/Role/, {}, { timeout: 5000 }), 'REPORTING_USER')
+    // Supervisor-only values (office phone, reports to) are cleared after a confirmation.
+    const dialog = screen.queryByRole('dialog', { name: /Change role to Reporting user/ })
+    if (dialog) await user.click(within(dialog).getByRole('button', { name: 'Change role' }))
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin/users/USR-003')
+    expect(screen.getAllByText('Reporting user').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/EST-002|Riverbend/).length).toBeGreaterThan(0)
+
+    await act(() => router.navigate('/admin/users'))
+    const table = await screen.findByRole('table', { name: 'Users' })
+    const row = (await within(table).findByRole('link', { name: 'Malini Fernando' })).closest('tr')!
+    expect(within(row).getByText('Reporting user')).toBeInTheDocument()
+
+    await act(() => router.navigate('/admin/audit-logs'))
+    const log = await screen.findByRole('table', { name: 'Administrative audit log' }, { timeout: 5000 })
+    await user.click(screen.getByRole('combobox', { name: /^Action:/ }))
+    await user.click(within(screen.getByRole('listbox', { name: 'Action' })).getByRole('option', { name: 'Role changed' }))
+    const entry = (await within(log).findAllByText(/Malini Fernando/))[0]!.closest('tr')!
+    expect(within(entry).getByText('Role changed')).toBeInTheDocument()
+    expect(within(entry).getByText('Anika Perera')).toBeInTheDocument()
+    await user.click(within(entry).getByRole('button', { name: /^View details of record/ }))
+    const record = await screen.findByRole('dialog', { name: 'Audit record' })
+    expect(within(record).getAllByText(/Supervisor/).length).toBeGreaterThan(0)
+    expect(within(record).getAllByText(/Reporting user/).length).toBeGreaterThan(0)
+    expect(record.textContent).not.toMatch(/password|token|otp|secret/i)
   })
 
   it('does not keep estate scope when an edit changes a supervisor to a field worker', async () => {

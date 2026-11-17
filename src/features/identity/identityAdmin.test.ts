@@ -308,6 +308,56 @@ describe('fixture identity administration', () => {
     ).rejects.toMatchObject({ details: [{ path: 'nic', message: 'Another user already has this NIC' }] })
   })
 
+  it('accepts only the five predefined roles and existing estates or divisions, on create and edit', async () => {
+    const { admin } = setup()
+    const custom = supervisorInput({ role: 'AUDITOR', roleDetails: { role: 'AUDITOR' } }) as unknown as Parameters<typeof admin.createUser>[0]
+    await expect(admin.createUser(custom)).rejects.toMatchObject({ kind: 'validation', details: [{ path: 'role', message: 'Select one of the predefined roles' }] })
+    const before = (await admin.getUser('USR-003')).user
+    await expect(admin.updateUser('USR-003', { ...custom, email: before.email, employeeId: 'EMP-003', expectedVersion: before.version })).rejects.toMatchObject({
+      kind: 'validation',
+      details: [{ path: 'role' }],
+    })
+    // Scope identifiers must name records that exist.
+    await expect(admin.createUser(supervisorInput({ scope: { estateIds: ['EST-999'], divisionIds: [] } }))).rejects.toMatchObject({ details: [{ path: 'estateIds', message: 'Select an existing estate' }] })
+    await expect(
+      admin.createUser({
+        fullName: 'Worker',
+        email: 'worker@example.test',
+        role: 'FIELD_WORKER',
+        status: 'active',
+        scope: { estateIds: [], divisionIds: ['DIV-999'] },
+        ...CONTACT,
+        roleDetails: { role: 'FIELD_WORKER', supervisorId: null, mobileNumber: '0771234567' },
+      }),
+    ).rejects.toMatchObject({ details: [{ path: 'divisionIds', message: 'Select existing divisions' }] })
+    expect(await admin.listUsers()).toHaveLength(13)
+    expect((await admin.getUser('USR-003')).user).toEqual(before)
+  })
+
+  it('records an Edit User role change as its own audit event with the previous and new role', async () => {
+    const { admin, store } = setup()
+    const before = await admin.getUser('USR-012')
+    expect(before.user.role).not.toBe('SUPERVISOR')
+    const updated = await admin.updateUser('USR-012', {
+      fullName: before.user.fullName,
+      email: before.user.email,
+      role: 'SUPERVISOR',
+      status: before.user.status,
+      scope: { estateIds: ['EST-002'], divisionIds: [] },
+      phone: before.user.phone,
+      employeeId: before.user.employeeId,
+      preferredLanguage: before.user.preferredLanguage,
+      roleDetails: { role: 'SUPERVISOR', reportsToId: null, officePhone: null },
+      expectedVersion: before.user.version,
+    })
+    expect(updated).toMatchObject({ role: 'SUPERVISOR', estateIds: ['EST-002'], divisionIds: [] })
+    expect((await admin.getUser('USR-012')).user).toMatchObject({ role: 'SUPERVISOR', estateIds: ['EST-002'] })
+    expect((await admin.listUsers()).find((user) => user.id === 'USR-012')?.role).toBe('SUPERVISOR')
+    const events = store.read((db) => db.auditEvents.filter((event) => event.userId === 'USR-012' && event.actorId === 'USR-001'))
+    expect(events.find((event) => event.kind === 'role_changed')).toMatchObject({ previousValue: before.user.role, newValue: 'SUPERVISOR' })
+    expect(events.some((event) => event.kind === 'scope_updated')).toBe(true)
+  })
+
   it('rejects a field-worker supervisor from another estate', async () => {
     const { admin } = setup()
     await expect(
