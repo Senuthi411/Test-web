@@ -7,17 +7,14 @@
  * PENDING CONTRACT: field names follow the approved decisions but the Identity OpenAPI
  * does not define them yet (see docs/api-integration/pending-contracts.md).
  */
-import type { Session } from './session'
+import type { MfaEnrollmentSession, Session } from './session'
+
+export type { MfaEnrollmentSession } from './session'
 
 /** Approved policy: e-mail OTPs and authenticator (TOTP) codes have 6 digits. */
 export const CODE_LENGTH = 6
 /** Approved policy: an e-mail OTP is valid for 5 minutes (the backend enforces it). */
 export const RECOVERY_CODE_VALIDITY_MINUTES = 5
-
-/** A restricted session in which an Administrator must enrol an authenticator app. */
-export interface MfaEnrollmentSession {
-  enrollmentId: string
-}
 
 /** What the backend provides to set up an authenticator app. Never logged or stored. */
 export interface MfaEnrollmentDetails {

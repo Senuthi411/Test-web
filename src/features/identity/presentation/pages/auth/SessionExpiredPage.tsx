@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import heroImage from '@/assets/brand/login-hero.webp'
 import logoMark from '@/assets/brand/logo-mark.png'
 import { Badge, Banner, ButtonLink } from '@/shared/components'
 import { Icon } from '@/shared/design-system'
@@ -16,13 +15,16 @@ export function SessionExpiredPage() {
   }, [state.status, expire])
   return (
     <div className={styles.page}>
-      <img src={heroImage} alt="" className={styles.background} />
-      <div className={styles.overlay} aria-hidden="true" />
       <main className={styles.card}>
-        <img src={logoMark} alt="" className={styles.logo} />
-        <p className={styles.wordmark}>
-          TeaLeaf <span>Field Scout</span>
-        </p>
+        <div className={styles.brand}>
+          <img src={logoMark} alt="" width={52} height={52} className={styles.logo} />
+          <span className={styles.wordmark}>
+            <span className={styles.name}>
+              Tea<span className={styles.leaf}>Leaf</span>
+            </span>
+            <span className={styles.scout}>Field Scout</span>
+          </span>
+        </div>
         <span className={styles.clock} aria-hidden="true">
           <Icon name="clock" size={34} />
         </span>
@@ -32,7 +34,7 @@ export function SessionExpiredPage() {
         <div className={styles.banner}>
           <Banner tone="warning">Changes you had not submitted were not saved.</Banner>
         </div>
-        <ButtonLink to="/login" icon="arrowRight" fullWidth className={styles.action}>
+        <ButtonLink to="/login" fullWidth className={styles.action}>
           Sign in again
         </ButtonLink>
         {demo && <p className={styles.footer}>Demonstration screen · no real authentication</p>}

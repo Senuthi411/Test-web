@@ -20,7 +20,6 @@ export const identityKeys = {
   sessions: () => [...IDENTITY_KEY, 'device-sessions'] as const,
   recovery: (sessionId: string) => [...IDENTITY_KEY, 'recovery', sessionId] as const,
   profile: (id: UserId) => [...IDENTITY_KEY, 'profile', id] as const,
-  accessHistory: () => [...IDENTITY_KEY, 'access-history'] as const,
   auditLog: () => [...IDENTITY_KEY, 'audit-log'] as const,
   configuration: () => [...IDENTITY_KEY, 'configuration'] as const,
 }
@@ -157,12 +156,6 @@ export function useSetNotificationPreference(userId: UserId) {
   return useIdentityMutation(({ key, enabled }: { key: NotificationPreferenceKey; enabled: boolean }) =>
     account.setNotificationPreference(userId, key, enabled),
   )
-}
-
-/** Identity and authorization audit history (contract pending in API mode, not retried). */
-export function useAccessHistory() {
-  const { accessGrants } = useIdentityServices()
-  return useQuery({ queryKey: identityKeys.accessHistory(), queryFn: ({ signal }) => accessGrants.listAccessHistory(signal), retry: false })
 }
 
 /** The administrative audit log (contract pending in API mode, not retried). */

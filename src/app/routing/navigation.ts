@@ -22,11 +22,6 @@ export interface RoleNavigation {
   groups: readonly NavGroup[]
   /** Top-bar search placeholder for this role, as written in Figma. */
   searchPlaceholder: string
-  /**
-   * Show compact section headings above each group in the expanded sidebar. Only the
-   * Administrator workspace uses them; other roles keep one continuous list.
-   */
-  showHeadings?: boolean
 }
 
 /** Every role can open its own profile (`/profile` is not role-restricted). */
@@ -40,14 +35,12 @@ const ACCOUNT: NavGroup = { label: 'Account', items: [{ label: 'My Profile', to:
 export const ROLE_NAVIGATION: Record<WebRole, RoleNavigation> = {
   ADMINISTRATOR: {
     searchPlaceholder: 'Search observations, cases, users',
-    showHeadings: true,
     groups: [
       { label: 'Overview', items: [{ label: 'Dashboard', to: '/admin', icon: 'home', end: true }] },
       {
         label: 'Organization Management',
         items: [
           { label: 'Users', to: '/admin/users', icon: 'users' },
-          { label: 'Roles & Permissions', to: '/admin/roles', icon: 'shield' },
           { label: 'Estates', to: '/admin/estates', icon: 'map' },
           { label: 'Divisions', to: '/admin/divisions', icon: 'layers' },
         ],

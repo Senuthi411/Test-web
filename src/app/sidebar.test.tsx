@@ -40,28 +40,30 @@ const sidebar = () => screen.getByRole('complementary', { name: 'Sidebar' })
 const accountButton = (name: string, role: string) => screen.findByRole('button', { name: `Account menu for ${name}, ${role}` }, { timeout: 5000 })
 
 describe('sidebar navigation', () => {
-  it('lists the Administrator navigation in order under compact section headings', async () => {
+  it('lists the Administrator navigation in order, with no visible section headings', async () => {
     signInAs('ADMINISTRATOR')
     await renderApp('/admin')
     const nav = await mainNav()
     const groups = within(nav).getAllByRole('list').map((list) => ({
-      label: list.getAttribute('aria-labelledby') ? document.getElementById(list.getAttribute('aria-labelledby')!)?.textContent : null,
+      label: list.getAttribute('aria-label'),
       items: within(list).getAllByRole('link').map((link) => link.textContent?.trim()),
     }))
     expect(groups).toEqual([
       { label: 'Overview', items: ['Dashboard'] },
-      { label: 'Organization Management', items: ['Users', 'Roles & Permissions', 'Estates', 'Divisions'] },
+      { label: 'Organization Management', items: ['Users', 'Estates', 'Divisions'] },
       { label: 'Security & Governance', items: ['Device Sessions', 'Security Center', 'Audit Logs'] },
       { label: 'Enterprise Configuration', items: ['System Settings'] },
       { label: 'Account', items: ['My Profile'] },
     ])
+    expect(within(nav).queryByRole('heading')).not.toBeInTheDocument()
     for (const heading of ['Overview', 'Organization Management', 'Security & Governance', 'Enterprise Configuration', 'Account']) {
-      expect(within(nav).getByRole('heading', { name: heading, level: 2 })).toBeInTheDocument()
+      expect(within(nav).queryByText(heading, { exact: true })).not.toBeInTheDocument()
     }
     expect(within(nav).getByRole('list', { name: 'Security & Governance' })).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
     expect(within(nav).getByRole('link', { name: 'Audit Logs' })).toHaveAttribute('href', '/admin/audit-logs')
     expect(within(nav).getByRole('link', { name: 'System Settings' })).toHaveAttribute('href', '/admin/settings')
+    expect(within(nav).queryByRole('link', { name: /Roles|Permissions/ })).not.toBeInTheDocument()
   })
 
   it.each([
@@ -72,7 +74,6 @@ describe('sidebar navigation', () => {
     ['/admin/security?tab=policies', 'Security Center'],
     ['/admin/audit-logs', 'Audit Logs'],
     ['/admin/settings?tab=rules', 'System Settings'],
-    ['/admin/roles/administrator', 'Roles & Permissions'],
   ])('highlights the parent item on %s', async (path, label) => {
     signInAs('ADMINISTRATOR')
     await renderApp(path)
@@ -85,7 +86,7 @@ describe('sidebar navigation', () => {
     signInAs(role)
     await renderApp('/')
     const nav = await mainNav()
-    for (const label of ['Users', 'Roles & Permissions', 'Device Sessions', 'Estates', 'Divisions', 'Security Center', 'Audit Logs', 'System Settings']) {
+    for (const label of ['Users', 'Device Sessions', 'Estates', 'Divisions', 'Security Center', 'Audit Logs', 'System Settings']) {
       expect(within(nav).queryByRole('link', { name: label })).not.toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'My Profile' })).toHaveAttribute('href', '/profile')

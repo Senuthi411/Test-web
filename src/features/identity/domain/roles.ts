@@ -1,7 +1,9 @@
 import type { UserRole } from '@/shared/types'
 
 /**
- * Roles & Permissions content from ID-07 (16:2) and its role variants (161:74 … 161:1426).
+ * The five predefined system roles and their permission codes, from ID-07 (16:2) and its
+ * role variants (161:74 … 161:1426). User Management uses them to describe the role being
+ * assigned; the Administrator UI no longer shows a permission matrix.
  *
  * DISPLAY CONTENT ONLY. The design labels these permission codes "illustrative fixture
  * values; enforcement happens in the backend", and the backend role model is provisional
@@ -95,7 +97,7 @@ export interface RoleDefinition {
   permissions: readonly string[]
 }
 
-/** In the order of the ID-07 role list and matrix columns. */
+/** In the order of the ID-07 role list. */
 export const ROLE_CATALOG: readonly RoleDefinition[] = [
   {
     role: 'ADMINISTRATOR',
@@ -160,34 +162,4 @@ export function roleDefinition(role: UserRole): RoleDefinition {
 
 export function permissionLabel(code: string): string {
   return PERMISSIONS.find((permission) => permission.code === code)?.label ?? code
-}
-
-// ---------------------------------------------------------------------------------------
-// Presentation of the fixed role model (permission matrix). Everything is
-// derived from PERMISSIONS, ROLE_CATALOG, WEB_ROLES and the scope levels above.
-// ---------------------------------------------------------------------------------------
-
-/** Matrix groups are the permission modules. */
-export type PermissionGroup = PermissionModule
-
-export function permissionGroup(code: string): PermissionGroup {
-  return permissionModule(code)
-}
-
-/** Groups present in the registry, in matrix order. */
-export const PERMISSION_GROUPS: readonly PermissionGroup[] = PERMISSION_MODULES
-
-/**
- * A matrix cell. `scoped`: held, but only within assigned estates/divisions or own records,
- * as the permission code states (`_scoped`, `.own.`). Never shown as unrestricted.
- */
-export type PermissionCellState = 'allowed' | 'scoped' | 'not_allowed'
-
-export function isScopeRestricted(code: string): boolean {
-  return code.endsWith('_scoped') || code.includes('.own.')
-}
-
-export function permissionCell(definition: Pick<RoleDefinition, 'permissions'>, code: string): PermissionCellState {
-  if (!definition.permissions.includes(code)) return 'not_allowed'
-  return isScopeRestricted(code) ? 'scoped' : 'allowed'
 }

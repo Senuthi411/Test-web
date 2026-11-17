@@ -32,6 +32,37 @@ These rules are enforced by `no-restricted-imports` in `eslint.config.js`:
 | `features/*/application` | React, Router, Axios, fixtures, infrastructure, presentation |
 | `features/*/presentation` | Axios, the HTTP client, fixtures, infrastructure |
 
+## Module ownership
+
+The `features/` folders are ownership boundaries for parallel work in this one repository.
+
+| Folder | Owner | Contents |
+| --- | --- | --- |
+| `features/identity` | Member 1 | Authentication screens and session, Administrator workspace (dashboard, users, estates, divisions, device sessions, Security Center, Audit Logs, System Settings) and My Profile |
+| `features/review` | Member 3 | Supervisor review workspace |
+| `features/cases` | Member 4 | Disease Expert workspace |
+| `features/analytics` | Member 5 | Reporting workspace |
+| `features/capture` | — | Supervisor fieldwork assignments (web side of capture); existing code, left as is |
+| `app/`, `shared/` | Shared | Changes need a regression run of every module that uses them |
+
+**Authentication lives in `features/identity`, not `shared/`.** Login, MFA, recovery,
+activation, session-expired and access-denied screens, `SessionProvider` and the auth use
+cases depend on the Identity domain (`Session`, auth flows, `ROLE_HOME_PATH`), and `shared/`
+may not import a feature. There is exactly one implementation of each piece, and every
+role uses it:
+
+| Concern | Single implementation |
+| --- | --- |
+| Session state, sign-in, sign-out, MFA and recovery flows | `features/identity` (public API `@/features/identity`) |
+| Bearer token on requests | `shared/api/httpClient.ts`, reading the token from the identity session persistence |
+| Route guards, role home redirect, access denied | `app/routing/guards.tsx` |
+| Role navigation | `app/routing/navigation.ts` |
+
+**Promoting code to `shared/`.** Only code with no feature-specific logic and more than one
+real consumer. Example: `shared/hooks/useTableSort.ts` (client-side DataTable sorting) replaced
+the Identity copy; `features/review` still has an identical local `useTableSort` that its owner
+can switch to.
+
 ## Composition and data modes
 
 `src/main.tsx` → `readConfig(import.meta.env)` → `createContainer(config)` → `<App>`.
@@ -78,8 +109,10 @@ moves to the session-expired state. Non-transient kinds are not retried.
 ## Routing
 
 `app/routing/screens.ts` lists every approved Figma screen with its route, screen ID and
-delivery phase. In Phase 2 each route renders a `ScreenPending` placeholder that says the
-screen is not built yet. Role home routes: Administrator `/admin`, Supervisor `/review`,
+delivery phase. `app/routing/routes.tsx` maps each implemented path to its page (lazy-loaded
+through `identityScreens.tsx`, `reviewScreens.tsx` and `captureScreens.tsx`); any path not yet
+built renders a `ScreenPending` placeholder. Removed screens keep their old paths as redirects
+(`/admin/roles` and `/admin/roles/:role` → `/admin/audit-logs`). Role home routes: Administrator `/admin`, Supervisor `/review`,
 Disease Expert `/cases`, Reporting User `/analytics`.
 
 ## Decisions and deviations

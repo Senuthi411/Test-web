@@ -1,4 +1,17 @@
 /* ID-10 Estate Detail (Figma 16:865): divisions table beside the team card. */
+
+/* Three Administrator KPIs fill the row (the shared row is laid out for four). Doubled class
+   so it outranks the shared `.kpiRow` breakpoints; phones still stack them. */
+.kpiRow3.kpiRow3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 719px) {
+  .kpiRow3.kpiRow3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);

@@ -36,10 +36,13 @@ substitutes fixture data.
 `features/identity/infrastructure/pendingAccessGrantAdapter.ts` sends no requests. The backend has
 no grant, approval or audit-history contract (audit logging is "Planned").
 
-**Access history.** Roles & Permissions → Access History lists identity and authorization events
-only: permanent role changed, permanent scope changed, account enabled / disabled and device access
-revoked. Fieldwork (operational) assignments are not authorization changes and are not shown. In
-API mode the tab shows "Access history is not available yet" and never falls back to fixtures. In
+**Access history.** The Roles & Permissions page (permission matrix and Access History tab) was
+removed from the Administrator UI. Identity and authorization events (role, scope and
+account-status changes in the "Access" module, device-access revocations in "Device sessions") are
+read in the Audit Logs (`/admin/audit-logs`) from `identity.auditLog.list`; there is no separate access-history screen.
+`/admin/roles` and `/admin/roles/:role` redirect to the Audit Logs. `AccessGrantPort.listAccessHistory`
+and its adapters are kept as a pending contract but no screen reads them now. Fieldwork (operational)
+assignments are not authorization changes and are not shown. In API mode nothing falls back to fixtures. In
 fixture mode the entries come from the demonstration audit log; Edit User and Scope Assignment
 record role, scope (with the previous scope) and account-status changes as their own audit events.
 
@@ -171,9 +174,10 @@ rejects with `contract_pending` and no setting is shown as in effect.
 | Maintenance mode | Activation/deactivation endpoint, enforcement in sign-in and sync, and how notices are delivered. |
 
 Permission codes `configuration.settings.manage`, `configuration.rules.manage`,
-`security.sessions.manage`, `security.policies.read` and `security.audit.read` are shown in the
-permission matrix for the Administrator; like the other codes they are display content pending the
-backend role model (P8), not enforcement.
+`security.sessions.manage`, `security.policies.read` and `security.audit.read` are listed for the
+Administrator in the frontend role catalog (no permission matrix is shown); like the other codes
+they are display content pending the backend role model (P8), not enforcement. The five predefined
+roles are assigned in User Management and authorization is enforced by the backend.
 
 ## Planned (Phase 3) — Supervisor coverage and temporary delegation
 

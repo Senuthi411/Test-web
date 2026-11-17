@@ -16,8 +16,8 @@ export function AdministrativeActivityCard() {
       aria-label="Recent administrative activity"
       className={styles.section}
       action={
-        <Link to="/admin/roles?tab=history" className={styles.link}>
-          View access history
+        <Link to="/admin/audit-logs" className={styles.link}>
+          View audit logs
         </Link>
       }
     >

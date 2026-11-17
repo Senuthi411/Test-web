@@ -19,7 +19,7 @@ import {
   useToast,
   type ActionMenuItem,
 } from '@/shared/components'
-import { useDebouncedValue } from '@/shared/hooks'
+import { useDebouncedValue, useTableSort } from '@/shared/hooks'
 import { formatDateTime } from '@/shared/utilities/format'
 import { paginate } from '@/shared/utilities/pagination'
 import type { DeviceSession, DeviceSessionStatus } from '../../../domain/models'
@@ -28,7 +28,6 @@ import { errorMessage, useRelativeTime, userPath } from '../../components/helper
 import { useIdentityServices } from '../../services/identityServices'
 import { useDeviceSessions, useDivisions, useRequestSessionRecovery, useRevokeDeviceSession } from '../../services/queries'
 import styles from '../../components/identity.module.css'
-import { useIdentityTableSort } from '../../components/useIdentityTableSort'
 
 const PAGE_SIZE = 15
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -84,7 +83,7 @@ export function DeviceSessionsPage() {
   // One drawer, driven by the address: it always shows the session named there.
   const details = detailsId ? (sessions.find((session) => session.id === detailsId) ?? null) : null
   const filtersActive = search !== '' || userFilter !== 'all' || status !== 'all' || lastSeen !== '30'
-  const table = useIdentityTableSort(filtered, { session: (row) => row.id, user: (row) => row.user.fullName, device: (row) => row.device, seen: (row) => row.lastSeenAt, status: (row) => row.status })
+  const table = useTableSort(filtered, { session: (row) => row.id, user: (row) => row.user.fullName, device: (row) => row.device, seen: (row) => row.lastSeenAt, status: (row) => row.status })
 
   function updateParam(key: 'user' | 'session', value: string | null) {
     setParams(

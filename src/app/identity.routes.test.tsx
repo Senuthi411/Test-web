@@ -67,7 +67,10 @@ describe('AUTH-01 login', () => {
     expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '/forgot-password')
     expect(screen.getByText('Secure Access')).toBeInTheDocument()
     expect(screen.getByText('Authorized company personnel only')).toBeInTheDocument()
-    expect(screen.getByText('Tea Health')).toBeInTheDocument()
+    // A single centred card: the marketing side panel and its story are gone.
+    expect(screen.queryByRole('region', { name: 'About TeaLeaf Field Scout' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Tea Health|Estate Intelligence Platform/)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     for (const removed of [/email/i, /sign up/i, /google/i, /microsoft/i, /development accounts/i, /demonstration data/i]) {
       expect(screen.queryByText(removed)).not.toBeInTheDocument()
     }
@@ -256,11 +259,13 @@ describe('identity administration screens', () => {
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
   })
 
-  it('redirects the removed per-role pages to the permission matrix', async () => {
+  it.each(['/admin/roles', '/admin/roles?tab=matrix', '/admin/roles/administrator'])('redirects the removed Roles & Permissions link %s to the Audit Logs', async (path) => {
     signInAs('ADMINISTRATOR')
-    const { router } = renderFixtureApp('/admin/roles/administrator')
-    expect(await screen.findByRole('heading', { name: 'Roles and Permissions' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/admin/roles')
+    const { router } = renderFixtureApp(path)
+    expect(await screen.findByRole('heading', { name: 'Audit Logs', level: 1 })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin/audit-logs')
+    expect(screen.queryByRole('table', { name: /Permission matrix/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /Permission Matrix|Access History/ })).not.toBeInTheDocument()
   })
 
   it('reloads the latest user after an edit conflict without resetting fixture changes', async () => {
@@ -305,6 +310,56 @@ describe('identity administration screens', () => {
     expect(screen.getByText('Hiruni Nadeesha')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reset filters' }))
     expect(await screen.findByText('Showing 1–13 of 13 demo users')).toBeInTheDocument()
+  })
+
+  it('lists users without an Email column; the name opens the details, where the email is shown (ID-03)', async () => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    const { router } = renderFixtureApp('/admin/users')
+    const table = await screen.findByRole('table', { name: 'Users' })
+    await within(table).findByText('Dr Tara Wijesinghe')
+    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.replace(/[↕↑↓]/g, '').trim())).toEqual(['Employee', 'User ID', 'Role', 'Assigned Scope', 'Status', 'Actions'])
+    expect(within(table).queryByText(/@example\.test/)).not.toBeInTheDocument()
+
+    // Email and User ID remain searchable even though the column is gone.
+    const search = screen.getByRole('searchbox', { name: 'Search users' })
+    await user.type(search, 'dr.tara.wijesinghe@example.test')
+    expect(await screen.findByText('Showing 1–1 of 1 demo users')).toBeInTheDocument()
+    await user.clear(search)
+    await user.type(search, 'usr-005')
+    expect(await screen.findByText('Showing 1–1 of 1 demo users')).toBeInTheDocument()
+
+    await user.click(within(table).getByRole('link', { name: 'Dr Tara Wijesinghe' }))
+    expect(router.state.location.pathname).toBe('/admin/users/USR-005')
+    expect((await screen.findAllByText(/dr\.tara\.wijesinghe@example\.test/)).length).toBeGreaterThan(0)
+  })
+
+  it('shows Administrator-focused estate KPIs instead of operational statistics (ID-10)', async () => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    renderFixtureApp('/admin/estates/EST-002')
+    const divisionsKpi = await screen.findByRole('region', { name: 'Total divisions' }, { timeout: 5000 })
+    expect(within(divisionsKpi).getByText('3')).toBeInTheDocument()
+    expect(within(divisionsKpi).getByText('3 active')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Assigned employees' })).getByText('4')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Estate status' })).getByText('Active')).toBeInTheDocument()
+    for (const removed of ['Observations', 'Pending review', 'Corrections requested', 'Expert-confirmed cases']) {
+      expect(screen.queryByRole('region', { name: removed })).not.toBeInTheDocument()
+    }
+
+    const divisions = screen.getByRole('table', { name: /Divisions of/ })
+    expect(within(divisions).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(['Division', 'ID', 'Field workers', 'Status'])
+    expect(screen.getByRole('button', { name: 'Edit estate' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Add division' })).toBeEnabled()
+
+    // The other tabs are unchanged; Team lists the employees counted above.
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Overview', 'Divisions', 'Team', 'Activity'])
+    await user.click(screen.getByRole('tab', { name: 'Team' }))
+    for (const name of ['Malini Fernando', 'Dr Tara Wijesinghe', 'Hiruni Nadeesha', 'Ravindu Kumara']) {
+      expect(screen.getByRole('link', { name })).toBeInTheDocument()
+    }
+    await user.click(screen.getByRole('tab', { name: 'Activity' }))
+    expect(screen.getByText(/Recent estate activity/)).toBeInTheDocument()
   })
 
   it('requires a division, then creates the user after review (ID-05)', async () => {

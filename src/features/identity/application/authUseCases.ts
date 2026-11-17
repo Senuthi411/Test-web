@@ -1,7 +1,8 @@
 import { AppError } from '@/shared/api'
 import type { DataSource } from '@/shared/types'
 import { codeError, normaliseCode, userIdError, type MfaEnrollmentDetails, type MfaEnrollmentResult, type MfaEnrollmentSession } from '../domain/authFlows'
-import { normaliseUserId, type MfaChallenge, type Session, type SignInCredentials, type SignInResult } from '../domain/session'
+import { normaliseCompanyUserId } from '../domain/authFlows'
+import type { MfaChallenge, Session, SignInCredentials, SignInResult } from '../domain/session'
 import type { AuthPort, RememberedUserIdPort, SessionPersistencePort } from './ports'
 
 export interface SignInOptions {
@@ -43,7 +44,7 @@ export function createAuthUseCases(
   return {
     async signIn(credentials, options, signal) {
       rejectField('userId', userIdError(credentials.userId))
-      const userId = normaliseUserId(credentials.userId)
+      const userId = normaliseCompanyUserId(credentials.userId)
       const result = await auth.signIn({ userId, password: credentials.password }, signal)
       // The password step succeeded, so the preference applies. A failed attempt changes nothing.
       if (options.rememberUserId) remembered.save(userId)

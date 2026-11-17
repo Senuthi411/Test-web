@@ -1,12 +1,10 @@
 import { isAppError } from '@/shared/api'
 import { useToast } from '@/shared/components'
 import { formatRelativeDateTime } from '@/shared/utilities/format'
-import type { ActivityEvent, DeviceSessionStatus, ExportKind, IdentityUser, RecordStatus } from '../../domain/models'
+import type { ActivityEvent, DeviceSessionStatus, ExportKind, IdentityUser } from '../../domain/models'
 import { scopeIdsOf } from '../../domain/scope'
 import { useIdentityServices } from '../services/identityServices'
 import { useExport } from '../services/queries'
-
-export const RECORD_STATUS_LABEL: Record<RecordStatus, string> = { active: 'Active', inactive: 'Inactive' }
 
 export const SESSION_STATUS_LABEL: Record<DeviceSessionStatus, string> = {
   active: 'Active',
@@ -37,7 +35,7 @@ export function activityLink(event: ActivityEvent): string | undefined {
     case 'estate':
       return `/admin/estates/${event.link.id}`
     case 'access_history':
-      return '/admin/roles?tab=history'
+      return '/admin/audit-logs'
   }
 }
 
@@ -59,7 +57,7 @@ export function useDemoWording() {
   }
 }
 
-/** Export buttons (ID-02, ID-03, ID-07, ID-11). Reports the real outcome only. */
+/** Export buttons (ID-02, ID-03, ID-11). Reports the real outcome only. */
 export function useExportAction(kind: ExportKind) {
   const toast = useToast()
   const exportMutation = useExport()

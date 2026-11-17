@@ -205,15 +205,13 @@ describe('fixture identity administration', () => {
     expect(dashboard.recentActivity[0]).toMatchObject({ title: 'Scope updated for Dr Tara Wijesinghe', detail: 'EST-001, EST-002' })
   })
 
-  it('derives the ID-10 estate KPIs and ID-12 division counts', async () => {
+  it('derives the ID-10 estate divisions and team, and ID-12 division counts', async () => {
     const { admin } = setup()
     const riverbend = await admin.getEstate('EST-002')
-    expect(riverbend.stats).toEqual({ observations: 15, pendingReview: 5, correctionsRequested: 2, expertConfirmedCases: 2 })
+    expect(riverbend).not.toHaveProperty('stats')
     expect(riverbend.estate).toMatchObject({ supervisor: { id: 'USR-003' }, expert: { id: 'USR-005' } })
-    const highland = await admin.getEstate('EST-001')
-    expect(highland.stats).toEqual({ observations: 18, pendingReview: 9, correctionsRequested: 0, expertConfirmedCases: 1 })
-    const mist = await admin.getEstate('EST-003')
-    expect(mist.stats).toEqual({ observations: 15, pendingReview: 7, correctionsRequested: 1, expertConfirmedCases: 1 })
+    expect(riverbend.divisions.map((division) => division.id)).toEqual(['DIV-004', 'DIV-005', 'DIV-006'])
+    expect(riverbend.team.map((member) => member.id)).toEqual(['USR-003', 'USR-005', 'USR-009', 'USR-010'])
 
     const divisions = await admin.listDivisions()
     expect(divisions.map((division) => division.pendingReviewCount)).toEqual([5, 3, 1, 3, 1, 1, 4, 1, 2])

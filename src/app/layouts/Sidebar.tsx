@@ -84,21 +84,10 @@ export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo
 
       <nav className={styles.nav} aria-label="Main" onScroll={hideTooltip}>
         {navigation.groups.map((group) => {
-          // Compact headings only where the role's navigation asks for them, and only when expanded.
-          const showHeading = Boolean(navigation.showHeadings) && !collapsed
-          const headingId = `tl-nav-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+          // Groups have no visible heading; the label names the list for screen readers.
           return (
-            <div key={group.label} className={cx(styles.group, showHeading && styles.groupWithHeading)}>
-              {showHeading && (
-                <h2 id={headingId} className={styles.groupHeading}>
-                  {group.label}
-                </h2>
-              )}
-              <ul
-                className={styles.list}
-                aria-label={showHeading ? undefined : group.label}
-                aria-labelledby={showHeading ? headingId : undefined}
-              >
+            <div key={group.label} className={styles.group}>
+              <ul className={styles.list} aria-label={group.label}>
                 {group.items.map((item) => (
                   <li key={item.to}>
                     <NavLink

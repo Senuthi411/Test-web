@@ -1,18 +1,15 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import heroImage from '@/assets/brand/login-hero.webp'
 import logoMark from '@/assets/brand/logo-mark.png'
 import { Banner, ButtonLink, TextField } from '@/shared/components'
 import { CODE_LENGTH, normaliseCode } from '../../../domain/authFlows'
 import { SUPPORT_NOTE, type AuthFailure } from './authMessages'
 import styles from './AuthFlow.module.css'
 
-/** Compact centred card used by the MFA, recovery and activation screens. */
+/** The login page's centred white card, used by the MFA, recovery and activation screens. */
 export function AuthCard({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
   return (
     <div className={styles.page}>
-      <img src={heroImage} alt="" className={styles.background} />
-      <div className={styles.overlay} aria-hidden="true" />
       <main className={styles.card}>
         <div className={styles.brand}>
           <img src={logoMark} alt="" width={52} height={52} className={styles.logo} />

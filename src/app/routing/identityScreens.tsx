@@ -23,7 +23,6 @@ export const UsersPage = lazy(() => load().then((module) => ({ default: module.U
 export const UserDetailPage = lazy(() => load().then((module) => ({ default: module.UserDetailPage })))
 export const UserFormPage = lazy(() => load().then((module) => ({ default: module.UserFormPage })))
 export const UserScopePage = lazy(() => load().then((module) => ({ default: module.UserScopePage })))
-export const RolesPage = lazy(() => load().then((module) => ({ default: module.RolesPage })))
 export const EstatesPage = lazy(() => load().then((module) => ({ default: module.EstatesPage })))
 export const EstateDetailPage = lazy(() => load().then((module) => ({ default: module.EstateDetailPage })))
 export const DivisionsPage = lazy(() => load().then((module) => ({ default: module.DivisionsPage })))

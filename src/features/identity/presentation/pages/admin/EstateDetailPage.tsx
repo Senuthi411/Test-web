@@ -13,6 +13,7 @@ import {
   usePageBreadcrumbs,
 } from '@/shared/components'
 import { ROLE_LABELS } from '@/shared/types'
+import { cx } from '@/shared/utilities/classNames'
 import type { DivisionSummary, EstateDetail } from '../../../domain/models'
 import { QueryBoundary, StatusBadge } from '../../components/common'
 import { activityLink, divisionPath, useDemoWording, useRelativeTime, userPath } from '../../components/helpers'
@@ -51,14 +52,15 @@ export function EstateDetailPage() {
 }
 
 function EstateDetailView({ detail }: { detail: EstateDetail }) {
-  const { estate, stats } = detail
+  const { estate } = detail
   const [tab, setTab] = useState<TabId>('overview')
   const [editing, setEditing] = useState(false)
   const [addingDivision, setAddingDivision] = useState(false)
   const estates = useEstates()
   const navigate = useNavigate()
   const relative = useRelativeTime()
-  const { demo, illustrative } = useDemoWording()
+  const { illustrative } = useDemoWording()
+  const activeDivisions = detail.divisions.filter((division) => division.status === 'active').length
 
   const divisionsCard = (
     <Card
@@ -78,9 +80,7 @@ function EstateDetailView({ detail }: { detail: EstateDetail }) {
         columns={[
           { id: 'division', header: 'Division', cell: (division) => <span className={styles.idStrong}>{division.name}</span> },
           { id: 'id', header: 'ID', cell: (division) => <span className={styles.muted}>{division.id}</span> },
-          { id: 'observations', header: 'Observations', cell: (division) => division.observationCount },
-          { id: 'verified', header: 'Verified', cell: (division) => division.verifiedCount },
-          { id: 'pending', header: 'Pending', cell: (division) => division.pendingReviewCount },
+          { id: 'workers', header: 'Field workers', cell: (division) => division.fieldWorkers.length },
           { id: 'status', header: 'Status', cell: (division) => <StatusBadge status={division.status} inactiveLabel="Disabled" /> },
         ]}
       />
@@ -160,11 +160,16 @@ function EstateDetailView({ detail }: { detail: EstateDetail }) {
       <div {...tabPanelProps('estate-detail', tab)} className={styles.stack}>
         {tab === 'overview' && (
           <>
-            <div className={styles.kpiRow}>
-              <KpiCard label="Observations" value={stats.observations} caption={demo ? 'Demo fixture total' : 'Total'} icon="clip" tone="success" />
-              <KpiCard label="Pending review" value={stats.pendingReview} caption="Submitted or in review" icon="inbox" tone="warning" />
-              <KpiCard label="Corrections requested" value={stats.correctionsRequested} caption="Active correction requests" icon="edit" tone="info" />
-              <KpiCard label="Expert-confirmed cases" value={stats.expertConfirmedCases} caption="Diagnosed with confirmation" icon="flask" tone="purple" />
+            <div className={cx(styles.kpiRow, detailStyles.kpiRow3)}>
+              <KpiCard label="Total divisions" value={detail.divisions.length} caption={`${activeDivisions} active`} icon="layers" tone="success" />
+              <KpiCard label="Assigned employees" value={detail.team.length} caption="Active supervisors, experts and field workers" icon="users" tone="info" />
+              <KpiCard
+                label="Estate status"
+                value={estate.status === 'active' ? 'Active' : 'Inactive'}
+                caption={estate.status === 'active' ? 'Accepting new divisions' : 'No new divisions can be added'}
+                icon="shield"
+                tone={estate.status === 'active' ? 'success' : 'warning'}
+              />
             </div>
             <div className={detailStyles.split}>
               {divisionsCard}

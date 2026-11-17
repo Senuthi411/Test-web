@@ -61,7 +61,7 @@ export interface PasswordRecoveryPort {
 }
 
 /**
- * Temporary access grants and the access history (Roles & Permissions). The backend decides
+ * Temporary access grants and the access history. The backend decides
  * approval, activation and expiry and enforces grants during authorisation; this port only
  * requests and reads. PENDING CONTRACT: no Identity API operations exist yet.
  */

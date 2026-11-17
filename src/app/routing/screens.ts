@@ -35,8 +35,9 @@ export const SCREEN_GROUPS: readonly ScreenGroup[] = [
       { path: 'users/:userId', screenId: 'ID-04', title: 'User Detail', phase: 3 },
       { path: 'users/:userId/edit', screenId: 'ID-06', title: 'Edit User', phase: 3 },
       { path: 'users/:userId/scope', screenId: 'ID-08', title: 'User Scope Assignment', phase: 3 },
-      { path: 'roles', screenId: 'ID-07', title: 'Roles & Permissions', phase: 3 },
-      { path: 'roles/:role', screenId: 'ID-07', title: 'Roles & Permissions', phase: 3 },
+      // ID-07 Roles & Permissions was removed; these old paths redirect to the Audit Logs.
+      { path: 'roles', screenId: 'ID-18', title: 'Audit Logs', phase: 3 },
+      { path: 'roles/:role', screenId: 'ID-18', title: 'Audit Logs', phase: 3 },
       { path: 'estates', screenId: 'ID-09', title: 'Estate Management', phase: 3 },
       { path: 'estates/:estateId', screenId: 'ID-10', title: 'Estate Detail', phase: 3 },
       { path: 'divisions', screenId: 'ID-11', title: 'Division Management', phase: 3 },

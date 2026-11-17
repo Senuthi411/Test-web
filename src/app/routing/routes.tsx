@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import { Navigate, type RouteObject } from 'react-router'
-import type { BreadcrumbItem } from '@/shared/components'
 import { AppLayout } from '../layouts/AppLayout'
 import { RequireRole, RequireSession, RoleHomeRedirect } from './guards'
+import type { RouteHandle } from './routeHandle'
 import {
   AccessDeniedPage,
   ActivateAccountPage,
@@ -21,7 +21,6 @@ import {
   ProfilePage,
   RecoveryCodePage,
   ResetPasswordPage,
-  RolesPage,
   ScreenLoading,
   SecurityCenterPage,
   SessionExpiredPage,
@@ -50,11 +49,6 @@ import {
   ReviewDashboardPage,
   ReviewQueuePage,
 } from './reviewScreens'
-
-/** Route metadata read by the top bar. Pages showing a record refine it with usePageBreadcrumbs. */
-export interface RouteHandle {
-  breadcrumbs: BreadcrumbItem[]
-}
 
 function joinPath(base: string, path: string) {
   return path ? `${base}/${path}` : base
@@ -97,9 +91,10 @@ const IMPLEMENTED: Record<string, ReactNode> = {
   '/admin/users/:userId': <UserDetailPage />,
   '/admin/users/:userId/edit': <UserFormPage mode="edit" />,
   '/admin/users/:userId/scope': <UserScopePage />,
-  '/admin/roles': <RolesPage />,
-  // The per-role pages were removed; old links open the permission matrix.
-  '/admin/roles/:role': <Navigate to="/admin/roles" replace />,
+  // Roles & Permissions was removed: roles are assigned in User Management and access changes
+  // are recorded in the Audit Logs. Old links open the Audit Logs.
+  '/admin/roles': <Navigate to="/admin/audit-logs" replace />,
+  '/admin/roles/:role': <Navigate to="/admin/audit-logs" replace />,
   '/admin/estates': <EstatesPage />,
   '/admin/estates/:estateId': <EstateDetailPage />,
   '/admin/divisions': <DivisionsPage />,

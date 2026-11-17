@@ -83,18 +83,6 @@
   gap: 10px;
 }
 
-.filterSpacer {
-  flex: 1;
-}
-
-.tableFooter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .person {
   display: inline-flex;
   align-items: center;
@@ -131,6 +119,11 @@
 .muted {
   font: 400 13px/1.35 var(--tl-font-family);
   color: var(--tl-text-muted);
+}
+
+/* Identifiers such as USR-001 stay on one line; narrow tables scroll instead. */
+.nowrap {
+  white-space: nowrap;
 }
 
 .readOnlyField {

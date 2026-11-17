@@ -69,7 +69,10 @@ for (const width of [320, 375, 430]) {
     const drawer = page.getByRole('dialog', { name: 'Navigation' })
     await expect(drawer).toBeVisible()
     await expect(drawer.getByRole('link', { name: 'Device Sessions' })).toBeVisible()
-    await expect(drawer.getByRole('heading', { name: 'Security & Governance' })).toBeVisible()
+    // The drawer's own title ("Navigation") is a heading; the navigation inside has none.
+    const drawerNav = drawer.getByRole('navigation', { name: 'Main' })
+    await expect(drawerNav.getByRole('heading')).toHaveCount(0)
+    await expect(drawerNav.getByText('Security & Governance', { exact: true })).toHaveCount(0)
     expect(await noHorizontalScroll(page)).toBe(true)
     if (width === 375) await page.screenshot({ path: 'test-results/sidebar/mobile-drawer-375.png' })
     await drawer.getByRole('link', { name: 'Estates' }).click()

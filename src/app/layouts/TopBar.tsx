@@ -4,7 +4,7 @@ import { useSession, type SessionUser } from '@/features/identity'
 import { Avatar, Breadcrumbs, DemoDataBadge, SearchInput, usePageBreadcrumbOverride, useToast, type BreadcrumbItem } from '@/shared/components'
 import { Icon } from '@/shared/design-system'
 import { ROLE_LABELS } from '@/shared/types'
-import type { RouteHandle } from '../routing/routes'
+import type { RouteHandle } from '../routing/routeHandle'
 import styles from './TopBar.module.css'
 
 function isRouteHandle(handle: unknown): handle is RouteHandle {
