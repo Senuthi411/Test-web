@@ -15,7 +15,7 @@ import {
   SearchInput,
   usePageBreadcrumbs,
 } from '@/shared/components'
-import { useDebouncedValue } from '@/shared/hooks'
+import { useDebouncedValue, useTableSort } from '@/shared/hooks'
 import { paginate } from '@/shared/utilities/pagination'
 import type { DivisionSummary } from '../../../domain/models'
 import { shortEstateName } from '../../../domain/scope'
@@ -24,7 +24,6 @@ import { divisionPath, estatePath, useDemoWording, useExportAction, userPath } f
 import { DivisionFormModal } from '../../components/OrganisationModals'
 import { useDivisions, useEstates } from '../../services/queries'
 import styles from '../../components/identity.module.css'
-import { useIdentityTableSort } from '../../components/useIdentityTableSort'
 
 const PAGE_SIZE = 15
 
@@ -64,7 +63,7 @@ export function DivisionsPage() {
   const estateCount = new Set(divisions.map((division) => division.estateId)).size
   const activeDivisions = divisions.filter((division) => division.status === 'active').length
   const withoutWorkers = divisions.filter((division) => division.fieldWorkers.length === 0).length
-  const table = useIdentityTableSort(filtered, { division: (row) => row.name, id: (row) => row.id, estate: (row) => row.estateName, observations: (row) => row.observationCount, pending: (row) => row.pendingReviewCount, status: (row) => row.status })
+  const table = useTableSort(filtered, { division: (row) => row.name, id: (row) => row.id, estate: (row) => row.estateName, observations: (row) => row.observationCount, pending: (row) => row.pendingReviewCount, status: (row) => row.status })
 
   function reset() {
     setSearch('')

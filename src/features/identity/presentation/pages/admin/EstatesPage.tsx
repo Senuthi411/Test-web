@@ -15,7 +15,7 @@ import {
   SearchInput,
   usePageBreadcrumbs,
 } from '@/shared/components'
-import { useDebouncedValue } from '@/shared/hooks'
+import { useDebouncedValue, useTableSort } from '@/shared/hooks'
 import type { EstateSummary } from '../../../domain/models'
 import { shortEstateName } from '../../../domain/scope'
 import { PersonCell, StatusBadge } from '../../components/common'
@@ -23,7 +23,6 @@ import { estatePath, useDemoWording, userPath } from '../../components/helpers'
 import { DivisionFormModal, EstateFormModal } from '../../components/OrganisationModals'
 import { useEstates } from '../../services/queries'
 import styles from '../../components/identity.module.css'
-import { useIdentityTableSort } from '../../components/useIdentityTableSort'
 
 /** ID-09 "Observations by estate" bar colours, in estate order. */
 const ESTATE_COLORS = ['#2e7d32', '#7cb342', '#4f9d69']
@@ -62,7 +61,7 @@ export function EstatesPage() {
   const divisionTotal = estates.reduce((sum, estate) => sum + estate.divisionCount, 0)
   const observationTotal = estates.reduce((sum, estate) => sum + estate.observationCount, 0)
   const activeCount = estates.filter((estate) => estate.status === 'active').length
-  const table = useIdentityTableSort(filtered, { estate: (row) => row.name, id: (row) => row.id, region: (row) => row.region, divisions: (row) => row.divisionCount, observations: (row) => row.observationCount, status: (row) => row.status })
+  const table = useTableSort(filtered, { estate: (row) => row.name, id: (row) => row.id, region: (row) => row.region, divisions: (row) => row.divisionCount, observations: (row) => row.observationCount, status: (row) => row.status })
 
   function reset() {
     setSearch('')

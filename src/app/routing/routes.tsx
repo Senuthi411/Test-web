@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import { Navigate, type RouteObject } from 'react-router'
-import type { BreadcrumbItem } from '@/shared/components'
 import { AppLayout } from '../layouts/AppLayout'
 import { RequireRole, RequireSession, RoleHomeRedirect } from './guards'
+import type { RouteHandle } from './routeHandle'
 import {
   AccessDeniedPage,
   ActivateAccountPage,
@@ -49,11 +49,6 @@ import {
   ReviewDashboardPage,
   ReviewQueuePage,
 } from './reviewScreens'
-
-/** Route metadata read by the top bar. Pages showing a record refine it with usePageBreadcrumbs. */
-export interface RouteHandle {
-  breadcrumbs: BreadcrumbItem[]
-}
 
 function joinPath(base: string, path: string) {
   return path ? `${base}/${path}` : base

@@ -1,12 +1,10 @@
 import { isAppError } from '@/shared/api'
 import { useToast } from '@/shared/components'
 import { formatRelativeDateTime } from '@/shared/utilities/format'
-import type { ActivityEvent, DeviceSessionStatus, ExportKind, IdentityUser, RecordStatus } from '../../domain/models'
+import type { ActivityEvent, DeviceSessionStatus, ExportKind, IdentityUser } from '../../domain/models'
 import { scopeIdsOf } from '../../domain/scope'
 import { useIdentityServices } from '../services/identityServices'
 import { useExport } from '../services/queries'
-
-export const RECORD_STATUS_LABEL: Record<RecordStatus, string> = { active: 'Active', inactive: 'Inactive' }
 
 export const SESSION_STATUS_LABEL: Record<DeviceSessionStatus, string> = {
   active: 'Active',

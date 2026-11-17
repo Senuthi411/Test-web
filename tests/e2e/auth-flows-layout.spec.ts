@@ -15,7 +15,7 @@ const SCREENS = [
   { path: '/session-expired', heading: 'Your session has expired' },
 ]
 
-for (const width of [320, 375, 430, 768, 1440, 3840]) {
+for (const width of [320, 375, 430, 768, 1024, 1440, 1920, 3840]) {
   test(`authentication screens fit at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 3840 ? 2160 : 800 })
     for (const screen of SCREENS) {

@@ -15,16 +15,6 @@ import { REPORTING_USER_SCOPE_LEVEL } from './scope'
 /** Lifecycle as reported by the backend. `cancelled`: a request or scheduled grant withdrawn before it started. */
 export type GrantStatus = 'pending_approval' | 'scheduled' | 'active' | 'rejected' | 'expired' | 'revoked' | 'cancelled'
 
-export const GRANT_STATUS_LABELS: Record<GrantStatus, string> = {
-  pending_approval: 'Pending approval',
-  scheduled: 'Scheduled',
-  active: 'Active',
-  rejected: 'Rejected',
-  expired: 'Expired',
-  revoked: 'Revoked',
-  cancelled: 'Cancelled',
-}
-
 export type GrantType = 'additional_estate' | 'additional_division'
 
 export interface AccessGrant {
@@ -331,21 +321,6 @@ export const IDENTITY_HISTORY_ACTIONS: readonly AccessHistoryAction[] = [
 
 export function isIdentityHistoryAction(action: AccessHistoryAction): boolean {
   return IDENTITY_HISTORY_ACTIONS.includes(action)
-}
-
-export const ACCESS_HISTORY_ACTION_LABELS: Record<AccessHistoryAction, string> = {
-  account_enabled: 'Account enabled',
-  account_disabled: 'Account disabled',
-  device_access_revoked: 'Device access revoked',
-  temporary_requested: 'Temporary access requested',
-  temporary_approved: 'Temporary access approved',
-  temporary_rejected: 'Temporary access rejected',
-  temporary_activated: 'Temporary access activated',
-  temporary_expired: 'Temporary access expired',
-  temporary_revoked: 'Temporary access revoked',
-  temporary_cancelled: 'Temporary access cancelled',
-  permanent_role_changed: 'Permanent role changed',
-  permanent_scope_changed: 'Permanent scope changed',
 }
 
 export type AccessHistoryResult = 'success' | 'rejected' | 'failed'

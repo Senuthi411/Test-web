@@ -1,5 +1,9 @@
 import type { DataSource, EstateId, DivisionId, UserId, WebRole } from '@/shared/types'
-import type { MfaEnrollmentSession } from './authFlows'
+
+/** A restricted session in which an Administrator must enrol an authenticator app. */
+export interface MfaEnrollmentSession {
+  enrollmentId: string
+}
 
 /** The signed-in web user as the frontend needs to know them. */
 export interface SessionUser {
@@ -53,5 +57,3 @@ export const ACCOUNT_DISABLED = 'ACCOUNT_DISABLED'
 export const WEB_ACCESS_NOT_PERMITTED = 'WEB_ACCESS_NOT_PERMITTED'
 /** The MFA verification code was rejected or the challenge expired. */
 export const MFA_CODE_REJECTED = 'MFA_CODE_REJECTED'
-
-export { normaliseCompanyUserId as normaliseUserId } from './authFlows'

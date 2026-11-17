@@ -14,7 +14,7 @@ import {
   SearchInput,
   usePageBreadcrumbs,
 } from '@/shared/components'
-import { useDebouncedValue } from '@/shared/hooks'
+import { useDebouncedValue, useTableSort } from '@/shared/hooks'
 import { ROLE_LABELS, USER_ROLES, type UserRole } from '@/shared/types'
 import { paginate } from '@/shared/utilities/pagination'
 import type { IdentityUser } from '../../../domain/models'
@@ -23,7 +23,6 @@ import { PersonCell, RoleBadge, StatusBadge } from '../../components/common'
 import { scopeLabel, useDemoWording, useExportAction, userPath } from '../../components/helpers'
 import { useDivisions, useEstates, useUsers } from '../../services/queries'
 import styles from '../../components/identity.module.css'
-import { useIdentityTableSort } from '../../components/useIdentityTableSort'
 
 const PAGE_SIZE = 15
 
@@ -82,7 +81,7 @@ export function UsersPage() {
   }, [users.data, role, status, estate, term, estateOfDivision])
 
   const filtersActive = search !== '' || role !== 'all' || estate !== 'all' || status !== 'active'
-  const table = useIdentityTableSort(filtered, { user: (user) => user.fullName, id: (user) => user.id, role: (user) => ROLE_LABELS[user.role], email: (user) => user.email, status: (user) => user.status })
+  const table = useTableSort(filtered, { user: (user) => user.fullName, id: (user) => user.id, role: (user) => ROLE_LABELS[user.role], email: (user) => user.email, status: (user) => user.status })
   const pageRows = paginate(table.rows, page, PAGE_SIZE)
   const estateCount = estates.data?.length
   const divisionCount = divisions.data?.length

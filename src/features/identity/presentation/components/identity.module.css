@@ -83,18 +83,6 @@
   gap: 10px;
 }
 
-.filterSpacer {
-  flex: 1;
-}
-
-.tableFooter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .person {
   display: inline-flex;
   align-items: center;
