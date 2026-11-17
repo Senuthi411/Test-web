@@ -67,7 +67,10 @@ describe('AUTH-01 login', () => {
     expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '/forgot-password')
     expect(screen.getByText('Secure Access')).toBeInTheDocument()
     expect(screen.getByText('Authorized company personnel only')).toBeInTheDocument()
-    expect(screen.getByText('Tea Health')).toBeInTheDocument()
+    // A single centred card: the marketing side panel and its story are gone.
+    expect(screen.queryByRole('region', { name: 'About TeaLeaf Field Scout' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Tea Health|Estate Intelligence Platform/)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     for (const removed of [/email/i, /sign up/i, /google/i, /microsoft/i, /development accounts/i, /demonstration data/i]) {
       expect(screen.queryByText(removed)).not.toBeInTheDocument()
     }

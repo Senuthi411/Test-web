@@ -26,10 +26,12 @@ for (const [width, height] of VIEWPORTS) {
     expect(dimensions.width).toBeLessThanOrEqual(width)
     if (width >= 1024) expect(dimensions.height).toBeLessThanOrEqual(height)
 
-    // The story panel sits beside the card on desktop and is hidden on phones.
-    const story = page.getByRole('region', { name: 'About TeaLeaf Field Scout' })
-    if (width < 768) await expect(story).toBeHidden()
-    else await expect(story).toBeVisible()
+    // One card, centred horizontally, with no side panel or background image at any size.
+    await expect(page.getByRole('region', { name: 'About TeaLeaf Field Scout' })).toHaveCount(0)
+    await expect(page.locator('main img')).toHaveCount(1)
+    const card = await page.getByRole('form', { name: 'Log in' }).locator('..').boundingBox()
+    if (!card) throw new Error('missing card box')
+    expect(Math.abs(card.x + card.width / 2 - width / 2)).toBeLessThan(2)
 
     const logIn = page.getByRole('button', { name: 'Log In', exact: true })
     for (const control of [
@@ -43,15 +45,11 @@ for (const [width, height] of VIEWPORTS) {
       await expect(control).toBeInViewport()
     }
 
-    // Small, centred button on larger screens; full width (comfortable to tap) on phones.
+    // Full-width button at every size, comfortable to tap.
     const button = await logIn.boundingBox()
     const form = await page.getByRole('form', { name: 'Log in' }).boundingBox()
     if (!button || !form) throw new Error('missing layout boxes')
-    if (width < 768) expect(button.width).toBeGreaterThan(form.width - 2)
-    else {
-      expect(button.width).toBeLessThan(form.width * 0.8)
-      expect(Math.abs(button.x + button.width / 2 - (form.x + form.width / 2))).toBeLessThan(2)
-    }
+    expect(button.width).toBeGreaterThan(form.width - 2)
     expect(button.height).toBeGreaterThanOrEqual(44)
 
     await logIn.click()
