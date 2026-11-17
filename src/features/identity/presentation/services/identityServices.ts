@@ -4,6 +4,7 @@ import type { Clock } from '@/shared/utilities/clock'
 import type { AccountUseCases, IdentityAdminUseCases } from '../../application/identityUseCases'
 import type { AccountActivationUseCases, PasswordRecoveryUseCases } from '../../application/authFlowUseCases'
 import type { AccessGrantUseCases } from '../../application/accessGrantUseCases'
+import type { AuditLogUseCases, ConfigurationUseCases } from '../../application/configurationUseCases'
 
 /** What the Identity screens need from the composition root. */
 export interface IdentityServices {
@@ -15,6 +16,10 @@ export interface IdentityServices {
   activation: AccountActivationUseCases
   /** Temporary access grants and access history (pending backend contracts in API mode). */
   accessGrants: AccessGrantUseCases
+  /** Administrative audit log (read-only; pending backend contract in API mode). */
+  auditLog: AuditLogUseCases
+  /** Versioned system configuration (pending backend contract in API mode). */
+  configuration: ConfigurationUseCases
   clock: Clock
   /**
    * True in fixture mode: screens label their data as demonstration data and may offer

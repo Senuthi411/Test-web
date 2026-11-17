@@ -91,18 +91,20 @@ Decisions still open:
 3. Whether the design's ID-02 "Users requiring attention" entries with no recorded reason
    (USR-007, USR-006, USR-004) should stay in the demonstration data.
 
-## Implemented as pending (Security & Settings)
+## Implemented as pending (Security Center)
 
-`/admin/security` (Administrator only) has five read-only tabs: Overview, MFA, Account Security,
-Policies and Security Audit Log. It reuses existing operations (`identity.users.list`,
-`identity.dashboard.get`, `identity.deviceSessions.list`, `identity.securityAlerts.list`,
-`identity.accessHistory.list`); in API mode each section says "Not available yet" and nothing is
-taken from fixtures. It offers **no** security action: no MFA reset, unlock, recovery approval or
-policy editing. Account activation and suspension stay on the user's page; device-session
-revocation and recovery stay on Device Sessions.
+`/admin/security` (Administrator only, formerly "Security & Settings") has four read-only tabs:
+Security Overview, Authentication Policies, Device Security and Security Events. Earlier links
+(`?tab=mfa`, `?tab=accounts`, `?tab=policies`, `?tab=audit`) open the matching new tab. It reuses
+existing operations (`identity.users.list`, `identity.dashboard.get`,
+`identity.deviceSessions.list`, `identity.securityAlerts.list`, `identity.auditLog.list`); in API
+mode each section says "Not available yet" and nothing is taken from fixtures. It offers **no**
+security action: no MFA reset, unlock, recovery approval or policy editing. Account activation and
+suspension stay on the user's page; device-session revocation and recovery stay on Device Sessions.
 
-The Security Audit Log is the Access History source filtered to `account_enabled`,
-`account_disabled` and `device_access_revoked`; there is no second audit system.
+Security Events is the shared audit log (`identity.auditLog.list`) filtered to `role_changed`,
+`scope_updated`, `account_status_changed`, `device_session_revoked`,
+`session_recovery_requested` and `configuration_publish_rejected`; there is no second audit system.
 
 Contracts needed before Phase 2 actions can be added:
 
@@ -123,6 +125,55 @@ reused, unsynchronized observations are preserved through recovery, the ID-14 pa
 **Proposed**: the 7-day offline session validity (not enforced, not hard-coded anywhere).
 **Not defined**: session expiration, inactivity timeout, re-authentication for sensitive actions,
 MFA reset workflow, cross-estate temporary access approval authority.
+
+## Implemented as pending (Audit Logs)
+
+`/admin/audit-logs` (Administrator only) is the centralized, read-only audit trail with search,
+date range, actor, module, action and outcome filters, pagination and a details panel. In fixture
+mode it maps the shared fixture audit records, which every fixture administrative write appends to
+(users, scope, role and status changes, estates, divisions, device sessions, configuration). In API
+mode the adapter rejects with `contract_pending` and the page says the log is not available.
+
+| Operation | Needs |
+| --- | --- |
+| `identity.auditLog.list` | Read-only records: id, time (ISO 8601 with offset), actor (id, name) or null, action code, module, target (kind, id, display label), previous and new value **only when recorded**, outcome (`success` / `failure`), reason code, estate ids. Server-side filters (search, from/to, actor, module, action, outcome) and pagination. Never passwords, tokens, OTPs or secrets. No write, edit or delete operation. |
+
+## Implemented as pending (System Settings)
+
+`/admin/settings` (Administrator only) holds one versioned configuration document in six tabs:
+General Settings, Feature Center, Business Rules, Workflow Configuration, Maintenance Mode and
+Configuration History. Changes are edited as a draft, validated, previewed and published with a
+reason; publishing and rollback each create a **new** version (versions are never deleted) and an
+audit record. **Nothing is evaluated or enforced**: in fixture mode the configuration lives in the
+browser tab only and is labelled "Demonstration mode · UI only"; in API mode every operation below
+rejects with `contract_pending` and no setting is shown as in effect.
+
+- **Feature Center**: GPS Validation, Offline Mode and Image Upload are protected (read-only, on);
+  only Notifications can change in a draft. The mobile app and backend do not read these flags yet.
+- **Business Rules**: predefined templates only, no scripts, expressions or queries.
+  Rule A (High Severity Notification) is **blocked**: observations have no severity field.
+  Rule B (GPS Validation) has no approved accuracy limit, so none is pre-filled.
+  Rule C (Pending Review Reminder): a 48-hour default has been proposed but **not approved**, so
+  the threshold is empty until an Administrator enters one; enabling it requires Notifications.
+- **Workflow Configuration**: the review, correction and expert-referral state machines are shown
+  as protected; only reporting targets (hours, unset by default) can be configured.
+- **Maintenance Mode**: shown as Off. Activation is disabled: there is no maintenance contract,
+  so maintenance mode is never switched on from the frontend. Only a planned notice can be drafted.
+
+| Operation | Needs |
+| --- | --- |
+| `configuration.get` | Current version (number, document, created at/by, kind, reason, restored-from), version history and the open draft with its base version. |
+| `configuration.draft.save` | Body `{ document, baseVersion }`; `409` when `baseVersion` is not the current version. Audited. |
+| `configuration.draft.discard` | Body `{ baseVersion }`. Audited. |
+| `configuration.publish` | Body `{ baseVersion, reason }`; backend re-validates and returns per-field errors (`path`, `message`); `409` on a stale base. Successful and rejected publishes are audited. Re-authentication policy to be decided. |
+| `configuration.rollback` | Body `{ targetVersion, baseVersion, reason }`; creates a new version with the target's content; refused while a draft is open. Audited. |
+| Rule evaluation and event integration | Backend evaluation of Rule B and Rule C against observation and review events, and the notification channel. Rule A additionally needs the observation severity field. Until these exist, rules are configuration only. |
+| Maintenance mode | Activation/deactivation endpoint, enforcement in sign-in and sync, and how notices are delivered. |
+
+Permission codes `configuration.settings.manage`, `configuration.rules.manage`,
+`security.sessions.manage`, `security.policies.read` and `security.audit.read` are shown in the
+permission matrix for the Administrator; like the other codes they are display content pending the
+backend role model (P8), not enforcement.
 
 ## Planned (Phase 3) — Supervisor coverage and temporary delegation
 
@@ -145,7 +196,7 @@ server-side, audit of request, decision, activation, use, expiry and revocation,
 against privilege escalation. `AccessGrantPort` and the grant domain model are kept for this.
 
 Decision still open: **who approves** cross-estate coverage. If Administrators are designated, a
-limited "Access approval requests" queue may be added under Security & Settings, restricted to
+limited "Access approval requests" queue may be added under the Security Center, restricted to
 approve or reject within that policy; it must not become a workforce assignment screen.
 
 ## Implemented as pending (Phase 5 — Review)

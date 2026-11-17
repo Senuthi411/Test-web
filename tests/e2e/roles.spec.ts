@@ -22,33 +22,34 @@ async function pickFilter(page: Page, label: string, option: string) {
   await page.getByRole('listbox', { name: label }).getByRole('option', { name: option, exact: true }).click()
 }
 
-test('two tabs, role details from the matrix and filtered User Management', async ({ page }) => {
+test('two tabs, no per-role pages: old role links open the matrix', async ({ page }) => {
   await signIn(page)
   await page.goto('/admin/roles')
   await expect(page.getByRole('tab', { name: 'Permission Matrix', selected: true })).toBeVisible()
   await expect(page.getByRole('tab')).toHaveText(['Permission Matrix', 'Access History'])
   await expect(page.getByRole('tab', { name: /Overview|Temporary/ })).toHaveCount(0)
   await expect(page.getByRole('list', { name: 'System roles' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Compare roles' })).toHaveCount(0)
+  await expect(page.getByRole('table', { name: 'Permission matrix', exact: true }).getByRole('link')).toHaveCount(0)
 
-  await page.getByRole('table', { name: 'Permission matrix', exact: true }).getByRole('link', { name: 'View details of the Supervisor role' }).click()
-  await expect(page).toHaveURL(/\/admin\/roles\/supervisor$/)
-  await expect(page.getByRole('heading', { name: 'Supervisor', level: 1 })).toBeVisible()
-  await expect(page.getByRole('table', { name: 'Users with the Supervisor role' })).toBeVisible()
-  await page.getByRole('link', { name: 'View in User Management' }).click()
-  await expect(page).toHaveURL(/\/admin\/users\?role=SUPERVISOR&status=all/)
-  await expect(page.getByRole('combobox', { name: 'Role: Supervisor' })).toBeVisible()
+  await page.goto('/admin/roles/supervisor')
+  await expect(page).toHaveURL(/\/admin\/roles$/)
+  await expect(page.getByRole('tab', { name: 'Permission Matrix', selected: true })).toBeVisible()
 })
 
-test('read-only permission matrix: search, groups, details and comparison', async ({ page }) => {
+test('read-only permission matrix: modules, search, module filter and details', async ({ page }) => {
   await signIn(page)
   await page.goto('/admin/roles?tab=matrix')
   const matrix = page.getByRole('table', { name: 'Permission matrix', exact: true })
   await expect(matrix).toBeVisible()
   await expect(page.getByRole('checkbox')).toHaveCount(0)
+  for (const module of ['Identity', 'Capture', 'Review', 'Cases', 'Analytics', 'Configuration', 'Security']) {
+    await expect(matrix.getByRole('button', { name: new RegExp(`^${module}\\s*\\(`) })).toBeVisible()
+  }
 
-  await matrix.getByRole('button', { name: /^Observation review/ }).click()
+  await matrix.getByRole('button', { name: /^Review\s*\(/ }).click()
   await expect(matrix.getByRole('button', { name: /Decide quarantine/ })).toHaveCount(0)
-  await matrix.getByRole('button', { name: /^Observation review/ }).press('Enter')
+  await matrix.getByRole('button', { name: /^Review\s*\(/ }).press('Enter')
   await expect(matrix.getByRole('button', { name: /Decide quarantine/ })).toBeVisible()
 
   await page.getByRole('searchbox', { name: 'Search permissions' }).fill('quarantine')
@@ -56,12 +57,13 @@ test('read-only permission matrix: search, groups, details and comparison', asyn
   await matrix.getByRole('button', { name: /Decide quarantine/ }).click()
   const details = page.getByRole('region', { name: 'Permission details' })
   await expect(details.getByText('No · core role permission, read-only')).toBeVisible()
-  await expect(matrix.getByRole('img', { name: 'Allowed within scope for Supervisor' })).toBeVisible()
+  await expect(matrix.getByRole('img', { name: 'Scope-dependent for Supervisor' })).toBeVisible()
+  await expect(matrix.getByRole('img', { name: 'Denied for Field worker' })).toBeVisible()
 
-  const compare = page.getByRole('region', { name: 'Compare roles' })
-  await compare.evaluate((node) => node.scrollIntoView({ block: 'start' }))
-  await pickFilter(page, 'Second role', 'Field worker')
-  await expect(compare.getByRole('region', { name: 'Only Field worker' })).toContainText('Create observation, mobile')
+  await page.getByRole('searchbox', { name: 'Search permissions' }).fill('')
+  await pickFilter(page, 'Module', 'Security')
+  await expect(page.getByText('3 permissions match')).toBeVisible()
+  await expect(matrix.getByRole('img', { name: 'Allowed for Administrator' })).toHaveCount(3)
 })
 
 test('access history lists identity events and filters them', async ({ page }) => {
@@ -79,7 +81,7 @@ for (const width of [3840, 1920, 1440, 1024, 768, 430, 375, 320]) {
   test(`Roles & Permissions tabs render without page overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await signIn(page)
-    for (const path of ['/admin/roles', '/admin/roles?tab=matrix', '/admin/roles?tab=history', '/admin/roles/field-worker']) {
+    for (const path of ['/admin/roles', '/admin/roles?tab=matrix', '/admin/roles?tab=history']) {
       await page.goto(path)
       await expect(page.locator('h1')).toBeVisible()
       await expectNoPageOverflow(page, `${path} at ${width}px`)

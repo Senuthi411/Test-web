@@ -24,14 +24,15 @@ export const UserDetailPage = lazy(() => load().then((module) => ({ default: mod
 export const UserFormPage = lazy(() => load().then((module) => ({ default: module.UserFormPage })))
 export const UserScopePage = lazy(() => load().then((module) => ({ default: module.UserScopePage })))
 export const RolesPage = lazy(() => load().then((module) => ({ default: module.RolesPage })))
-export const RoleDetailPage = lazy(() => load().then((module) => ({ default: module.RoleDetailPage })))
 export const EstatesPage = lazy(() => load().then((module) => ({ default: module.EstatesPage })))
 export const EstateDetailPage = lazy(() => load().then((module) => ({ default: module.EstateDetailPage })))
 export const DivisionsPage = lazy(() => load().then((module) => ({ default: module.DivisionsPage })))
 export const DivisionDetailPage = lazy(() => load().then((module) => ({ default: module.DivisionDetailPage })))
 export const DeviceSessionsPage = lazy(() => load().then((module) => ({ default: module.DeviceSessionsPage })))
 export const SessionRecoveryPage = lazy(() => load().then((module) => ({ default: module.SessionRecoveryPage })))
-export const SecuritySettingsPage = lazy(() => load().then((module) => ({ default: module.SecuritySettingsPage })))
+export const SecurityCenterPage = lazy(() => load().then((module) => ({ default: module.SecurityCenterPage })))
+export const AuditLogsPage = lazy(() => load().then((module) => ({ default: module.AuditLogsPage })))
+export const SystemSettingsPage = lazy(() => load().then((module) => ({ default: module.SystemSettingsPage })))
 export const ProfilePage = lazy(() => load().then((module) => ({ default: module.ProfilePage })))
 
 /** Shown while a screen's code loads. */

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router'
 import { Badge, Button, Card, DescriptionList, EmptyState, FilterSelect, SearchInput } from '@/shared/components'
 import { Icon } from '@/shared/design-system'
 import { ROLE_LABELS, type UserRole } from '@/shared/types'
@@ -18,9 +17,11 @@ import {
 import styles from '../../../components/identity.module.css'
 import roleStyles from '../RolesPage.module.css'
 import { PermissionLegend, PermissionState } from './PermissionState'
-import { RoleComparison } from './RoleComparison'
 
-/** Searchable, grouped, read-only permission matrix. Role permissions are fixed in this version. */
+/**
+ * Searchable, read-only permission matrix grouped by module (Identity, Capture, Review, Cases,
+ * Analytics, Configuration, Security). Role permissions are fixed in this version.
+ */
 export function PermissionMatrixTab() {
   const [search, setSearch] = useState('')
   const [role, setRole] = useState<UserRole | 'all'>('all')
@@ -131,13 +132,7 @@ export function PermissionMatrixTab() {
                     <th scope="col">Permission</th>
                     {visibleRoles.map((definition) => (
                       <th key={definition.role} scope="col">
-                        <Link
-                          to={`/admin/roles/${definition.slug}`}
-                          className={roleStyles.inlineLink}
-                          aria-label={`View details of the ${ROLE_LABELS[definition.role]} role`}
-                        >
-                          {ROLE_LABELS[definition.role]}
-                        </Link>
+                        {ROLE_LABELS[definition.role]}
                       </th>
                     ))}
                   </tr>
@@ -194,7 +189,6 @@ export function PermissionMatrixTab() {
           )}
         </Card>
       </div>
-      <RoleComparison />
     </div>
   )
 }

@@ -98,9 +98,18 @@ describe('Administrator Dashboard · demonstration data', { timeout: 30_000 }, (
     renderDashboard()
     const active = await section('Active users')
     expect(within(active).getByText('13')).toBeInTheDocument()
-    expect(within(await section('Divisions')).getByText('All divisions active')).toBeInTheDocument()
+    expect(within(await section('Total divisions')).getByText('All divisions active')).toBeInTheDocument()
     expect(within(await section('Active device sessions')).getByText('1 session revoked this week')).toBeInTheDocument()
     expect(active.closest('a')).toHaveAttribute('href', '/admin/users')
+    // Eight KPIs, each derived from a recorded source.
+    expect(within(await section('Total users')).getByText('13')).toBeInTheDocument()
+    expect(within(await section('Active estates')).getByText('3')).toBeInTheDocument()
+    // The attention KPI counts the rows of the "Users requiring attention" list.
+    const attentionRows = within(await screen.findByRole('table', { name: 'Users requiring attention' }, { timeout: 10_000 })).getAllByRole('row').length - 1
+    expect(within(await section('Accounts requiring attention')).getByText(String(attentionRows))).toBeInTheDocument()
+    expect(await within(await section('Security alerts')).findByText('1 alert recorded')).toBeInTheDocument()
+    expect(await within(await section('Enabled business rules')).findByText(/of 3 templates · not evaluated yet/)).toBeInTheDocument()
+    expect(within(await section('Enabled business rules')).getByText('0')).toBeInTheDocument()
     expect(screen.getByText(/Demonstration reference date Wed 21 Oct 2026/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Create user' })).toHaveAttribute('href', '/admin/users/new')
     expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument()
@@ -130,7 +139,7 @@ describe('Administrator Dashboard · demonstration data', { timeout: 30_000 }, (
   it('summarises account statuses it supports and marks invitation states as not reported', async () => {
     const user = userEvent.setup()
     const { router } = renderDashboard()
-    const summary = await section('Account activation summary')
+    const summary = await section('Account status distribution')
     const statuses = await within(summary).findByRole('list', { name: 'Accounts by status' })
     expect(within(statuses).getByText('13')).toBeInTheDocument()
     expect(within(statuses).getByText('Not reported')).toBeInTheDocument()

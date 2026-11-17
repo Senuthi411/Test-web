@@ -1,14 +1,14 @@
 /* AUTH-01 enterprise login: full-bleed tea plantation under a dark green/teal fade, brand and
-   product story on the left with a tea-leaf scan visual, bottom wave accents, and a rounded
-   mint-white login card on the right. */
+   product story on the left with a tea-leaf scan visual, layered bottom waves, and a rounded
+   mint-white glass login card on the right. Sizes follow the approved 1757 x 895 reference and
+   scale with the viewport between sensible limits. */
 .page {
-  --login-forest: #0f3a1d;
-  --login-ink: #111c15;
+  --login-ink: #0f1a12;
   --login-green: #2f8a2c;
   --login-leaf: #8ed64a;
-  --login-lime: #b6ec3a;
-  --login-scan: #7ee86a;
-  --login-muted: #4f5d53;
+  --login-lime: #c2f03a;
+  --login-scan: #4dff88;
+  --login-muted: #4a584e;
 
   position: relative;
   min-height: 100vh;
@@ -33,8 +33,8 @@
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, rgb(4 36 26 / 0.95) 0%, rgb(6 44 30 / 0.84) 28%, rgb(8 48 30 / 0.45) 48%, rgb(8 45 24 / 0.1) 66%),
-    linear-gradient(180deg, rgb(4 30 22 / 0.35) 0%, rgb(4 30 22 / 0) 30%, rgb(4 30 15 / 0) 65%, rgb(4 30 15 / 0.5) 100%);
+    linear-gradient(90deg, rgb(3 38 32 / 0.94) 0%, rgb(5 46 34 / 0.82) 26%, rgb(8 52 34 / 0.4) 42%, rgb(8 50 28 / 0.06) 58%, rgb(8 45 24 / 0) 70%),
+    linear-gradient(180deg, rgb(4 40 44 / 0.45) 0%, rgb(4 40 44 / 0) 28%, rgb(4 30 15 / 0) 62%, rgb(4 30 15 / 0.45) 100%);
 }
 
 .wave {
@@ -43,7 +43,7 @@
   left: 0;
   z-index: 0;
   width: 100%;
-  height: clamp(100px, 22vh, 230px);
+  height: clamp(110px, 24.5vh, 260px);
   pointer-events: none;
 }
 
@@ -51,7 +51,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(380px, min(520px, 38vw));
+  grid-template-columns: minmax(0, 1fr) minmax(380px, min(650px, 37vw));
   grid-template-rows: auto 1fr;
   grid-template-areas:
     'brand card'
@@ -59,7 +59,7 @@
   column-gap: clamp(32px, 4vw, 88px);
   min-height: 100vh;
   min-height: 100dvh;
-  padding: clamp(24px, 9vh, 96px) clamp(24px, 5.5vw, 112px) clamp(24px, 6vh, 64px);
+  padding: clamp(24px, 8vh, 80px) clamp(24px, 6.2vw, 120px) clamp(24px, 12vh, 130px);
 }
 
 /* ---- Brand (upper left) ---- */
@@ -68,14 +68,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px clamp(14px, 1.5vw, 22px);
+  gap: 12px clamp(14px, 1.6vw, 28px);
   min-width: 0;
   color: #fff;
 }
 
 .heroMark {
   flex: none;
-  width: clamp(52px, 4.7vw, 68px);
+  width: clamp(52px, 4.3vw, 80px);
   height: auto;
 }
 
@@ -86,7 +86,7 @@
 }
 
 .heroName {
-  font: 800 clamp(32px, 2.8vw, 40px) / 1 var(--tl-font-family);
+  font: 800 clamp(32px, 2.6vw, 48px) / 1 var(--tl-font-family);
   letter-spacing: -0.01em;
 }
 
@@ -96,20 +96,20 @@
 
 .heroScout {
   margin-top: 6px;
-  font: 700 clamp(13px, 1.1vw, 16px) / 1 var(--tl-font-family);
-  letter-spacing: 0.24em;
+  font: 700 clamp(13px, 1.2vw, 22px) / 1 var(--tl-font-family);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .heroDivider {
-  width: 1px;
-  height: 52px;
-  background: rgb(255 255 255 / 0.45);
+  width: 1.5px;
+  height: clamp(44px, 3.6vw, 64px);
+  background: rgb(255 255 255 / 0.55);
 }
 
 .heroPlatform {
-  font: 600 clamp(12px, 0.98vw, 14px) / 1.3 var(--tl-font-family);
-  letter-spacing: 0.26em;
+  font: 600 clamp(12px, 1.1vw, 20px) / 1.3 var(--tl-font-family);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
@@ -117,9 +117,9 @@
 .hero {
   grid-area: story;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(150px, 12vw, 220px);
+  grid-template-columns: minmax(0, 1fr) clamp(150px, 12.8vw, 230px);
   align-items: center;
-  gap: clamp(16px, 1.8vw, 40px);
+  gap: clamp(16px, 2vw, 44px);
   min-width: 0;
   color: #fff;
 }
@@ -131,9 +131,9 @@
 }
 
 .accentBar {
-  width: 88px;
+  width: clamp(64px, 5.1vw, 92px);
   height: 5px;
-  margin-bottom: clamp(18px, 3.5vh, 32px);
+  margin-bottom: clamp(16px, 3vh, 28px);
   border-radius: 3px;
   background: var(--login-lime);
 }
@@ -142,8 +142,8 @@
   display: flex;
   flex-direction: column;
   margin: 0;
-  font: 700 clamp(32px, 2.6vw, 46px) / 1.22 var(--tl-font-family);
-  letter-spacing: -0.012em;
+  font: 700 clamp(36px, 2.35vw, 44px) / 1.14 var(--tl-font-family);
+  letter-spacing: -0.015em;
   text-shadow: 0 2px 18px rgb(0 0 0 / 0.25);
 }
 
@@ -153,24 +153,25 @@
 }
 
 .rule {
-  width: min(100%, 25em);
+  width: min(100%, clamp(320px, 25.5vw, 460px));
   height: 2px;
-  margin: clamp(18px, 3.5vh, 30px) 0;
+  margin: clamp(18px, 3.8vh, 34px) 0 clamp(16px, 3.2vh, 28px);
   border-radius: 1px;
-  background: rgb(255 255 255 / 0.7);
+  background: rgb(255 255 255 / 0.75);
 }
 
 .heroText {
-  max-width: 27em;
+  max-width: 24em;
   margin: 0;
-  font: 400 clamp(16px, 1.2vw, 18px) / 1.55 var(--tl-font-family);
+  font: 400 clamp(16px, 1.15vw, 20px) / 1.38 var(--tl-font-family);
   color: #eef6e8;
+  text-wrap: balance;
 }
 
 .features {
   display: flex;
-  flex-wrap: wrap;
-  margin: clamp(28px, 6vh, 56px) 0 0;
+  flex-wrap: nowrap;
+  margin: clamp(24px, 5.5vh, 50px) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -179,8 +180,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 0 clamp(18px, 2.2vw, 40px);
+  gap: 10px;
+  padding: 0 clamp(16px, 2vw, 40px);
   border-left: 1px solid rgb(255 255 255 / 0.35);
   text-align: center;
 }
@@ -194,62 +195,41 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
+  width: clamp(50px, 3.6vw, 64px);
+  height: clamp(50px, 3.6vw, 64px);
   border: 2px solid var(--login-lime);
-  border-radius: 12px;
-  background: rgb(14 70 30 / 0.7);
-  box-shadow: 0 0 14px rgb(182 236 58 / 0.25);
+  border-radius: 14px;
+  background: linear-gradient(160deg, #1f7a2c 0%, #0e4a1d 100%);
+  box-shadow:
+    0 0 16px rgb(194 240 58 / 0.3),
+    inset 0 1px 0 rgb(255 255 255 / 0.15);
   color: var(--login-lime);
+}
+
+.featureIcon svg {
+  width: 58%;
+  height: 58%;
 }
 
 .featureText {
-  font: 600 17px/1.3 var(--tl-font-family);
+  font: 500 clamp(15px, 1.15vw, 20px) / 1.25 var(--tl-font-family);
 }
 
+/* Scan visual: one transparent frame over the tea shoot in the photo. It bleeds slightly into
+   the empty gaps on either side so the story column keeps its width. */
 .scan {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(20px, 4vh, 36px);
-  color: var(--login-scan);
-}
-
-.signal {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1.5px solid rgb(126 232 106 / 0.75);
-  border-radius: 14px;
-  background: rgb(6 60 34 / 0.72);
-  box-shadow: 0 0 22px rgb(126 232 106 / 0.28);
-  backdrop-filter: blur(4px);
-}
-
-.signalIcon {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: 2px solid var(--login-lime);
-  border-radius: 50%;
-  color: var(--login-lime);
-}
-
-.signalTrace {
-  flex: 1;
-  min-width: 0;
-  height: 36px;
-}
-
-.frame {
-  width: 92%;
+  display: block;
+  width: calc(100% + clamp(0px, 2.2vw, 40px) + clamp(0px, 1.6vw, 28px));
   height: auto;
-  filter: drop-shadow(0 0 6px rgb(126 232 106 / 0.6));
+  margin-inline: calc(-1 * clamp(0px, 2.2vw, 40px)) calc(-1 * clamp(0px, 1.6vw, 28px));
+  filter: drop-shadow(0 0 4px rgb(77 255 136 / 0.5));
+}
+
+@media (max-width: 1599px) {
+  .scan {
+    width: calc(100% + 0.8vw + 1.6vw);
+    margin-inline: -0.8vw -1.6vw;
+  }
 }
 
 /* ---- Right: login card ---- */
@@ -266,54 +246,57 @@
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: clamp(14px, 2.4vh, 24px);
   width: 100%;
-  padding: clamp(28px, 5vh, 48px) clamp(24px, 2.1vw, 44px) clamp(24px, 4vh, 36px);
-  border: 1px solid rgb(255 255 255 / 0.75);
-  border-radius: 40px;
-  background: linear-gradient(165deg, rgb(232 247 232 / 0.96) 0%, rgb(246 251 244 / 0.96) 45%, rgb(250 253 248 / 0.97) 100%);
+  padding: clamp(28px, 7vh, 80px) clamp(24px, 3.3vw, 70px) clamp(22px, 4.4vh, 44px);
+  border: 2px solid rgb(255 255 255 / 0.85);
+  border-radius: 48px;
+  background: linear-gradient(165deg, rgb(246 253 245 / 0.93) 0%, rgb(236 249 236 / 0.9) 50%, rgb(216 241 214 / 0.9) 100%);
   box-shadow:
-    0 28px 70px rgb(4 40 18 / 0.4),
-    0 0 0 6px rgb(142 214 74 / 0.08),
-    0 2px 8px rgb(2 22 10 / 0.12);
-  backdrop-filter: blur(6px);
+    0 30px 80px rgb(3 35 15 / 0.42),
+    0 0 70px rgb(150 230 110 / 0.22),
+    inset 0 2px 0 rgb(255 255 255 / 0.95),
+    inset -22px 0 44px -26px rgb(76 175 53 / 0.5),
+    inset 0 -26px 44px -34px rgb(110 200 80 / 0.45);
+  backdrop-filter: blur(14px) saturate(1.15);
 }
 
 .cardLeaf {
   position: absolute;
-  top: -34px;
-  right: -16px;
-  width: clamp(110px, 10vw, 150px);
+  top: -2px;
+  right: -2px;
+  width: 284px;
   height: auto;
   pointer-events: none;
-  filter: drop-shadow(0 6px 8px rgb(10 60 20 / 0.25));
+  filter: drop-shadow(0 4px 6px rgb(10 60 20 / 0.22));
 }
 
 .heading {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 4px;
   text-align: center;
 }
 
 .title {
   margin: 0;
-  font: 800 44px/1.12 var(--tl-font-family);
+  font: 800 clamp(34px, 3.1vw, 56px) / 1.1 var(--tl-font-family);
   letter-spacing: -0.015em;
   color: var(--login-ink);
 }
 
 .subtitle {
   margin: 0;
-  text-wrap: balance;
-  font: 400 18px/1.4 var(--tl-font-family);
+  font: 400 clamp(16px, 1.2vw, 21px) / 1.35 var(--tl-font-family);
   color: var(--login-muted);
+  text-wrap: balance;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: clamp(12px, 2.3vh, 22px);
 }
 
 /* Visible field labels with a leading glyph, as in the reference. */
@@ -321,8 +304,8 @@
 .passwordField label {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font: 700 18px/1.3 var(--tl-font-family);
+  gap: 12px;
+  font: 700 clamp(16px, 1.2vw, 21px) / 1.3 var(--tl-font-family);
   color: var(--login-ink);
 }
 
@@ -330,8 +313,8 @@
 .passwordField label::before {
   content: '';
   flex: none;
-  width: 22px;
-  height: 22px;
+  width: 1.1em;
+  height: 1.1em;
   background: currentColor;
   mask: center / contain no-repeat;
 }
@@ -344,18 +327,41 @@
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'%3E%3Crect x='4.5' y='10.5' width='15' height='11' rx='2'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
 }
 
+/* White pill inputs: subtle border, green focus ring. */
 .form [data-appearance='auth'] {
-  height: 54px;
-  padding: 0 20px;
-  border-color: #cfdccb;
-  border-radius: 18px;
+  height: clamp(48px, 3.2vw, 58px);
+  padding: 0 clamp(16px, 1.4vw, 24px);
+  border: 1.5px solid #cbd8c9;
+  border-radius: 999px;
   background: #fff;
-  box-shadow: 0 1px 2px rgb(16 60 24 / 0.05);
+  box-shadow:
+    0 1px 2px rgb(16 60 24 / 0.06),
+    inset 0 1px 2px rgb(16 60 24 / 0.04);
+}
+
+.form [data-appearance='auth'] input {
+  background: transparent;
+  font-size: clamp(17px, 1.1vw, 19px);
+}
+
+/* Browser autofill must not paint the inputs blue or yellow. */
+.form [data-appearance='auth'] input:-webkit-autofill,
+.form [data-appearance='auth'] input:-webkit-autofill:hover,
+.form [data-appearance='auth'] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  box-shadow: 0 0 0 1000px #fff inset;
+  -webkit-text-fill-color: var(--login-ink);
+  caret-color: var(--login-ink);
+  transition: background-color 600000s 0s;
+}
+
+.form [data-appearance='auth'] input:autofill {
+  box-shadow: 0 0 0 1000px #fff inset;
 }
 
 .form [data-appearance='auth']:focus-within {
   border-color: var(--login-green);
-  box-shadow: 0 0 0 3px rgb(47 138 44 / 0.18);
+  box-shadow: 0 0 0 3px rgb(47 138 44 / 0.2);
 }
 
 .form [data-appearance='auth'][data-invalid='true'] {
@@ -363,11 +369,20 @@
   box-shadow: 0 0 0 1px var(--tl-danger-solid);
 }
 
-/* Input icons in brand green (the eye toggle stays dark). */
+/* Leading input icons in brand green; the password eye toggle in ink. */
 .form [data-appearance='auth'] > svg:first-child {
+  width: clamp(22px, 1.6vw, 28px);
+  height: clamp(22px, 1.6vw, 28px);
+  color: var(--login-green);
+}
+
+.form [data-appearance='auth'] button {
+  color: var(--login-ink);
+}
+
+.form [data-appearance='auth'] button svg {
   width: 24px;
   height: 24px;
-  color: var(--login-green);
 }
 
 .options {
@@ -376,12 +391,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
-  font: 500 16px/1.3 var(--tl-font-family);
+  font: 500 clamp(15px, 1.1vw, 19px) / 1.3 var(--tl-font-family);
   color: var(--tl-text-ink);
 }
 
 .options label {
-  font: 500 17px/1.3 var(--tl-font-family);
+  font: 500 clamp(15px, 1.1vw, 19px) / 1.3 var(--tl-font-family);
   color: var(--login-ink);
 }
 
@@ -390,7 +405,7 @@
   padding: 2px 0;
   border: 0;
   background: none;
-  font: 600 16px/1.3 var(--tl-font-family);
+  font: 600 clamp(15px, 1.1vw, 19px) / 1.3 var(--tl-font-family);
   color: var(--login-green);
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -411,27 +426,34 @@
 .submit.submit {
   align-self: center;
   gap: 12px;
-  width: clamp(230px, 52%, 260px);
+  width: clamp(230px, 15vw, 260px);
   height: 52px;
-  margin-top: 2px;
+  margin-top: 4px;
   border: 0;
   border-radius: 999px;
-  background: linear-gradient(180deg, #2f9a30 0%, #136019 100%);
+  background: linear-gradient(180deg, #36a334 0%, #1e7c23 45%, #0c5115 100%);
   box-shadow:
-    0 8px 18px rgb(19 96 25 / 0.32),
-    inset 0 1px 0 rgb(255 255 255 / 0.18);
-  font: 700 21px/1 var(--tl-font-family);
+    0 10px 22px rgb(12 81 21 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 -2px 0 rgb(0 0 0 / 0.15);
+  font: 700 clamp(20px, 1.4vw, 24px) / 1 var(--tl-font-family);
   transition:
     background 0.15s ease,
     box-shadow 0.15s ease,
     transform 0.15s ease;
 }
 
+.submit.submit svg {
+  width: 26px;
+  height: 26px;
+}
+
 .submit.submit:hover:not(:disabled) {
-  background: linear-gradient(180deg, #2a8b2a 0%, #0f5014 100%);
+  background: linear-gradient(180deg, #2f9a2e 0%, #18701d 45%, #0a4612 100%);
   box-shadow:
-    0 10px 22px rgb(19 96 25 / 0.38),
-    inset 0 1px 0 rgb(255 255 255 / 0.18);
+    0 12px 26px rgb(12 81 21 / 0.42),
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 -2px 0 rgb(0 0 0 / 0.15);
   transform: translateY(-1px);
 }
 
@@ -442,45 +464,51 @@
     0 0 0 6px var(--login-green);
 }
 
+/* Compact light-green security footer, slightly wider than the form as in the reference. */
 .secure {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
-  gap: 6px 10px;
-  padding: 14px;
-  border: 1px solid #dcebd2;
-  border-radius: 20px;
-  background: rgb(230 244 226 / 0.85);
+  gap: 6px clamp(10px, 1vw, 18px);
+  margin: 4px calc(-1 * clamp(0px, 1.6vw, 24px)) 0;
+  padding: clamp(12px, 2.4vh, 24px) clamp(14px, 1.5vw, 26px);
+  border: 1px solid rgb(255 255 255 / 0.75);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgb(229 244 225 / 0.92) 0%, rgb(217 238 212 / 0.92) 100%);
   color: #2f7d32;
 }
 
 .secure svg {
   flex: none;
+  width: clamp(26px, 2vw, 36px);
+  height: clamp(26px, 2vw, 36px);
 }
 
 .secureTitle {
   margin: 0;
   white-space: nowrap;
-  font: 700 17px/1.3 var(--tl-font-family);
+  font: 700 clamp(16px, 1.1vw, 19px) / 1.3 var(--tl-font-family);
   color: var(--login-ink);
 }
 
 .secureDivider {
+  flex: none;
   width: 1px;
-  height: 28px;
-  background: #c4d8bd;
+  height: 30px;
+  background: #b9d0b2;
 }
 
 .secureText {
   min-width: 0;
   margin: 0;
-  font: 400 14px/1.4 var(--tl-font-family);
+  white-space: nowrap;
+  font: 400 clamp(14px, 0.98vw, 17px) / 1.4 var(--tl-font-family);
   color: var(--login-muted);
 }
 
-/* Narrow cards: icon and title on one line, the explanation centred beneath. */
-@container (max-width: 450px) {
+/* Narrow cards: icon and title on one line, the explanation centred beneath it. */
+@container (max-width: 420px) {
   .secure {
     flex-wrap: wrap;
   }
@@ -491,7 +519,9 @@
 
   .secureText {
     flex-basis: 100%;
+    white-space: normal;
     text-align: center;
+    text-wrap: balance;
   }
 }
 
@@ -505,7 +535,7 @@
    scrolling. Errors and zoom can still grow the page naturally (it scrolls). */
 @media (min-width: 1024px) and (max-height: 860px) {
   .layout {
-    padding-block: clamp(20px, 5vh, 48px);
+    padding-block: clamp(20px, 5vh, 48px) clamp(20px, 8vh, 80px);
   }
 
   .card {
@@ -514,7 +544,7 @@
   }
 
   .title {
-    font-size: 36px;
+    font-size: clamp(32px, 2.6vw, 44px);
   }
 
   .subtitle {
@@ -522,11 +552,11 @@
   }
 
   .form {
-    gap: 12px;
+    gap: 11px;
   }
 
   .form [data-appearance='auth'] {
-    height: 50px;
+    height: 48px;
   }
 
   .userIdField label,
@@ -535,11 +565,37 @@
   }
 
   .secure {
-    padding: 10px 18px;
+    padding-block: 10px;
   }
 
   .features {
     margin-top: clamp(20px, 4vh, 40px);
+  }
+
+  .wave {
+    height: clamp(90px, 18vh, 160px);
+  }
+}
+
+/* The corner ribbon's arc is drawn for a 48px radius at 280px wide; card radius and ribbon
+   size step down together so the ribbon keeps following the card's corner. */
+@media (min-width: 1024px) and (max-width: 1599px) {
+  .card {
+    border-radius: 42px;
+  }
+
+  .cardLeaf {
+    width: 248px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .card {
+    border-radius: 34px;
+  }
+
+  .cardLeaf {
+    width: 200px;
   }
 }
 
@@ -555,7 +611,7 @@
 }
 
 /* Small desktops: the platform line moves under the wordmark. */
-@media (min-width: 1024px) and (max-width: 1199px) {
+@media (min-width: 1024px) and (max-width: 1399px) {
   .heroDivider {
     display: none;
   }
@@ -585,7 +641,7 @@
       'card';
     align-content: center;
     gap: 32px;
-    padding: 32px 32px 48px;
+    padding: 32px 32px 56px;
   }
 
   .background {
@@ -594,7 +650,7 @@
   }
 
   .overlay {
-    background: linear-gradient(180deg, rgb(4 36 26 / 0.9) 0%, rgb(6 44 30 / 0.74) 45%, rgb(6 44 30 / 0.58) 100%);
+    background: linear-gradient(180deg, rgb(3 38 32 / 0.9) 0%, rgb(5 46 34 / 0.74) 45%, rgb(6 44 30 / 0.58) 100%);
   }
 
   .heroBrand {
@@ -634,6 +690,20 @@
 
   .card {
     max-width: 560px;
+    padding-inline: clamp(24px, 5vw, 44px);
+    border-radius: 40px;
+  }
+
+  .cardLeaf {
+    width: 236px;
+  }
+
+  .secure {
+    margin-inline: 0;
+  }
+
+  .wave {
+    height: 120px;
   }
 }
 
@@ -654,7 +724,6 @@
 
   .heroMark {
     width: 52px;
-    height: 52px;
   }
 
   .heroName {
@@ -687,9 +756,7 @@
   }
 
   .cardLeaf {
-    top: -22px;
-    right: -6px;
-    width: 84px;
+    width: 165px;
   }
 
   .title {
@@ -706,7 +773,12 @@
   }
 
   .form [data-appearance='auth'] {
+    height: 52px;
     padding: 0 14px;
+  }
+
+  .form [data-appearance='auth'] input {
+    font-size: 18px;
   }
 
   .options,
@@ -746,6 +818,15 @@
   }
 
   .form [data-appearance='auth'] input::placeholder {
-    font-size: 15px;
+    font-size: 14px;
+  }
+
+  .form [data-appearance='auth'] button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .secureText {
+    font-size: 13px;
   }
 }

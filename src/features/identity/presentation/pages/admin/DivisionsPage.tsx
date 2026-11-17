@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import {
   ActionMenu,
   Banner,
@@ -9,6 +9,7 @@ import {
   EmptyState,
   ErrorState,
   FilterSelect,
+  KpiCard,
   PageHeader,
   Pagination,
   SearchInput,
@@ -42,7 +43,13 @@ export function DivisionsPage() {
   const [status, setStatus] = useState<StatusFilter>('active')
   const [page, setPage] = useState(1)
   const [noticeOpen, setNoticeOpen] = useState(true)
-  const [adding, setAdding] = useState(false)
+  const [params, setParams] = useSearchParams()
+  // `?create=1` (Dashboard › Add Division) opens the form once.
+  const [adding, setAddingState] = useState(() => params.get('create') === '1')
+  const setAdding = (open: boolean) => {
+    setAddingState(open)
+    if (!open && params.has('create')) setParams({}, { replace: true })
+  }
   const [editing, setEditing] = useState<DivisionSummary | null>(null)
   const term = useDebouncedValue(search.trim().toLowerCase(), 200)
 
@@ -55,6 +62,8 @@ export function DivisionsPage() {
   )
   const filtersActive = search !== '' || estate !== 'all' || status !== 'active'
   const estateCount = new Set(divisions.map((division) => division.estateId)).size
+  const activeDivisions = divisions.filter((division) => division.status === 'active').length
+  const withoutWorkers = divisions.filter((division) => division.fieldWorkers.length === 0).length
   const table = useIdentityTableSort(filtered, { division: (row) => row.name, id: (row) => row.id, estate: (row) => row.estateName, observations: (row) => row.observationCount, pending: (row) => row.pendingReviewCount, status: (row) => row.status })
 
   function reset() {
@@ -93,6 +102,14 @@ export function DivisionsPage() {
         <Banner tone="info" onDismiss={() => setNoticeOpen(false)}>
           Observations are attributed to a division ID only. The web UI never shows bush-level identifiers.
         </Banner>
+      )}
+      {query.data && (
+        <div className={styles.kpiRow} aria-label="Division statistics">
+          <KpiCard label="Total divisions" value={divisions.length} caption={`Across ${estateCount} ${estateCount === 1 ? 'estate' : 'estates'}`} icon="layers" tone="info" />
+          <KpiCard label="Active divisions" value={activeDivisions} caption="Open for capture and scope" icon="check" tone="success" />
+          <KpiCard label="Inactive divisions" value={divisions.length - activeDivisions} caption="Kept for history" icon="archive" tone="warning" />
+          <KpiCard label="Without assigned workers" value={withoutWorkers} caption="No Field Worker assigned" icon="users" tone="purple" />
+        </div>
       )}
       <Card>
         <div className={styles.filterBar}>

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { RouteObject } from 'react-router'
+import { Navigate, type RouteObject } from 'react-router'
 import type { BreadcrumbItem } from '@/shared/components'
 import { AppLayout } from '../layouts/AppLayout'
 import { RequireRole, RequireSession, RoleHomeRedirect } from './guards'
@@ -7,6 +7,7 @@ import {
   AccessDeniedPage,
   ActivateAccountPage,
   AdminDashboardPage,
+  AuditLogsPage,
   DeviceSessionsPage,
   DivisionDetailPage,
   DivisionsPage,
@@ -20,12 +21,12 @@ import {
   ProfilePage,
   RecoveryCodePage,
   ResetPasswordPage,
-  RoleDetailPage,
   RolesPage,
   ScreenLoading,
-  SecuritySettingsPage,
+  SecurityCenterPage,
   SessionExpiredPage,
   SessionRecoveryPage,
+  SystemSettingsPage,
   UserDetailPage,
   UserFormPage,
   UserScopePage,
@@ -97,14 +98,17 @@ const IMPLEMENTED: Record<string, ReactNode> = {
   '/admin/users/:userId/edit': <UserFormPage mode="edit" />,
   '/admin/users/:userId/scope': <UserScopePage />,
   '/admin/roles': <RolesPage />,
-  '/admin/roles/:role': <RoleDetailPage />,
+  // The per-role pages were removed; old links open the permission matrix.
+  '/admin/roles/:role': <Navigate to="/admin/roles" replace />,
   '/admin/estates': <EstatesPage />,
   '/admin/estates/:estateId': <EstateDetailPage />,
   '/admin/divisions': <DivisionsPage />,
   '/admin/divisions/:divisionId': <DivisionDetailPage />,
   '/admin/device-sessions': <DeviceSessionsPage />,
   '/admin/device-sessions/:sessionId/recovery': <SessionRecoveryPage />,
-  '/admin/security': <SecuritySettingsPage />,
+  '/admin/security': <SecurityCenterPage />,
+  '/admin/audit-logs': <AuditLogsPage />,
+  '/admin/settings': <SystemSettingsPage />,
 }
 
 const roleGroupRoutes: RouteObject[] = SCREEN_GROUPS.map((group) => ({

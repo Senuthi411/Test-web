@@ -82,62 +82,21 @@ describe('Roles & Permissions · tabs', { timeout: 30_000 }, () => {
   })
 })
 
-describe('Roles & Permissions · role detail', { timeout: 30_000 }, () => {
-  it('opens a role’s details from its matrix column header', async () => {
-    const user = userEvent.setup()
-    const { router } = renderRoles('/admin/roles')
+describe('Roles & Permissions · no per-role pages', { timeout: 30_000 }, () => {
+  it.each(['/admin/roles/supervisor', '/admin/roles/field-worker', '/admin/roles/unknown'])('redirects %s to the permission matrix', async (path) => {
+    const { router } = renderRoles(path)
+    expect(await screen.findByRole('tab', { name: 'Permission Matrix', selected: true }, { timeout: 10_000 })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin/roles')
+  })
+
+  it('shows plain role column headers, with no role detail links, overview cards or role comparison', async () => {
+    renderRoles('/admin/roles')
     const table = await screen.findByRole('table', { name: 'Permission matrix' }, { timeout: 10_000 })
-    for (const name of ROLE_NAMES) expect(within(table).getByRole('link', { name: `View details of the ${name} role` })).toBeInTheDocument()
-    await user.click(within(table).getByRole('link', { name: 'View details of the Supervisor role' }))
-    expect(router.state.location.pathname).toBe('/admin/roles/supervisor')
-    expect(await screen.findByRole('heading', { name: 'Supervisor', level: 1 }, { timeout: 10_000 })).toBeInTheDocument()
-  })
-
-  it('opens filtered User Management from a role’s details', async () => {
-    const user = userEvent.setup()
-    const { router } = renderRoles('/admin/roles/disease-expert')
-    await user.click(await screen.findByRole('link', { name: 'View in User Management' }, { timeout: 10_000 }))
-    expect(router.state.location.pathname).toBe('/admin/users')
-    expect(await screen.findByRole('combobox', { name: 'Role: Disease expert' }, { timeout: 10_000 })).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: 'Status: All' })).toBeInTheDocument()
-    const table = await screen.findByRole('table', { name: 'Users' })
-    expect(within(table).getAllByText('Disease expert').length).toBeGreaterThan(0)
-    for (const other of ['Supervisor', 'Field worker', 'Administrator']) expect(within(table).queryByText(other)).not.toBeInTheDocument()
-  })
-
-  it('shows role details: access, scope rules, limitations, allowed actions and assigned users with management links', async () => {
-    const { store } = renderRoles('/admin/roles/field-worker')
-    expect(await screen.findByRole('heading', { name: 'Field worker', level: 1 }, { timeout: 10_000 })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Field worker', current: 'page' })).toBeInTheDocument()
-    expect(screen.getByText('Mobile app only')).toBeInTheDocument()
-    expect(screen.getByText('Assigned divisions within one estate')).toBeInTheDocument()
-    expect(screen.getByText(/Division-level scope/)).toBeInTheDocument()
-    expect(screen.getByText('Security limitations')).toBeInTheDocument()
-
-    const actions = screen.getByRole('region', { name: 'Allowed actions of the Field worker role' })
-    expect(within(actions).getByText('Create observation, mobile')).toBeInTheDocument()
-    expect(within(actions).getAllByRole('img', { name: 'Allowed within scope' }).length).toBeGreaterThan(0)
-    expect(within(actions).queryByText('Decide quarantine')).not.toBeInTheDocument()
-
-    const fieldWorkers = store.read((db) => db.users.filter((item) => item.role === 'FIELD_WORKER'))
-    const table = await screen.findByRole('table', { name: 'Users with the Field worker role' })
-    expect(within(table).getAllByRole('row')).toHaveLength(fieldWorkers.length + 1)
-    expect(screen.getByText(new RegExp(`^${fieldWorkers.length} users?$`))).toBeInTheDocument()
-    const first = fieldWorkers[0]!
-    expect(within(table).getByRole('link', { name: `Manage role of ${first.fullName}` })).toHaveAttribute('href', `/admin/users/${first.id}/edit`)
-    expect(within(table).getByRole('link', { name: `View access scope of ${first.fullName}` })).toHaveAttribute('href', `/admin/users/${first.id}/scope`)
-    expect(screen.getByRole('link', { name: 'View in User Management' })).toHaveAttribute('href', '/admin/users?role=FIELD_WORKER&status=all')
-  })
-
-  it('says assigned users are unavailable when the Identity service is not connected, without inventing numbers', async () => {
-    renderRoles('/admin/roles/supervisor', (adapters) => {
-      adapters.identity.admin.listUsers = pending
-    })
-    expect(await screen.findByText('User accounts are not available yet: the Identity service is not connected.', {}, { timeout: 10_000 })).toBeInTheDocument()
-    expect(screen.getByText('Not available')).toBeInTheDocument()
-    expect(screen.queryByRole('table', { name: 'Users with the Supervisor role' })).not.toBeInTheDocument()
-    // The role definition itself does not depend on the service.
-    expect(screen.getByText('Web application')).toBeInTheDocument()
+    expect(within(within(table).getAllByRole('row')[0]!).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual(['Permission', ...ROLE_NAMES])
+    expect(within(table).queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Compare roles' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'System roles' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Roles' })).not.toBeInTheDocument()
   })
 })
 
@@ -145,7 +104,7 @@ describe('Roles & Permissions · Permission Matrix', { timeout: 30_000 }, () => 
   it('searches, filters by role and module, clears filters and shows read-only details', async () => {
     const user = userEvent.setup()
     renderRoles('/admin/roles?tab=matrix')
-    expect(await screen.findByText('13 permissions match', {}, { timeout: 10_000 })).toBeInTheDocument()
+    expect(await screen.findByText('18 permissions match', {}, { timeout: 10_000 })).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Permission legend' })).toBeInTheDocument()
 
     await user.type(screen.getByRole('searchbox', { name: 'Search permissions' }), 'quarantine')
@@ -155,13 +114,13 @@ describe('Roles & Permissions · Permission Matrix', { timeout: 30_000 }, () => 
     expect(screen.getByText('2 permissions match')).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('button', { name: 'Clear filters' })[0]!)
-    await pickFilter(user, 'Module', 'Disease diagnosis & cases')
+    await pickFilter(user, 'Module', 'Cases')
     expect(screen.getByText('3 permissions match')).toBeInTheDocument()
     await pickFilter(user, 'Role', 'Field worker')
     expect(screen.getByText('0 permissions match')).toBeInTheDocument()
     expect(screen.getByText('No permissions match')).toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Clear filters' }).at(-1)!)
-    expect(screen.getByText('13 permissions match')).toBeInTheDocument()
+    expect(screen.getByText('18 permissions match')).toBeInTheDocument()
 
     await pickFilter(user, 'Role', 'Supervisor')
     const table = screen.getByRole('table', { name: 'Permission matrix' })
@@ -172,7 +131,7 @@ describe('Roles & Permissions · Permission Matrix', { timeout: 30_000 }, () => 
     const details = screen.getByRole('region', { name: 'Permission details' })
     expect(within(details).getByText('Limited to the holder’s assigned estates or divisions.')).toBeInTheDocument()
     expect(within(details).getByText('No · core role permission, read-only')).toBeInTheDocument()
-    expect(within(details).getByText('Observation review')).toBeInTheDocument()
+    expect(within(details).getByText('Review')).toBeInTheDocument()
     // Read-only: no toggles anywhere in the matrix.
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
@@ -182,21 +141,26 @@ describe('Roles & Permissions · Permission Matrix', { timeout: 30_000 }, () => 
     renderRoles('/admin/roles?tab=matrix')
     const table = await screen.findByRole('table', { name: 'Permission matrix' }, { timeout: 10_000 })
     const groups = within(table).getAllByRole('button', { expanded: true }).map((button) => button.textContent?.replace(/\s*\(\d+\)$/, ''))
-    expect(groups).toEqual(['Identity & user management', 'Estate & division administration', 'Observation review', 'Disease diagnosis & cases', 'Observation capture', 'Reporting & analytics'])
+    expect(groups).toEqual(['Identity', 'Capture', 'Review', 'Cases', 'Analytics', 'Configuration', 'Security'])
 
     const row = (name: RegExp) => within(table).getByRole('button', { name }).closest('tr')!
-    expect(within(row(/Decide quarantine/)).getByRole('img', { name: 'Allowed within scope for Supervisor' })).toBeInTheDocument()
-    expect(within(row(/Decide quarantine/)).getByRole('img', { name: 'Not allowed for Field worker' })).toBeInTheDocument()
+    expect(within(row(/Decide quarantine/)).getByRole('img', { name: 'Scope-dependent for Supervisor' })).toBeInTheDocument()
+    expect(within(row(/Decide quarantine/)).getByRole('img', { name: 'Denied for Field worker' })).toBeInTheDocument()
     expect(within(row(/Read disease catalog/)).getByRole('img', { name: 'Allowed for Disease expert' })).toBeInTheDocument()
     expect(within(row(/Manage users and scopes/)).getByRole('img', { name: 'Allowed for Administrator' })).toBeInTheDocument()
-    expect(within(row(/Read own observations/)).getByRole('img', { name: 'Allowed within scope for Field worker' })).toBeInTheDocument()
+    expect(within(row(/Read own observations/)).getByRole('img', { name: 'Scope-dependent for Field worker' })).toBeInTheDocument()
+    // Configuration and Security permissions belong to the Administrator only.
+    expect(within(row(/Manage system settings/)).getByRole('img', { name: 'Allowed for Administrator' })).toBeInTheDocument()
+    expect(within(row(/Manage system settings/)).getByRole('img', { name: 'Denied for Supervisor' })).toBeInTheDocument()
+    expect(within(row(/Read audit logs/)).getByRole('img', { name: 'Allowed for Administrator' })).toBeInTheDocument()
+    expect(within(row(/Read audit logs/)).getByRole('img', { name: 'Denied for Reporting user' })).toBeInTheDocument()
   })
 
   it('collapses and expands module groups with the mouse and the keyboard', async () => {
     const user = userEvent.setup()
     renderRoles('/admin/roles?tab=matrix')
     const table = await screen.findByRole('table', { name: 'Permission matrix' }, { timeout: 10_000 })
-    const review = within(table).getByRole('button', { name: /^Observation review/ })
+    const review = within(table).getByRole('button', { name: /^Review/ })
     await user.click(review)
     expect(review).toHaveAttribute('aria-expanded', 'false')
     expect(within(table).queryByRole('button', { name: /Decide quarantine/ })).not.toBeInTheDocument()
@@ -215,24 +179,8 @@ describe('Roles & Permissions · Permission Matrix', { timeout: 30_000 }, () => 
     // While a search is active every matching group stays open.
     await user.click(review)
     await user.type(screen.getByRole('searchbox', { name: 'Search permissions' }), 'quarantine')
-    expect(within(table).getByRole('button', { name: /^Observation review/ })).toBeDisabled()
+    expect(within(table).getByRole('button', { name: /^Review/ })).toBeDisabled()
     expect(within(table).getByRole('button', { name: /Decide quarantine/ })).toBeInTheDocument()
-  })
-
-  it('compares two roles from the same permission data', async () => {
-    const user = userEvent.setup()
-    renderRoles('/admin/roles?tab=matrix')
-    const compare = await screen.findByRole('region', { name: 'Compare roles' }, { timeout: 10_000 })
-    expect(within(compare).getByRole('region', { name: 'Only Supervisor' })).toHaveTextContent('Decide quarantine')
-    expect(within(compare).getByRole('region', { name: 'Only Disease expert' })).toHaveTextContent('Write diagnosis')
-    expect(within(compare).getByRole('region', { name: 'Shared' })).toHaveTextContent('None')
-    expect(within(compare).getByText(/Supervisor: Assigned estates/)).toBeInTheDocument()
-
-    await pickFilter(user, 'Second role', 'Field worker')
-    expect(within(compare).getByText(/Field worker: Mobile app only/)).toBeInTheDocument()
-    expect(within(compare).getByRole('region', { name: 'Only Field worker' })).toHaveTextContent('Create observation, mobile')
-    await pickFilter(user, 'Second role', 'Supervisor')
-    expect(within(compare).getByText('Choose two different roles to compare them.')).toBeInTheDocument()
   })
 })
 

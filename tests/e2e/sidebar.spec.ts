@@ -69,7 +69,7 @@ for (const width of [320, 375, 430]) {
     const drawer = page.getByRole('dialog', { name: 'Navigation' })
     await expect(drawer).toBeVisible()
     await expect(drawer.getByRole('link', { name: 'Device Sessions' })).toBeVisible()
-    await expect(drawer.getByText('Identity & Access')).toHaveCount(0)
+    await expect(drawer.getByRole('heading', { name: 'Security & Governance' })).toBeVisible()
     expect(await noHorizontalScroll(page)).toBe(true)
     if (width === 375) await page.screenshot({ path: 'test-results/sidebar/mobile-drawer-375.png' })
     await drawer.getByRole('link', { name: 'Estates' }).click()

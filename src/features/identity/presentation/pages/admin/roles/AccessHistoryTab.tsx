@@ -44,7 +44,7 @@ export interface AccessHistoryTabProps {
 /**
  * Read-only identity and authorization history, as recorded by the audit log: role, permanent
  * scope and account-status changes and device-access revocations. Operational assignments are
- * not authorization changes and are not shown. Nothing here can be edited. Security & Settings
+ * not authorization changes and are not shown. Nothing here can be edited. Security Center
  * shows the security subset of the same records.
  */
 export function AccessHistoryTab({

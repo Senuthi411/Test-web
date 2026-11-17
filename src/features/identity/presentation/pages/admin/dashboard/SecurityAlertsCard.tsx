@@ -9,7 +9,7 @@ import styles from './AdminDashboard.module.css'
 
 /**
  * Security & access alerts: only events the source records, never inferred ones.
- * `securityLink`: the Dashboard links to Security & Settings (that page shows the card itself).
+ * `securityLink`: the Dashboard links to the Security Center (that page shows the card itself).
  */
 export function SecurityAlertsCard({ securityLink = false }: { securityLink?: boolean }) {
   const query = useSecurityAlerts()
@@ -24,7 +24,7 @@ export function SecurityAlertsCard({ securityLink = false }: { securityLink?: bo
       action={
         securityLink ? (
           <Link to="/admin/security" className={styles.itemAction}>
-            Security &amp; Settings
+            Security Center
           </Link>
         ) : undefined
       }

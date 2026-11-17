@@ -24,6 +24,8 @@ export function createSeedDatabase(): FixtureDatabase {
     credentials: FIXTURE_ACCOUNTS.map(({ userId, email, username, password }) => ({ userId, email, username, password })),
     cases,
     auditEvents,
+    configurationVersions: [],
+    configurationDraft: null,
     recoveryRequests: [],
     dashboardAttentionUserIds,
     reviewRecords,

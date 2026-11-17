@@ -1,5 +1,4 @@
-import { isWebRole, type UserRole } from '@/shared/types'
-import { scopeLevelFor } from './scope'
+import type { UserRole } from '@/shared/types'
 
 /**
  * Roles & Permissions content from ID-07 (16:2) and its role variants (161:74 … 161:1426).
@@ -30,9 +29,18 @@ export const PERMISSIONS: readonly PermissionDefinition[] = [
   { code: 'capture.own.read', label: 'Read own observations', description: 'See observations the holder captured.' },
   { code: 'capture.own.revise', label: 'Revise own observations', description: 'Correct observations the holder captured, as revisions.' },
   { code: 'analytics.division.read_scoped', label: 'Read division analytics', description: 'See aggregate analytics for divisions in scope; no observation-level data.' },
+  { code: 'configuration.settings.manage', label: 'Manage system settings', description: 'Draft, validate and publish general settings, feature availability and workflow parameters.' },
+  { code: 'configuration.rules.manage', label: 'Manage business rule templates', description: 'Configure predefined business rule templates; arbitrary rules or scripts are not supported.' },
+  { code: 'security.sessions.manage', label: 'Manage device sessions', description: 'Review device sessions, revoke a device and start controlled session recovery.' },
+  { code: 'security.policies.read', label: 'Read security policies', description: 'See the authentication, recovery and device security policies that the backend enforces.' },
+  { code: 'security.audit.read', label: 'Read audit logs', description: 'Read the administrative audit trail. Audit records cannot be edited or deleted.' },
 ]
 
-export type PermissionModule = 'Identity' | 'Capture' | 'Review' | 'Cases' | 'Analytics'
+/**
+ * Matrix modules, from the permission code's first segment. The order is the order of the
+ * matrix (Identity, Capture, Review, Cases, Analytics, Configuration, Security).
+ */
+export type PermissionModule = 'Identity' | 'Capture' | 'Review' | 'Cases' | 'Analytics' | 'Configuration' | 'Security'
 
 const MODULES: Record<string, PermissionModule> = {
   identity: 'Identity',
@@ -40,7 +48,11 @@ const MODULES: Record<string, PermissionModule> = {
   review: 'Review',
   cases: 'Cases',
   analytics: 'Analytics',
+  configuration: 'Configuration',
+  security: 'Security',
 }
+
+const MODULE_ORDER: readonly PermissionModule[] = ['Identity', 'Capture', 'Review', 'Cases', 'Analytics', 'Configuration', 'Security']
 
 /** Module of a permission, from its code prefix (`review.queue.read_scoped` → Review). */
 export function permissionModule(code: string): PermissionModule {
@@ -49,8 +61,8 @@ export function permissionModule(code: string): PermissionModule {
   return module
 }
 
-/** Modules present in the registry, in registry order. */
-export const PERMISSION_MODULES: readonly PermissionModule[] = [...new Set(PERMISSIONS.map((permission) => permissionModule(permission.code)))]
+/** Modules present in the registry, in matrix order. */
+export const PERMISSION_MODULES: readonly PermissionModule[] = MODULE_ORDER.filter((module) => PERMISSIONS.some((permission) => permissionModule(permission.code) === module))
 
 /** The scope limit a permission carries, from its code. */
 export function permissionScopeRestriction(code: string): string {
@@ -72,7 +84,7 @@ export const ROLE_PERMISSIONS_CONFIGURABLE = false
 
 export interface RoleDefinition {
   role: UserRole
-  /** URL segment for the role detail page. */
+  /** Stable URL-safe identifier of the role. */
   slug: string
   /** Role card / summary description. */
   description: string
@@ -90,9 +102,17 @@ export const ROLE_CATALOG: readonly RoleDefinition[] = [
     slug: 'administrator',
     description: 'Identity, scopes, estates, divisions',
     allowedModule: 'Identity',
-    scopeRules: 'Administers users, scopes, estates, divisions and devices. Holds no clinical review, case or capture permissions.',
+    scopeRules: 'Administers users, scopes, estates, divisions, devices and system configuration. Holds no clinical review, case or capture permissions.',
     permissionSummary: 'Manage users, scopes, estates and divisions',
-    permissions: ['identity.users.manage', 'identity.estates.manage'],
+    permissions: [
+      'identity.users.manage',
+      'identity.estates.manage',
+      'configuration.settings.manage',
+      'configuration.rules.manage',
+      'security.sessions.manage',
+      'security.policies.read',
+      'security.audit.read',
+    ],
   },
   {
     role: 'SUPERVISOR',
@@ -138,50 +158,24 @@ export function roleDefinition(role: UserRole): RoleDefinition {
   return definition
 }
 
-export function roleBySlug(slug: string | undefined): RoleDefinition | undefined {
-  return ROLE_CATALOG.find((entry) => entry.slug === slug)
-}
-
 export function permissionLabel(code: string): string {
   return PERMISSIONS.find((permission) => permission.code === code)?.label ?? code
 }
 
 // ---------------------------------------------------------------------------------------
-// Presentation of the fixed role model (matrix, comparison, role detail). Everything is
+// Presentation of the fixed role model (permission matrix). Everything is
 // derived from PERMISSIONS, ROLE_CATALOG, WEB_ROLES and the scope levels above.
 // ---------------------------------------------------------------------------------------
 
-/**
- * Matrix groups, from the code's first two segments (`identity.estates.manage` → Estate &
- * division administration). Only groups with registered permissions exist; the registry has
- * no device-session or system-configuration permission codes.
- */
-export type PermissionGroup =
-  | 'Identity & user management'
-  | 'Estate & division administration'
-  | 'Observation capture'
-  | 'Observation review'
-  | 'Disease diagnosis & cases'
-  | 'Reporting & analytics'
-
-const GROUPS: Record<string, PermissionGroup> = {
-  'identity.users': 'Identity & user management',
-  'identity.estates': 'Estate & division administration',
-  capture: 'Observation capture',
-  review: 'Observation review',
-  cases: 'Disease diagnosis & cases',
-  analytics: 'Reporting & analytics',
-}
+/** Matrix groups are the permission modules. */
+export type PermissionGroup = PermissionModule
 
 export function permissionGroup(code: string): PermissionGroup {
-  const [first = '', second = ''] = code.split('.')
-  const group = GROUPS[`${first}.${second}`] ?? GROUPS[first]
-  if (!group) throw new Error(`Unknown permission group for ${code}`)
-  return group
+  return permissionModule(code)
 }
 
-/** Groups present in the registry, in registry order. */
-export const PERMISSION_GROUPS: readonly PermissionGroup[] = [...new Set(PERMISSIONS.map((permission) => permissionGroup(permission.code)))]
+/** Groups present in the registry, in matrix order. */
+export const PERMISSION_GROUPS: readonly PermissionGroup[] = PERMISSION_MODULES
 
 /**
  * A matrix cell. `scoped`: held, but only within assigned estates/divisions or own records,
@@ -196,75 +190,4 @@ export function isScopeRestricted(code: string): boolean {
 export function permissionCell(definition: Pick<RoleDefinition, 'permissions'>, code: string): PermissionCellState {
   if (!definition.permissions.includes(code)) return 'not_allowed'
   return isScopeRestricted(code) ? 'scoped' : 'allowed'
-}
-
-/** Which application the role signs in to, from WEB_ROLES (Field Workers: mobile only). */
-export function applicationAccess(role: UserRole): 'web' | 'mobile' {
-  return isWebRole(role) ? 'web' : 'mobile'
-}
-
-export const APPLICATION_ACCESS_LABELS = { web: 'Web application', mobile: 'Mobile app only' } as const
-
-/** The permanent scope a role is assigned, from its scope level. */
-export function scopeSummary(role: UserRole): string {
-  switch (scopeLevelFor(role)) {
-    case 'all_estates':
-      return 'All estates and divisions'
-    case 'estate':
-      return role === 'REPORTING_USER' ? 'Assigned estates (scope level is a pending team decision)' : 'Assigned estates'
-    case 'division':
-      return 'Assigned divisions within one estate'
-  }
-}
-
-/** Modules the role's permissions belong to, in registry order. */
-export function roleGroups(definition: Pick<RoleDefinition, 'permissions'>): PermissionGroup[] {
-  return PERMISSION_GROUPS.filter((group) => definition.permissions.some((code) => permissionGroup(code) === group))
-}
-
-/**
- * Responsibilities and limits per role, worded to match the permission sets above. They
- * describe the model; the backend enforces it.
- */
-export const ROLE_PROFILES: Record<UserRole, { responsibility: string; limitations: readonly string[] }> = {
-  ADMINISTRATOR: {
-    responsibility: 'Identity administration: employee accounts, role assignment, permanent estate and division scope, estates and divisions.',
-    limitations: [
-      'Holds no observation review, case, capture or analytics permissions.',
-      'Multi-factor sign-in is mandatory for every Administrator account.',
-      'Role permissions are fixed; an Administrator changes what a person can do only by changing their role or permanent scope.',
-    ],
-  },
-  SUPERVISOR: {
-    responsibility: 'Observation review, correction workflows and quarantine decisions within assigned estates.',
-    limitations: ['Acts only within assigned estates; the backend filters lists, maps and exports by scope.', 'Cannot manage users, estates or divisions.', 'Cannot record a diagnosis.'],
-  },
-  DISEASE_EXPERT: {
-    responsibility: 'Diagnosis of referred cases within assigned estates, with the disease catalog as reference.',
-    limitations: ['Case access also depends on referral and case assignment, decided by the backend.', 'Cannot verify, flag or correct observations.', 'Cannot manage users or scope.'],
-  },
-  FIELD_WORKER: {
-    responsibility: 'Mobile observation capture within assigned divisions, and revision of their own observations.',
-    limitations: ['Cannot sign in to the web application.', 'Sees and revises only their own observations.', 'Never reviews, diagnoses or administers.'],
-  },
-  REPORTING_USER: {
-    responsibility: 'Read-only, aggregate division analytics within the assigned reporting scope.',
-    limitations: ['No observation-level data.', 'Cannot change any record.', 'The reporting scope level (estate, division or both) is a pending team decision.'],
-  },
-}
-
-export interface RoleComparison {
-  shared: string[]
-  onlyFirst: string[]
-  onlySecond: string[]
-}
-
-/** Permission codes two roles share or hold alone, in registry order. */
-export function compareRoles(first: Pick<RoleDefinition, 'permissions'>, second: Pick<RoleDefinition, 'permissions'>): RoleComparison {
-  const codes = PERMISSIONS.map((permission) => permission.code)
-  return {
-    shared: codes.filter((code) => first.permissions.includes(code) && second.permissions.includes(code)),
-    onlyFirst: codes.filter((code) => first.permissions.includes(code) && !second.permissions.includes(code)),
-    onlySecond: codes.filter((code) => !first.permissions.includes(code) && second.permissions.includes(code)),
-  }
 }

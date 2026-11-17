@@ -172,6 +172,11 @@ export type FixtureAuditKind =
   | 'session_recovery_requested'
   | 'role_changed'
   | 'account_status_changed'
+  | 'configuration_draft_saved'
+  | 'configuration_draft_discarded'
+  | 'configuration_published'
+  | 'configuration_rolled_back'
+  | 'configuration_publish_rejected'
 
 /** Administrative audit trail ("Recent administrative activity", ID-02 / ID-10). */
 export interface FixtureAuditEvent {
@@ -196,7 +201,31 @@ export interface FixtureAuditEvent {
   /** Role after the change (role_changed). Status changes use `status`. */
   newValue?: string
   status?: RecordStatus
+  /** Configuration version the event produced or concerns (configuration_* kinds). */
+  configurationVersion?: number
+  /** Short description of a configuration change. */
+  summary?: string
+  /** Whether the attempted action succeeded. Absent means it succeeded. */
+  outcome?: 'success' | 'failure'
   provenance: FixtureProvenance
+}
+
+/** A stored configuration version (System Settings). The document is kept as plain data. */
+export interface FixtureConfigurationVersion {
+  version: number
+  document: Record<string, unknown>
+  createdAt: string
+  createdBy: string | null
+  kind: 'baseline' | 'publish' | 'rollback'
+  reason: string
+  restoredFrom?: number
+}
+
+export interface FixtureConfigurationDraft {
+  document: Record<string, unknown>
+  baseVersion: number
+  savedAt: string
+  savedBy: string | null
 }
 
 export type FixtureRecoveryStepStatus = 'done' | 'pending' | 'open' | 'not_issued' | 'waiting'
@@ -224,6 +253,12 @@ export interface FixtureDatabase {
   credentials: FixtureCredential[]
   cases: FixtureCase[]
   auditEvents: FixtureAuditEvent[]
+  /**
+   * System Settings versions, oldest first. Empty in the seed: the fixture adapter creates
+   * the baseline (version 1) from the domain defaults on first use. Never deleted.
+   */
+  configurationVersions: FixtureConfigurationVersion[]
+  configurationDraft: FixtureConfigurationDraft | null
   recoveryRequests: FixtureRecoveryRequest[]
   /**
    * The users listed under "Users requiring attention" on ID-02. The design does not state
