@@ -1,4 +1,4 @@
-/* AUTH-01 login, following the approved reference: a tea-estate landscape with a dark green
+/* AUTH-01 login, following the approved reference: a tea-estate photograph with a dark green
    overlay on the left, the brand and a short introduction, and a white login card on the
    right. On phones the card comes first after the logo; decorative content is reduced. */
 .page {
@@ -18,10 +18,10 @@
   overflow: hidden;
   background-color: #0f3518;
   background-image:
-    linear-gradient(90deg, rgb(7 36 17 / 0.94) 0%, rgb(9 44 20 / 0.82) 34%, rgb(10 48 22 / 0.4) 58%, rgb(10 48 22 / 0) 78%),
-    url('../../../../../assets/brand/login-landscape.svg');
+    linear-gradient(90deg, rgb(7 36 17 / 0.88) 0%, rgb(9 44 20 / 0.7) 32%, rgb(10 48 22 / 0.22) 56%, rgb(10 48 22 / 0) 72%),
+    url('../../../../../assets/brand/login-background.webp');
   background-size: cover, cover;
-  background-position: center, center bottom;
+  background-position: center, 60% center;
   color: var(--login-on-dark);
 }
 
@@ -495,8 +495,8 @@
   .page {
     overflow: visible;
     background-image:
-      linear-gradient(180deg, rgb(7 36 17 / 0.9) 0%, rgb(9 44 20 / 0.75) 45%, rgb(9 44 20 / 0.55) 100%),
-      url('../../../../../assets/brand/login-landscape.svg');
+      linear-gradient(180deg, rgb(7 36 17 / 0.88) 0%, rgb(9 44 20 / 0.7) 45%, rgb(9 44 20 / 0.5) 100%),
+      url('../../../../../assets/brand/login-background-1000.webp');
     background-attachment: scroll;
   }
 
