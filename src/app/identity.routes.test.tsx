@@ -312,6 +312,28 @@ describe('identity administration screens', () => {
     expect(await screen.findByText('Showing 1–13 of 13 demo users')).toBeInTheDocument()
   })
 
+  it('lists users without an Email column; the name opens the details, where the email is shown (ID-03)', async () => {
+    signInAs('ADMINISTRATOR')
+    const user = userEvent.setup()
+    const { router } = renderFixtureApp('/admin/users')
+    const table = await screen.findByRole('table', { name: 'Users' })
+    await within(table).findByText('Dr Tara Wijesinghe')
+    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.replace(/[↕↑↓]/g, '').trim())).toEqual(['Employee', 'User ID', 'Role', 'Assigned Scope', 'Status', 'Actions'])
+    expect(within(table).queryByText(/@example\.test/)).not.toBeInTheDocument()
+
+    // Email and User ID remain searchable even though the column is gone.
+    const search = screen.getByRole('searchbox', { name: 'Search users' })
+    await user.type(search, 'dr.tara.wijesinghe@example.test')
+    expect(await screen.findByText('Showing 1–1 of 1 demo users')).toBeInTheDocument()
+    await user.clear(search)
+    await user.type(search, 'usr-005')
+    expect(await screen.findByText('Showing 1–1 of 1 demo users')).toBeInTheDocument()
+
+    await user.click(within(table).getByRole('link', { name: 'Dr Tara Wijesinghe' }))
+    expect(router.state.location.pathname).toBe('/admin/users/USR-005')
+    expect((await screen.findAllByText(/dr\.tara\.wijesinghe@example\.test/)).length).toBeGreaterThan(0)
+  })
+
   it('requires a division, then creates the user after review (ID-05)', async () => {
     signInAs('ADMINISTRATOR')
     const user = userEvent.setup()

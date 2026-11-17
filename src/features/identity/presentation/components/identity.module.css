@@ -121,6 +121,11 @@
   color: var(--tl-text-muted);
 }
 
+/* Identifiers such as USR-001 stay on one line; narrow tables scroll instead. */
+.nowrap {
+  white-space: nowrap;
+}
+
 .readOnlyField {
   display: flex;
   flex-direction: column;
