@@ -56,11 +56,16 @@ for (const [width, height] of VIEWPORTS) {
       await expect(control).toBeInViewport()
     }
 
-    // Full-width button at every size, comfortable to tap.
+    // Below 1024px the button spans the form (easy to tap); on desktop it is the reference's
+    // centred pill (350 of 540 reference pixels). It is at least 44px tall at every size.
     const button = await logIn.boundingBox()
     const form = await page.getByRole('form', { name: 'Log in' }).boundingBox()
     if (!button || !form) throw new Error('missing layout boxes')
-    expect(button.width).toBeGreaterThan(form.width - 2)
+    if (width < 1024) expect(button.width).toBeGreaterThan(form.width - 2)
+    else {
+      expect(button.width).toBeGreaterThan(form.width * 0.6)
+      expect(Math.abs(button.x + button.width / 2 - (form.x + form.width / 2))).toBeLessThan(2)
+    }
     expect(button.height).toBeGreaterThanOrEqual(44)
 
     await logIn.click()

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 345 470" fill="none">
+  <defs>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="1.2"/>
+    </filter>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1fd17a" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#0a8a45" stop-opacity=".06"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9f25a"/>
+      <stop offset=".5" stop-color="#8fcf2c"/>
+      <stop offset="1" stop-color="#2c7f1a"/>
+    </linearGradient>
+    <linearGradient id="leaf2" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#4fa82a"/>
+      <stop offset="1" stop-color="#c8ee55"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset=".8" stop-color="#fff"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="fadeMask"><rect width="345" height="470" fill="url(#fade)"/></mask>
+    <clipPath id="frame"><rect x="20" y="20" width="305" height="246" rx="6"/></clipPath>
+  </defs>
+
+  <!-- Digital panel: tint, grid and radar rings -->
+  <rect x="20" y="20" width="305" height="246" rx="6" fill="url(#panel)"/>
+  <g clip-path="url(#frame)" stroke="#44f29a" stroke-opacity=".2" stroke-width=".8">
+    <path d="M20 44H325M20 68H325M20 92H325M20 116H325M20 140H325M20 164H325M20 188H325M20 212H325M20 236H325M20 260H325"/>
+    <path d="M44 20V266M68 20V266M92 20V266M116 20V266M140 20V266M164 20V266M188 20V266M212 20V266M236 20V266M260 20V266M284 20V266M308 20V266"/>
+    <circle cx="112" cy="150" r="42" stroke-opacity=".32"/>
+    <circle cx="112" cy="150" r="74" stroke-opacity=".26"/>
+    <circle cx="112" cy="150" r="106" stroke-opacity=".18"/>
+  </g>
+
+  <!-- Heartbeat line and bar chart -->
+  <g filter="url(#glow)">
+    <path d="M128 86H178L190 62L204 112L218 40L232 98L244 80H312" stroke="#2fff8f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M248 180h11v-20h-11zM266 180h11v-34h-11zM284 180h11v-50h-11zM302 180h11v-70h-11z" fill="#2fff8f"/>
+    <path d="M226 236l14-18 10 10 16-24" stroke="#2fff8f" stroke-opacity=".45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Glowing corner brackets -->
+  <g stroke="#9dffbf" stroke-width="5" stroke-linecap="round" filter="url(#glow)">
+    <path d="M22 62V30a8 8 0 0 1 8-8h32"/>
+    <path d="M283 22h32a8 8 0 0 1 8 8v32"/>
+    <path d="M323 224v32a8 8 0 0 1-8 8h-32"/>
+    <path d="M62 264H30a8 8 0 0 1-8-8v-32"/>
+  </g>
+
+  <!-- Tea shoot: main leaf across the panel, a younger leaf and the stem -->
+  <g mask="url(#fadeMask)">
+    <path d="M232 300C238 340 242 390 236 470" stroke="#4d9a2b" stroke-width="6" stroke-linecap="round"/>
+    <path d="M236 330C270 300 300 268 330 252C318 296 288 330 240 346Z" fill="url(#leaf2)"/>
+    <path d="M240 344C268 318 296 290 326 258" stroke="#e6fa8a" stroke-opacity=".5" stroke-width="1.5"/>
+    <path d="M226 236C214 196 222 158 238 134C254 168 252 210 236 246Z" fill="url(#leaf2)" opacity=".9"/>
+    <path d="M232 300C172 266 96 196 48 62C146 96 224 180 246 290C248 302 240 308 232 300Z" fill="url(#leaf)" stroke="#3c8f1f" stroke-width="1.5"/>
+    <path d="M58 74C130 140 196 220 236 296" stroke="#f3ffb0" stroke-opacity=".75" stroke-width="2.2" stroke-linecap="round"/>
+    <g stroke="#f3ffb0" stroke-opacity=".35" stroke-width="1.2" stroke-linecap="round">
+      <path d="M104 118l-4 26M134 146l-6 30M164 178l-6 32M194 214l-6 30M120 128l20-10M150 158l24-8M180 192l24-8M208 228l20-6"/>
+    </g>
+    <path d="M58 74C104 90 150 120 186 160" stroke="#fffde0" stroke-opacity=".4" stroke-width="3" stroke-linecap="round" filter="url(#soft)"/>
+    <g fill="#ffffff">
+      <circle cx="118" cy="140" r="5" fill-opacity=".55"/><circle cx="117" cy="138.5" r="1.6" fill-opacity=".95"/>
+      <circle cx="152" cy="168" r="6.5" fill-opacity=".5"/><circle cx="150.5" cy="166" r="2" fill-opacity=".95"/>
+      <circle cx="178" cy="214" r="5.5" fill-opacity=".5"/><circle cx="177" cy="212" r="1.7" fill-opacity=".95"/>
+      <circle cx="96" cy="108" r="3.5" fill-opacity=".5"/><circle cx="200" cy="246" r="4" fill-opacity=".5"/>
+      <circle cx="138" cy="196" r="3" fill-opacity=".45"/><circle cx="208" cy="208" r="3" fill-opacity=".45"/>
+      <circle cx="292" cy="280" r="3.5" fill-opacity=".5"/>
+    </g>
+  </g>
+</svg>

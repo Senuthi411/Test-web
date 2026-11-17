@@ -1,55 +1,54 @@
-/* AUTH-01 login, following the approved reference: a tea-estate photograph with a dark green
-   overlay on the left, the brand and a short introduction, and a white login card on the
-   right. On phones the card comes first after the logo; decorative content is reduced. */
+/* AUTH-01 login, built from the approved reference (1758 x 895).
+   Desktop (1024px and wider) reproduces the reference composition: every size and position is
+   written in reference pixels times `--u`, the scale that fits the reference into the
+   viewport. Tablets and phones use a stacked layout with the form first after the brand. */
 .page {
-  --login-ink: #141d17;
-  --login-muted: #56615b;
+  --login-ink: #111a14;
+  --login-muted: #3f4842;
   --login-on-dark: #ffffff;
-  --login-on-dark-muted: rgb(255 255 255 / 0.86);
-  --login-lime: #b4ec3c;
-  --login-control-border: #d3dad5;
-  --login-accent: var(--tl-primary-500);
-  --login-button: #1d6b25;
-  --login-button-hover: #175a1e;
+  --login-on-dark-muted: rgb(255 255 255 / 0.9);
+  --login-lime: #b8f034;
+  --login-control-border: #d8ddd9;
+  --login-accent: #1f8a2c;
+  --login-button-top: #47a823;
+  --login-button: #1c7a1f;
+  --login-button-bottom: #0d5a12;
+  --login-link: #17812a;
 
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow: hidden;
-  background-color: #0f3518;
+  overflow-x: clip;
+  background-color: #0b2e16;
   background-image:
-    linear-gradient(90deg, rgb(7 36 17 / 0.88) 0%, rgb(9 44 20 / 0.7) 32%, rgb(10 48 22 / 0.22) 56%, rgb(10 48 22 / 0) 72%),
-    url('../../../../../assets/brand/login-background.webp');
+    linear-gradient(180deg, rgb(7 36 17 / 0.88) 0%, rgb(9 44 20 / 0.7) 45%, rgb(9 44 20 / 0.5) 100%),
+    url('../../../../../assets/brand/login-background-1000.webp');
   background-size: cover, cover;
   background-position: center, 60% center;
   color: var(--login-on-dark);
 }
 
-.shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(400px, 500px);
-  grid-template-rows: auto 1fr;
-  grid-template-areas:
-    'brand card'
-    'intro card';
-  column-gap: clamp(32px, 5vw, 96px);
-  row-gap: 24px;
-  width: 100%;
-  max-width: 1600px;
-  min-height: 100vh;
-  min-height: 100dvh;
-  margin: 0 auto;
-  padding: clamp(24px, 4vh, 48px) clamp(24px, 5vw, 88px);
+/* ================= Tablet and phone (base) ================= */
+.stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 32px;
+  width: 100%;
+  max-width: 600px;
+  padding: 32px 32px 48px;
 }
 
-/* ---- Brand bar ---- */
 .brandBar {
-  grid-area: brand;
-  align-self: start;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 14px;
 }
 
@@ -57,6 +56,7 @@
   flex: none;
   width: 56px;
   height: 56px;
+  filter: brightness(1.3) saturate(1.15);
 }
 
 .wordmark {
@@ -76,47 +76,43 @@
 }
 
 .wordmarkSub {
-  margin-top: 5px;
+  margin-top: 6px;
   font: 700 13px / 1 var(--tl-font-family);
-  letter-spacing: 0.24em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--login-on-dark);
 }
 
 .tagline {
-  margin-left: 14px;
-  padding-left: 28px;
-  border-left: 2px solid rgb(255 255 255 / 0.55);
-  font: 600 15px / 1.3 var(--tl-font-family);
-  letter-spacing: 0.2em;
+  margin-left: 12px;
+  padding-left: 24px;
+  border-left: 2px solid rgb(255 255 255 / 0.75);
+  font: 600 14px / 2.4 var(--tl-font-family);
+  letter-spacing: 0.17em;
   text-transform: uppercase;
-  color: var(--login-on-dark-muted);
+  color: var(--login-on-dark);
 }
 
-/* ---- Introduction ---- */
 .intro {
-  grid-area: intro;
-  align-self: center;
   max-width: 560px;
-  padding-bottom: 6vh;
+  text-align: center;
 }
 
 .headline {
   margin: 0;
-  padding-top: 26px;
-  font: 800 clamp(36px, 3.4vw, 60px) / 1.12 var(--tl-font-family);
-  letter-spacing: -0.02em;
+  font: 800 38px / 1.14 var(--tl-font-family);
+  letter-spacing: -0.01em;
   color: var(--login-on-dark);
-  text-shadow: 0 2px 16px rgb(0 0 0 / 0.25);
+  text-shadow: 0 2px 14px rgb(0 0 0 / 0.25);
 }
 
-/* Short lime rule above the headline, as in the reference. */
+/* Short lime rule above the headline. */
 .headline::before {
   content: '';
   display: block;
   width: 96px;
   height: 6px;
-  margin-bottom: 26px;
+  margin: 0 auto 24px;
   border-radius: 3px;
   background: var(--login-lime);
 }
@@ -127,16 +123,17 @@
 
 .lead {
   max-width: 470px;
-  margin: 28px 0 0;
-  padding-top: 26px;
-  border-top: 3px solid rgb(255 255 255 / 0.85);
-  font: 400 clamp(16px, 1.25vw, 20px) / 1.5 var(--tl-font-family);
+  margin: 26px auto 0;
+  padding-top: 24px;
+  border-top: 3px solid rgb(255 255 255 / 0.9);
+  font: 400 17px / 1.45 var(--tl-font-family);
   color: var(--login-on-dark-muted);
 }
 
 .features {
   display: flex;
-  margin: 40px 0 0;
+  justify-content: center;
+  margin: 32px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -145,72 +142,83 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 150px;
-  padding: 0 12px;
+  padding: 0 8px;
   font: 500 15px / 1.3 var(--tl-font-family);
   color: var(--login-on-dark);
   text-align: center;
 }
 
 .feature + .feature {
-  border-left: 1px solid rgb(255 255 255 / 0.35);
+  border-left: 1.5px solid rgb(255 255 255 / 0.45);
 }
 
 .featureIcon {
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 54px;
-  border: 2px solid var(--login-lime);
+  width: 56px;
+  height: 56px;
+  border: 2.5px solid var(--login-lime);
   border-radius: 14px;
-  background: rgb(10 50 22 / 0.55);
+  background: rgb(150 220 40 / 0.16);
+  box-shadow: 0 0 14px rgb(184 240 52 / 0.25);
   color: var(--login-lime);
 }
 
-/* Decorative mark between the introduction and the card (wide screens only). */
 .illustration {
+  display: none;
+}
+
+.wave {
   display: none;
 }
 
 /* ---- Card ---- */
 .card {
-  grid-area: card;
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 22px;
   width: 100%;
-  padding: 44px 44px 28px;
-  border: 1px solid rgb(255 255 255 / 0.7);
-  border-radius: 28px;
-  background: linear-gradient(180deg, #ffffff 0%, #f7f9f7 100%);
+  max-width: 540px;
+  padding: 40px 36px 28px;
+  border: 1px solid rgb(255 255 255 / 0.8);
+  border-radius: 32px;
+  background: linear-gradient(180deg, #fbfcfb 0%, #f1f3f1 100%);
   color: var(--login-ink);
   box-shadow:
-    0 2px 6px rgb(6 30 14 / 0.12),
-    0 24px 60px rgb(6 30 14 / 0.28);
+    inset 0 0 0 1px rgb(255 255 255 / 0.6),
+    0 4px 10px rgb(6 30 14 / 0.14),
+    0 28px 70px rgb(6 30 14 / 0.32);
 }
 
 .heading {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  margin-bottom: 26px;
   text-align: center;
 }
 
 .title {
   margin: 0;
-  font: 800 clamp(30px, 2.4vw, 38px) / 1.15 var(--tl-font-family);
+  font: 800 34px / 1.12 var(--tl-font-family);
   letter-spacing: -0.02em;
   color: var(--login-ink);
 }
 
 .subtitle {
   margin: 0;
-  font: 500 15px / 1.45 var(--tl-font-family);
+  font: 500 16px / 1.4 var(--tl-font-family);
   color: var(--login-muted);
   text-wrap: balance;
+}
+
+/* Notices (session expired, sign-in failure) sit between the heading and the form. */
+.card > .heading + div:not(.form),
+.card > .heading + div:not(.form) + div:not(.form) {
+  margin-bottom: 16px;
 }
 
 /* ---- Form ----
@@ -219,21 +227,53 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
 }
 
+.userField > div,
+.passwordField > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.passwordField {
+  margin-top: 18px;
+}
+
+/* Field labels carry a person or lock glyph, as in the reference. */
 .form label {
-  font: 700 14px / 1.3 var(--tl-font-family);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 16px / 1.3 var(--tl-font-family);
   color: var(--login-ink);
 }
 
+.userField label::before,
+.passwordField label::before {
+  content: '';
+  flex: none;
+  width: 20px;
+  height: 20px;
+  background: center / contain no-repeat;
+}
+
+.userField label::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23111a14'%3E%3Ccircle cx='12' cy='7.5' r='4.5'/%3E%3Cpath d='M3.5 21c0-4.7 3.8-8 8.5-8s8.5 3.3 8.5 8z'/%3E%3C/svg%3E");
+}
+
+.passwordField label::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111a14' stroke-width='2.4'%3E%3Crect x='4.5' y='10.5' width='15' height='11' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
+}
+
 .form.form [data-appearance='auth'] {
-  height: 50px;
-  padding: 0 18px;
+  height: 52px;
+  padding: 0 20px;
+  gap: 14px;
   border: 1px solid var(--login-control-border);
   border-radius: 999px;
   background: #fff;
-  box-shadow: 0 1px 2px rgb(16 24 40 / 0.05);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.06);
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -241,8 +281,12 @@
 
 .form.form [data-appearance='auth'] input {
   background: transparent;
-  font: 400 15px / 1.2 var(--tl-font-family);
+  font: 400 16px / 1.2 var(--tl-font-family);
   color: var(--login-ink);
+}
+
+.form.form [data-appearance='auth'] input::placeholder {
+  color: #4b524d;
 }
 
 /* Browser autofill must not paint the inputs blue or yellow. */
@@ -261,12 +305,12 @@
 }
 
 .form [data-appearance='auth']:hover {
-  border-color: #aab5ad;
+  border-color: #a9b4ac;
 }
 
 .form [data-appearance='auth']:focus-within {
   border-color: var(--login-accent);
-  box-shadow: 0 0 0 3px rgb(46 125 50 / 0.18);
+  box-shadow: 0 0 0 3px rgb(31 138 44 / 0.2);
 }
 
 .form [data-appearance='auth'][data-invalid='true'] {
@@ -275,8 +319,8 @@
 }
 
 .form [data-appearance='auth'] > svg:first-child {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   color: var(--login-accent);
 }
 
@@ -285,8 +329,8 @@
 }
 
 .form [data-appearance='auth'] button svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .options {
@@ -295,23 +339,37 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
+  margin-top: 20px;
 }
 
 .options label {
-  font: 600 14px / 1.3 var(--tl-font-family);
-  color: var(--login-ink);
+  font: 700 15px / 1.3 var(--tl-font-family);
+}
+
+/* Remember User ID: a larger, rounded box that fills green when checked. */
+.options input[type='checkbox'] + span {
+  width: 22px;
+  height: 22px;
+  border-width: 1.5px;
+  border-radius: 5px;
+}
+
+.options input[type='checkbox']:checked + span {
+  border-color: #1a6f21;
+  background: #1a6f21;
 }
 
 .textButton {
   padding: 2px 0;
-  font: 600 14px / 1.3 var(--tl-font-family);
-  color: var(--login-button);
+  font: 700 15px / 1.3 var(--tl-font-family);
+  color: var(--login-link);
   text-decoration: underline;
+  text-decoration-thickness: 1.5px;
   text-underline-offset: 3px;
 }
 
 .textButton:hover {
-  color: var(--login-button-hover);
+  color: #0f6420;
   text-decoration-thickness: 2px;
 }
 
@@ -321,27 +379,30 @@
   box-shadow: var(--tl-focus-ring);
 }
 
-/* Dark-green pill with a restrained lime edge; white label and a small arrow. */
+/* Dark-green pill with a lime highlight; white label and arrow. */
 .submit.submit {
   width: 100%;
-  height: 54px;
-  margin-top: 6px;
-  gap: 10px;
+  height: 56px;
+  margin-top: 26px;
+  gap: 14px;
+  align-self: center;
   border: 0;
   border-radius: 999px;
-  background: linear-gradient(180deg, #23802c 0%, var(--login-button) 100%);
+  background: linear-gradient(180deg, var(--login-button-top) 0%, var(--login-button) 46%, var(--login-button-bottom) 100%);
   box-shadow:
-    inset 0 -2px 0 rgb(180 236 60 / 0.45),
-    0 6px 16px rgb(20 90 30 / 0.28);
-  font: 700 18px / 1 var(--tl-font-family);
+    inset 0 2px 0 rgb(214 255 120 / 0.45),
+    inset 0 -3px 0 rgb(0 0 0 / 0.12),
+    0 8px 18px rgb(10 70 18 / 0.32);
+  font: 700 20px / 1 var(--tl-font-family);
+  letter-spacing: 0.01em;
   color: #fff;
   transition:
-    background 0.15s ease,
+    filter 0.15s ease,
     box-shadow 0.15s ease;
 }
 
 .submit.submit:hover:not(:disabled) {
-  background: linear-gradient(180deg, #1e7326 0%, var(--login-button-hover) 100%);
+  filter: brightness(1.08);
 }
 
 .submit.submit:focus-visible {
@@ -353,195 +414,52 @@
 
 .submit.submit:disabled,
 .submit.submit[aria-busy='true'] {
-  background: #4f8a55;
+  background: #5a8f5e;
   box-shadow: none;
+  filter: none;
   cursor: progress;
 }
 
-/* ---- Secure access note ---- */
+/* ---- Secure access panel ---- */
 .secure {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px 20px;
-  margin: 4px 0 0;
-  padding: 14px 20px;
+  gap: 6px 22px;
+  margin: 24px 0 0;
+  padding: 14px 22px;
   border-radius: 999px;
-  background: #ecf4ec;
-  font: 400 13px / 1.35 var(--tl-font-family);
-  color: var(--login-muted);
+  background: linear-gradient(90deg, #ddeedb 0%, #e9f3e7 55%, #eef5ec 100%);
+  font: 400 14px / 1.35 var(--tl-font-family);
+  color: #2f3832;
 }
 
 .secureTitle {
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 10px;
-  font: 700 15px / 1.2 var(--tl-font-family);
+  gap: 14px;
+  font: 700 16px / 1.2 var(--tl-font-family);
   color: var(--login-ink);
 }
 
 .secureTitle svg {
   flex: none;
-  color: var(--login-button);
+  width: 28px;
+  height: 28px;
+  color: #1a6f21;
 }
 
 .secureText {
-  padding-left: 20px;
-  border-left: 1px solid #b9c9bb;
+  padding-left: 22px;
+  border-left: 2px solid #3b8a40;
   text-wrap: balance;
 }
 
-/* ---- Wide screens: show the decorative mark between the columns ---- */
-@media (min-width: 1360px) and (min-height: 700px) {
-  /* Shares the introduction's cell, aligned to its right edge and reaching into the gap. */
-  .illustration {
-    grid-area: intro;
-    display: block;
-    justify-self: end;
-    align-self: center;
-    width: clamp(180px, 13vw, 240px);
-    height: auto;
-    margin-bottom: 6vh;
-    transform: translateX(clamp(16px, 2vw, 48px));
-    filter: drop-shadow(0 0 22px rgb(150 240 90 / 0.35));
-    pointer-events: none;
-  }
-
-  .intro {
-    position: relative;
-    z-index: 1;
-  }
-}
-
-/* Large and 4K displays: scale the whole composition instead of leaving it small. */
-@media (min-width: 2400px) and (min-height: 1400px) {
-  .shell {
-    zoom: 1.5;
-    min-height: calc(100dvh / 1.5);
-  }
-}
-
-/* Short laptop screens: tighten spacing so everything fits without scrolling. */
-@media (min-width: 1024px) and (max-height: 800px) {
-  .shell {
-    row-gap: 12px;
-    padding-block: 20px;
-  }
-
-  .card {
-    gap: 16px;
-    padding: 30px 36px 22px;
-  }
-
-  .form {
-    gap: 12px;
-  }
-
-  .headline {
-    padding-top: 0;
-    font-size: clamp(32px, 3.2vw, 48px);
-  }
-
-  .headline::before {
-    margin-bottom: 18px;
-  }
-
-  .lead {
-    margin-top: 20px;
-    padding-top: 18px;
-  }
-
-  .features {
-    margin-top: 26px;
-  }
-}
-
-/* Laptops: the tagline would wrap under the logo beside the card column, so it is left out. */
-@media (min-width: 1024px) and (max-width: 1359px) {
-  .tagline {
-    display: none;
-  }
-}
-
-/* Small laptops: narrower card column. */
-@media (min-width: 1024px) and (max-width: 1199px) {
-  .shell {
-    grid-template-columns: minmax(0, 1fr) 400px;
-    column-gap: 32px;
-    padding-inline: 32px;
-  }
-
-  .feature {
-    width: 120px;
-    font-size: 14px;
-  }
-
-  .secure {
-    flex-direction: column;
-    gap: 4px;
-    border-radius: 16px;
-    text-align: center;
-  }
-
-  .secureText {
-    padding-left: 0;
-    border-left: 0;
-  }
-}
-
-/* Tablets: one column, introduction above the card, both centred. */
-@media (max-width: 1023px) {
-  .page {
-    overflow: visible;
-    background-image:
-      linear-gradient(180deg, rgb(7 36 17 / 0.88) 0%, rgb(9 44 20 / 0.7) 45%, rgb(9 44 20 / 0.5) 100%),
-      url('../../../../../assets/brand/login-background-1000.webp');
-    background-attachment: scroll;
-  }
-
-  .shell {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
-    grid-template-areas:
-      'brand'
-      'intro'
-      'card';
-    justify-items: center;
-    row-gap: 32px;
-    padding: 32px 32px 48px;
-  }
-
-  .brandBar {
-    justify-content: center;
-  }
-
-  .intro {
-    padding-bottom: 0;
-    text-align: center;
-  }
-
-  .headline::before {
-    margin-inline: auto;
-  }
-
-  .lead {
-    margin-inline: auto;
-  }
-
-  .features {
-    justify-content: center;
-  }
-
-  .card {
-    max-width: 520px;
-  }
-}
-
-/* Phones: the logo, a compact heading, then the form. Decorative content is hidden. */
+/* Phones: brand, a compact heading, then the form. Decorative content is hidden. */
 @media (max-width: 767px) {
-  .shell {
-    row-gap: 20px;
+  .stage {
+    gap: 20px;
     padding: 24px 16px 32px;
   }
 
@@ -558,43 +476,46 @@
     font-size: 11px;
   }
 
-  .tagline {
-    display: none;
-  }
-
-  .headline {
-    padding-top: 0;
-    font-size: 26px;
-  }
-
+  .tagline,
   .headline::before,
   .lead,
   .features {
     display: none;
   }
 
-  .card {
-    gap: 18px;
-    padding: 28px 20px 20px;
-    border-radius: 22px;
-  }
-
-  .title {
+  .headline {
     font-size: 26px;
   }
 
-  .form.form [data-appearance='auth'] {
-    height: 50px;
+  .card {
+    padding: 28px 20px 20px;
+    border-radius: 24px;
   }
 
-  /* 16px text prevents iOS zoom on focus. */
-  .form.form [data-appearance='auth'] input {
-    font-size: 16px;
+  .heading {
+    margin-bottom: 20px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .subtitle {
+    font-size: 15px;
+  }
+
+  .options label,
+  .textButton {
+    font-size: 14px;
+  }
+
+  .options {
+    gap: 10px 12px;
   }
 
   .secure {
     flex-direction: column;
-    border-radius: 16px;
+    border-radius: 18px;
     text-align: center;
   }
 
@@ -616,6 +537,292 @@
   .options {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* ================= Desktop: the reference composition ================= */
+@media (min-width: 1024px) {
+  .page {
+    /* One reference pixel. Never smaller than 0.66px, so text stays readable at 1024px. */
+    --u: max(0.66px, min(calc(100vw / 1758), calc(100vh / 895)));
+    --u: max(0.66px, min(calc(100vw / 1758), calc(100dvh / 895)));
+
+    justify-content: center;
+    background-image:
+      linear-gradient(90deg, rgb(4 30 16 / 0.92) 0%, rgb(6 38 20 / 0.8) 24%, rgb(8 44 22 / 0.42) 46%, rgb(8 44 22 / 0.08) 60%, rgb(8 44 22 / 0) 70%),
+      url('../../../../../assets/brand/login-background.webp');
+  }
+
+  .stage {
+    display: block;
+    width: min(100%, calc(1758 * var(--u)));
+    max-width: none;
+    height: calc(895 * var(--u));
+    padding: 0;
+  }
+
+  .brandBar {
+    position: absolute;
+    top: calc(56 * var(--u));
+    left: calc(90 * var(--u));
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: calc(22 * var(--u));
+  }
+
+  .brandMark {
+    width: calc(78 * var(--u));
+    height: calc(78 * var(--u));
+  }
+
+  .wordmarkName {
+    font-size: calc(51 * var(--u));
+    letter-spacing: -0.01em;
+  }
+
+  .wordmarkSub {
+    margin-top: calc(8 * var(--u));
+    font-size: calc(20 * var(--u));
+    letter-spacing: 0.25em;
+  }
+
+  .tagline {
+    margin-left: calc(20 * var(--u));
+    padding-left: calc(34 * var(--u));
+    border-left-width: calc(2.5 * var(--u));
+    font-size: calc(20 * var(--u));
+    line-height: calc(64 * var(--u));
+    letter-spacing: 0.17em;
+  }
+
+  .intro {
+    position: absolute;
+    top: calc(236 * var(--u));
+    left: calc(115 * var(--u));
+    width: calc(560 * var(--u));
+    max-width: none;
+    text-align: left;
+  }
+
+  .headline {
+    font-size: calc(58 * var(--u));
+    line-height: calc(66 * var(--u));
+  }
+
+  .headline::before {
+    width: calc(97 * var(--u));
+    height: calc(7 * var(--u));
+    margin: 0 0 calc(28 * var(--u));
+    border-radius: calc(4 * var(--u));
+  }
+
+  /* The rule under the headline is shorter than the text, as in the reference. */
+  .lead {
+    position: relative;
+    max-width: calc(480 * var(--u));
+    margin: calc(26 * var(--u)) 0 0;
+    padding-top: calc(30 * var(--u));
+    border-top: 0;
+    font-size: max(13px, calc(22 * var(--u)));
+    line-height: 1.32;
+  }
+
+  .lead::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(317 * var(--u));
+    height: calc(4 * var(--u));
+    border-radius: calc(2 * var(--u));
+    background: rgb(255 255 255 / 0.92);
+  }
+
+  .features {
+    justify-content: flex-start;
+    margin: calc(66 * var(--u)) 0 0 calc(-25 * var(--u));
+  }
+
+  .feature {
+    width: calc(176 * var(--u));
+    gap: calc(20 * var(--u));
+    padding: 0;
+    font-size: max(12px, calc(19 * var(--u)));
+    line-height: calc(24 * var(--u));
+  }
+
+  .feature + .feature {
+    border-left-width: calc(2 * var(--u));
+  }
+
+  .featureIcon {
+    width: calc(64 * var(--u));
+    height: calc(62 * var(--u));
+    border-width: calc(2.5 * var(--u));
+    border-radius: calc(14 * var(--u));
+  }
+
+  .featureIcon svg {
+    width: calc(32 * var(--u));
+    height: calc(32 * var(--u));
+  }
+
+  /* Card: 660 x 692 reference pixels, 105 from the top and 101 from the right. */
+  .card {
+    position: absolute;
+    top: calc(105 * var(--u));
+    right: calc(101 * var(--u));
+    width: calc(660 * var(--u));
+    max-width: none;
+    padding: calc(86 * var(--u)) calc(35 * var(--u)) calc(37 * var(--u));
+    border-radius: calc(58 * var(--u));
+  }
+
+  .card > :not(.secure) {
+    margin-inline: calc(28 * var(--u));
+  }
+
+  .heading {
+    gap: calc(12 * var(--u));
+    margin-bottom: calc(26 * var(--u));
+  }
+
+  .title {
+    font-size: calc(56 * var(--u));
+    line-height: calc(62 * var(--u));
+  }
+
+  .subtitle {
+    font-size: max(13px, calc(20.5 * var(--u)));
+  }
+
+  .card > .heading + div:not(.form),
+  .card > .heading + div:not(.form) + div:not(.form) {
+    margin-bottom: calc(16 * var(--u));
+  }
+
+  .userField > div,
+  .passwordField > div {
+    gap: calc(12 * var(--u));
+  }
+
+  .passwordField {
+    margin-top: calc(16 * var(--u));
+  }
+
+  .form label {
+    gap: calc(14 * var(--u));
+    font-size: max(13px, calc(20 * var(--u)));
+  }
+
+  .userField label::before,
+  .passwordField label::before {
+    width: calc(26 * var(--u));
+    height: calc(26 * var(--u));
+  }
+
+  .form.form [data-appearance='auth'] {
+    height: max(36px, calc(53 * var(--u)));
+    padding: 0 calc(26 * var(--u));
+    gap: calc(20 * var(--u));
+  }
+
+  .form.form [data-appearance='auth'] input {
+    font-size: max(14px, calc(19.5 * var(--u)));
+  }
+
+  .form [data-appearance='auth'] > svg:first-child,
+  .form [data-appearance='auth'] button svg {
+    width: calc(30 * var(--u));
+    height: calc(30 * var(--u));
+  }
+
+  .options {
+    margin-top: calc(18 * var(--u));
+    padding-left: calc(6 * var(--u));
+  }
+
+  .options label {
+    gap: calc(14 * var(--u));
+    font-size: max(13px, calc(19.5 * var(--u)));
+  }
+
+  .options input[type='checkbox'] + span {
+    width: calc(27 * var(--u));
+    height: calc(27 * var(--u));
+    border-radius: calc(5 * var(--u));
+  }
+
+  .textButton {
+    font-size: max(13px, calc(20 * var(--u)));
+  }
+
+  /* Centred 350 x 62 pill. */
+  .submit.submit {
+    width: calc(350 * var(--u));
+    height: max(44px, calc(62 * var(--u)));
+    margin-top: calc(26 * var(--u));
+    gap: calc(20 * var(--u));
+    font-size: max(16px, calc(29 * var(--u)));
+  }
+
+  .submit.submit svg {
+    width: calc(30 * var(--u));
+    height: calc(30 * var(--u));
+  }
+
+  .secure {
+    gap: calc(28 * var(--u));
+    min-height: calc(76 * var(--u));
+    margin-top: calc(26 * var(--u));
+    padding: calc(10 * var(--u)) calc(36 * var(--u));
+    border-radius: calc(38 * var(--u));
+    font-size: max(12px, calc(18 * var(--u)));
+  }
+
+  .secureTitle {
+    gap: calc(28 * var(--u));
+    font-size: max(13px, calc(22 * var(--u)));
+  }
+
+  .secureTitle svg {
+    width: calc(40 * var(--u));
+    height: calc(40 * var(--u));
+  }
+
+  .secureText {
+    padding-left: calc(24 * var(--u));
+    border-left-width: calc(2.5 * var(--u));
+  }
+
+  /* Decorative illustration: frame at 652-957 x 362-608 in the reference. */
+  .illustration {
+    position: absolute;
+    top: calc(342 * var(--u));
+    left: calc(632 * var(--u));
+    display: block;
+    width: calc(345 * var(--u));
+    height: auto;
+    pointer-events: none;
+  }
+
+  .wave {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 0;
+    display: block;
+    width: 100%;
+    height: calc(200 * var(--u));
+  }
+}
+
+/* Narrow desktops: the illustration and tagline would meet the card, so they are left out. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .illustration,
+  .tagline {
+    display: none;
   }
 }
 
