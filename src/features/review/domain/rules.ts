@@ -5,6 +5,7 @@
  */
 import type {
   ApproveCorrectionInput,
+  ExpertDiagnosisInput,
   Correction,
   CorrectionRequestInput,
   CorrectionStatus,
@@ -83,6 +84,19 @@ export function canStartReview(status: ReviewStatus): boolean {
 /** Kept for callers: claiming is the same as starting the review. */
 export const canClaim = canStartReview
 
+/** An expert diagnosis can be recorded while the observation is Referred and its case has no diagnosis yet. */
+export function canRecordDiagnosis(status: ReviewStatus): boolean {
+  return status === 'referred'
+}
+
+/**
+ * End Process completes the decision process of an observation that has been decided (Verified)
+ * or referred (Referred, or Decision once the expert's diagnosis is in). It is offered once.
+ */
+export function canEndProcess(status: ReviewStatus, processEndedAt: string | null): boolean {
+  return processEndedAt === null && (status === 'verified' || status === 'referred' || status === 'decision')
+}
+
 /** REV-10: only a resubmitted revision can be compared and approved. */
 export function canApproveCorrection(status: CorrectionStatus): boolean {
   return status === 'resubmitted'
@@ -150,6 +164,20 @@ export function correctionRequestErrors(input: CorrectionRequestInput): FieldErr
   return errors
 }
 
+const SEVERITIES: readonly string[] = ['Low', 'Moderate', 'High', 'Critical']
+
+/** Diagnosis form: disease, symptoms, severity, clinical findings, reasoning and recommended action are required; the follow-up plan is optional. */
+export function expertDiagnosisErrors(input: ExpertDiagnosisInput): FieldErrors {
+  const errors: FieldErrors = {}
+  if (blank(input.diseaseId)) errors.diseaseId = 'Select the confirmed disease'
+  if (blank(input.symptomsConfirmed)) errors.symptomsConfirmed = 'Describe the symptoms confirmed'
+  if (!SEVERITIES.includes(input.severity)) errors.severity = 'Select a severity level'
+  if (blank(input.clinicalFindings)) errors.clinicalFindings = 'Enter the clinical findings'
+  if (blank(input.reasoning)) errors.reasoning = 'Enter the reasoning behind the diagnosis'
+  if (blank(input.recommendedAction)) errors.recommendedAction = 'Enter the recommended action'
+  return errors
+}
+
 /** REV-12: "Disease expert *" and "Referral note *". */
 export function referralErrors(input: ReferralInput): FieldErrors {
   const errors: FieldErrors = {}
@@ -204,6 +232,10 @@ export function attentionItems(workspace: ReviewWorkspace): AttentionItem[] {
     if (observation.reviewStatus === 'flagged' && workspace.followUpObservationIds.includes(observation.id)) {
       items.push({ id: observation.id, title: `${observation.id} flagged`, detail: `${observation.division.name} · follow-up needed`, to: `/review/observations/${observation.id}` })
     }
+  }
+  for (const item of workspace.divisionQuarantines.filter((row) => row.status === 'Active')) {
+    const open = item.assignments.filter((row) => ['draft', 'assigned', 'in_progress'].includes(row.status)).length
+    items.push({ id: item.id, title: `${item.id} · ${item.division.name} restricted`, detail: `Restricted Operations · ${open ? `${open} open quarantine assignment${open === 1 ? '' : 's'}` : 'no quarantine assignment yet'}`, to: `/review/quarantine/divisions/${item.id}` })
   }
   for (const item of workspace.quarantine) {
     const to = `/review/quarantine/${item.id}`

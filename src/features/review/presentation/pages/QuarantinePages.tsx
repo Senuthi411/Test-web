@@ -1,65 +1,40 @@
 import type { ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router'
-import { Banner, Button, ButtonLink, Card, DataTable, EmptyState, KpiCard, PageHeader, Timeline, usePageBreadcrumbs, type KpiTone } from '@/shared/components'
-import { QUARANTINE_STATE_LABEL, type QuarantineItem, type QuarantineState } from '../../domain/models'
+import { useParams } from 'react-router'
+import { Banner, Button, ButtonLink, Card, EmptyState, PageHeader, Timeline, usePageBreadcrumbs } from '@/shared/components'
+import { type QuarantineItem, type QuarantineState } from '../../domain/models'
 import { QueryBoundary, QuarantineBadge } from '../components/badges'
 import { formatDate, formatDateTime, reviewPaths } from '../components/format'
-import { Fields, IdLink } from '../components/parts'
+import { Fields } from '../components/parts'
 import { useReviewWorkspace } from '../services/queries'
+import { DivisionStatusOverview } from './DivisionQuarantinePages'
 import styles from '../components/review.module.css'
 
-const STATES: Array<{ state: QuarantineState; tone: KpiTone }> = [
-  { state: 'pending_decision', tone: 'warning' },
-  { state: 'released_pending_ingest', tone: 'info' },
-  { state: 'ingest_retry_required', tone: 'purple' },
-  { state: 'rejected', tone: 'success' },
-]
-
-const actionLabel = (state: QuarantineState) => (state === 'pending_decision' ? 'Decide →' : state === 'rejected' ? 'View →' : 'Track →')
-
-/** REV-14 Quarantine Queue. */
+/**
+ * REV-14 Division Quarantine: the operational status of every division, the division quarantine records,
+ * and the action that starts a new quarantine. The offline-ingest records keep their own record pages
+ * (REV-15/REV-16) and their data; they are no longer a tab here.
+ */
 export function QuarantineQueuePage() {
-  usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Quarantine Queue' }])
+  usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Division Quarantine' }])
   const query = useReviewWorkspace()
-  const navigate = useNavigate()
   return (
-    <QueryBoundary query={query} label="quarantine queue">
+    <QueryBoundary query={query} label="division quarantine">
       {(workspace) => (
         <div className={styles.page}>
           <PageHeader
-            title="Quarantine Queue"
+            title="Division Quarantine"
             actions={
-              <Button variant="secondary" icon="refresh" onClick={() => void query.refetch()} loading={query.isFetching}>
-                Refresh
-              </Button>
+              <>
+                <Button variant="secondary" icon="refresh" onClick={() => void query.refetch()} loading={query.isFetching}>
+                  Refresh
+                </Button>
+                <ButtonLink icon="plus" to={reviewPaths.divisionQuarantineNew}>
+                  Quarantine a Division
+                </ButtonLink>
+              </>
             }
           />
-          <div className={styles.kpiRow4}>
-            {STATES.map(({ state, tone }) => {
-              const items = workspace.quarantine.filter((item) => item.state === state)
-              return <KpiCard key={state} label={QUARANTINE_STATE_LABEL[state]} value={items.length} icon="archive" tone={tone} caption={items.map((item) => item.id).join(', ') || 'None'} />
-            })}
-          </div>
-          <Card>
-            <DataTable<QuarantineItem>
-              caption="Quarantined offline items"
-              rows={workspace.quarantine}
-              rowKey={(row) => row.id}
-              onRowActivate={(row) => navigate(reviewPaths.quarantineItem(row.id))}
-              rowLabel={(row) => `Open quarantine record ${row.id}`}
-              empty={<EmptyState title="No quarantined items in your scope" message="Offline items held for a decision appear here." icon="archive" />}
-              columns={[
-                { id: 'record', header: 'Record', cell: (row) => <IdLink to={reviewPaths.quarantineItem(row.id)}>{row.id}</IdLink> },
-                { id: 'device', header: 'Device observation', cell: (row) => row.deviceObservationId },
-                { id: 'estate', header: 'Estate', cell: (row) => `${row.estate.name.replace(' Tea Estate', '')} (${row.estate.id})` },
-                { id: 'division', header: 'Division', cell: (row) => row.division.name },
-                { id: 'captured', header: 'Captured', cell: (row) => formatDate(row.capturedAt) },
-                { id: 'reason', header: 'Reason', cell: (row) => row.reason },
-                { id: 'state', header: 'State', cell: (row) => <QuarantineBadge state={row.state} /> },
-                { id: 'action', header: 'Action', align: 'end', cell: (row) => <IdLink to={reviewPaths.quarantineItem(row.id)}>{actionLabel(row.state)}</IdLink> },
-              ]}
-            />
-          </Card>
+          <DivisionStatusOverview workspace={workspace} />
         </div>
       )}
     </QueryBoundary>
@@ -68,7 +43,7 @@ export function QuarantineQueuePage() {
 
 function QuarantineBoundary({ title, children }: { title: string; children: (item: QuarantineItem, refetch: () => void, refreshing: boolean) => ReactNode }) {
   const { quarantineId = '' } = useParams()
-  usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Quarantine Queue', to: reviewPaths.quarantine }, { label: quarantineId, to: reviewPaths.quarantineItem(quarantineId) }, { label: title }])
+  usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Division Quarantine', to: reviewPaths.quarantine }, { label: quarantineId, to: reviewPaths.quarantineItem(quarantineId) }, { label: title }])
   const query = useReviewWorkspace()
   return (
     <QueryBoundary query={query} label={title}>

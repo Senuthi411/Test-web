@@ -65,6 +65,10 @@ export type DecisionOutcome =
   | 'revision_applied'
   | 'referred'
   | 'released'
+  | 'process_ended'
+  | 'quarantined'
+  | 'quarantine_assignment'
+  | 'quarantine_released'
 
 export const DECISION_OUTCOME_LABEL: Record<DecisionOutcome, string> = {
   verified: 'Verified',
@@ -75,6 +79,10 @@ export const DECISION_OUTCOME_LABEL: Record<DecisionOutcome, string> = {
   revision_applied: 'RevisionApplied',
   referred: 'Referred',
   released: 'Released',
+  process_ended: 'Process ended',
+  quarantined: 'Quarantined',
+  quarantine_assignment: 'Quarantine assignment',
+  quarantine_released: 'Quarantine released',
 }
 
 /** REV-13 link status and case status. */
@@ -113,8 +121,80 @@ export interface ReviewObservation {
   assignmentId: string | null
   /** Time of the final decision (Verified or Flagged); null while the review is not finished. */
   finalisedAt: string | null
-  /** When the observation moved from the Review Queue to Observation History (24 h after finalisedAt). */
+  /** When the observation moved from the Review Queue to Observation History (24 h after finalisedAt, or when End Process was used). */
   archivedAt: string | null
+  /** When the Supervisor ended the decision process (End Process); null otherwise. The review status is not changed by it. */
+  processEndedAt: string | null
+}
+
+export const SEVERITY_LEVELS = ['Low', 'Moderate', 'High', 'Critical'] as const
+export type SeverityLevel = (typeof SEVERITY_LEVELS)[number]
+
+/** The expert's full diagnosis for an observation's case (sections A–H of the diagnosis record). */
+export interface ExpertDiagnosis {
+  /** A. Case and reference details (linked automatically). */
+  caseId: string | null
+  referralId: string
+  observationId: string
+  estate: { id: string; name: string }
+  division: { id: string; name: string }
+  expert: string
+  diagnosedAt: string
+  /** B. Decision status. */
+  caseStatus: 'Diagnosed' | 'Closed'
+  closedAt: string | null
+  /** C. Confirmed disease from the Active Disease Catalog, with the catalog version pinned at diagnosis. */
+  disease: { id: string; name: string }
+  catalogVersion: number | null
+  /** D–H. */
+  symptomsConfirmed: string
+  severity: SeverityLevel | null
+  clinicalFindings: string
+  reasoning: string
+  recommendedAction: string
+  followUpDescription: string
+  monitoringWindow: string
+  inspectionFocus: string
+}
+
+export type DivisionOperationalStatus = 'normal' | 'restricted'
+export const OPERATIONAL_STATUS_LABEL: Record<DivisionOperationalStatus, string> = { normal: 'Normal Operations', restricted: 'Restricted Operations' }
+
+/**
+ * A division quarantine: the division is under Restricted Operations (normal field activities are
+ * restricted; only Supervisor-authorised assignments are allowed). The disease and severity are the
+ * expert's findings at the time the Supervisor quarantined the division.
+ */
+export interface DivisionQuarantine {
+  id: string
+  estate: { id: string; name: string }
+  division: { id: string; name: string }
+  observationId: string
+  caseId: string | null
+  referralId: string | null
+  disease: { id: string; name: string } | null
+  severity: string | null
+  reason: string
+  policy: 'Restricted Operations'
+  status: 'Active' | 'Released'
+  /** Set once the Supervisor has released the division from this quarantine. */
+  release: { at: string; by: string; reason: string } | null
+  /** The division's current operational status (from the division record). */
+  operationalStatus: DivisionOperationalStatus
+  initiatedBy: string
+  initiatedAt: string
+  /** Quarantine Assignments created under this quarantine, with their current status. */
+  assignments: Array<{ id: string; title: string; status: string; fieldWorker: string | null }>
+  history: Array<{ id: string; event: string; at: string; by: string; note: string | null }>
+  /** The expert diagnosis the quarantine acts on. */
+  diagnosis: ExpertDiagnosis | null
+}
+
+/** An Active Disease Catalog entry offered when recording a diagnosis. */
+export interface CatalogDisease {
+  id: string
+  name: string
+  catalogVersion: number
 }
 
 /** The expert's diagnosis received through the referral (status Decision). */
@@ -184,12 +264,20 @@ export interface ObservationReview {
   /** Open correction for this observation, if any. */
   correctionId: string | null
   referralId: string | null
+  /** The expert referral for this observation (case linked once the case exists). */
+  referral: { id: string; caseId: string | null; expert: string } | null
   experts: ExpertOption[]
   /** Every submitted revision, oldest first. The last one is the revision under review. */
   revisions: ReviewRevision[]
   /** Correction requests, each linked to the revision it was requested on. */
   requests: RevisionRequest[]
   expertDecision: ExpertDecision | null
+  /** The recorded expert diagnosis (all sections); null until one is recorded. */
+  expertDiagnosis: ExpertDiagnosis | null
+  /** Active Disease Catalog entries, for the diagnosis form. */
+  catalog: CatalogDisease[]
+  /** Set when this observation's division is under Restricted Operations. */
+  divisionQuarantine: DivisionQuarantine | null
 }
 
 export interface ExpertOption extends PersonRef {
@@ -234,7 +322,7 @@ export interface Referral {
   caseId: string | null
   caseCreatedAt: string | null
   caseStatus: ReferralCaseStatus | null
-  diagnosis: { id: string; disease: { id: string; name: string }; at: string; statement: string } | null
+  diagnosis: { id: string; disease: { id: string; name: string }; at: string; statement: string; severity: string | null } | null
 }
 
 export interface QuarantineItem {
@@ -268,7 +356,9 @@ export interface ReviewDecision {
 export interface ReviewWorkspace {
   actor: PersonRef
   estates: Array<{ id: string; name: string }>
-  divisions: Array<{ id: string; name: string; estateId: string }>
+  divisions: Array<{ id: string; name: string; estateId: string; operationalStatus: DivisionOperationalStatus }>
+  /** Division quarantines (Restricted Operations) in the Supervisor's estates. */
+  divisionQuarantines: DivisionQuarantine[]
   observations: ReviewObservation[]
   corrections: Correction[]
   referrals: Referral[]
@@ -284,6 +374,31 @@ export interface DecisionMeta {
   expectedVersion: number
   /** One key per submitted form; repeating it never applies a decision twice. */
   idempotencyKey: string
+}
+
+/** Sections C–H of the diagnosis form; the catalog version and case links are added by the data layer. */
+export interface ExpertDiagnosisInput {
+  diseaseId: string
+  symptomsConfirmed: string
+  severity: string
+  clinicalFindings: string
+  reasoning: string
+  recommendedAction: string
+  followUpDescription: string
+  monitoringWindow: string
+  inspectionFocus: string
+  /** Close Case: records the diagnosis as Closed with its closing time; otherwise the case stays Diagnosed. */
+  closeCase: boolean
+}
+
+export interface ReleaseDivisionInput {
+  /** Why the division is released from quarantine (required). */
+  reason: string
+}
+
+export interface QuarantineDivisionInput {
+  /** Why the division is quarantined; defaults to the expert's findings in the form. */
+  reason: string
 }
 
 export interface VerifyInput {

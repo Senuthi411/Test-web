@@ -106,7 +106,7 @@ export function ReviewDashboardPage() {
                   label="Pending by division"
                   items={workspace.divisions.map((division, index) => ({
                     id: division.id,
-                    label: `${division.name} (${division.id})`,
+                    label: `${division.name} (${division.id})${division.operationalStatus === 'restricted' ? ' · Restricted' : ''}`,
                     value: observations.filter((item) => item.division.id === division.id && isPending(item.reviewStatus)).length,
                     color: DIVISION_COLORS[index % DIVISION_COLORS.length],
                   }))}

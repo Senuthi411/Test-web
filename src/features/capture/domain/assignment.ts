@@ -23,6 +23,30 @@ export interface TaskSubmission {
   gps: { latitude: number; longitude: number; accuracyM: number } | null
 }
 
+/** Quarantine-specific input of a Quarantine Assignment. Estate, division, disease, observation and case come from the quarantine record. */
+export interface QuarantineAssignmentInput {
+  quarantineId: string
+  objective: string
+  inspectionFocus: string
+  monitoringWindow: string
+  /** The Supervisor's explicit authorisation, required to assign it. */
+  authorised: boolean
+}
+
+/** Quarantine part of a stored assignment. */
+export interface QuarantineAssignment {
+  quarantineId: string
+  caseId: string | null
+  observationId: string
+  diseaseId: string | null
+  diseaseName: string | null
+  objective: string
+  inspectionFocus: string
+  monitoringWindow: string
+  authorisedBy: string | null
+  authorisedAt: string | null
+}
+
 export interface Assignment {
   id: string; title: string; instructions: string | null; estateId: string; divisionId: string; fieldWorkerId: string | null
   createdBy: string; createdAt: string | null; dueDate: string; priority: 'Low' | 'Medium' | 'High'
@@ -43,6 +67,8 @@ export interface Assignment {
   completedAt?: string | null
   /** Set when listed: when a Completed assignment moved to Assignment History (24 h after completion). */
   archivedAt?: string | null
+  /** Set on a Quarantine Assignment: the division quarantine it works under. */
+  quarantine?: QuarantineAssignment | null
 }
 export interface AssignmentInput {
   estateId: string; divisionId: string; fieldWorkerId: string | null; title: string; instructions: string
@@ -50,6 +76,8 @@ export interface AssignmentInput {
   type?: AssignmentType
   templateId?: string | null
   requirements?: TaskRequirements | null
+  /** Makes this a Quarantine Assignment for the named active division quarantine. */
+  quarantine?: QuarantineAssignmentInput | null
 }
 
 /**
@@ -59,6 +87,8 @@ export interface AssignmentInput {
 export type AssignmentBatchInput = Omit<AssignmentInput, 'fieldWorkerId'> & { fieldWorkerIds: string[] }
 
 export const assignmentType = (a: Pick<Assignment, 'type'>): AssignmentType => a.type ?? 'inspection'
+/** Display label of the assignment's type: a Quarantine Assignment is shown as such. */
+export const assignmentTypeLabel = (a: Pick<Assignment, 'type' | 'quarantine'>): string => (a.quarantine ? 'Quarantine Assignment' : ASSIGNMENT_TYPE[assignmentType(a)])
 
 /**
  * Edit of a Draft. `status` is the status after saving: the draft stays a draft or is assigned.
@@ -165,6 +195,18 @@ export function assignmentErrors(input: AssignmentInput): Record<string, string>
   if (!['Low', 'Medium', 'High'].includes(input.priority)) errors.priority = 'Select a priority'
   if (input.status === 'assigned' && !input.fieldWorkerId) errors.fieldWorkerId = 'Select an eligible Field Worker'
   if (input.requirements) Object.assign(errors, requirementErrors(input.requirements))
+  if (input.quarantine) Object.assign(errors, quarantineAssignmentErrors(input.quarantine, input.status))
+  return errors
+}
+
+/** Quarantine Assignment fields: objective, inspection focus and monitoring window are required; assigning needs the Supervisor's authorisation. */
+export function quarantineAssignmentErrors(input: QuarantineAssignmentInput, status: 'draft' | 'assigned'): Record<string, string> {
+  const errors: Record<string, string> = {}
+  if (!input.quarantineId.trim()) errors.quarantineId = 'A Quarantine ID is required'
+  if (!input.objective.trim()) errors.objective = 'Enter the assignment objective'
+  if (!input.inspectionFocus.trim()) errors.inspectionFocus = 'Enter the inspection focus'
+  if (!input.monitoringWindow.trim()) errors.monitoringWindow = 'Enter the monitoring window'
+  if (status === 'assigned' && !input.authorised) errors.authorised = 'Authorise this Quarantine Assignment to assign it'
   return errors
 }
 

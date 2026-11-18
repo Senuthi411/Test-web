@@ -1,5 +1,5 @@
-import type { FixtureStore, FixtureDatabase, FixtureObservation, FixtureAssignment, FixtureUser } from '@/fixtures'
-import { FIXTURE_REFERENCE_DATE, captureAssignmentSeeds as seedAssignments, projectRevision, revisionsOf } from '@/fixtures'
+import type { FixtureStore, FixtureDatabase, FixtureDivisionQuarantine, FixtureObservation, FixtureAssignment, FixtureUser } from '@/fixtures'
+import { FIXTURE_REFERENCE_DATE, activeQuarantineOf, captureAssignmentSeeds as seedAssignments, logQuarantineEvent, projectRevision, recordQuarantineDecision, revisionsOf } from '@/fixtures'
 import { AppError } from '@/shared/api'
 import { fixedClock, type Clock } from '@/shared/utilities/clock'
 import type { CaptureReadPort } from '../application/ports'
@@ -84,6 +84,42 @@ export function createFixtureCaptureAdapter(store: FixtureStore, actorId: () => 
     if (!division || !estate || !actor.estateIds.includes(estate.id) || division.estateId !== estate.id || division.status !== 'active' || estate.status !== 'active') throw new AppError('forbidden', 'Select an active estate and division within your scope.')
     return division
   }
+  /**
+   * Restricted Operations rule, enforced on every assignment write (not only in the form).
+   * Normal Operations: a normal assignment is unchanged; a Quarantine Assignment is refused.
+   * Restricted Operations: a normal assignment is refused; a Quarantine Assignment must reference the
+   * division's active Quarantine ID and, to be assigned, carry the Supervisor's authorisation.
+   */
+  const operationsCheck = (db: Readonly<FixtureDatabase>, division: { id: string; name: string }, quarantineId: string | null, status: 'draft' | 'assigned', authorised: boolean): FixtureDivisionQuarantine | null => {
+    const active = activeQuarantineOf(db, division.id)
+    if (!active) {
+      if (quarantineId) throw new AppError('validation', `${division.id} ${division.name} is not under Restricted Operations, so a Quarantine Assignment cannot be created for it. No assignment was created or changed.`)
+      return null
+    }
+    if (!quarantineId) throw new AppError('forbidden', `${division.id} ${division.name} is under Restricted Operations (${active.id}). Normal field assignments are blocked; only a Supervisor-authorised Quarantine Assignment is allowed. No assignment was created or changed.`)
+    if (quarantineId !== active.id) throw new AppError('validation', `${quarantineId} is not the active quarantine of ${division.id} (${active.id}). No assignment was created or changed.`)
+    if (status === 'assigned' && !authorised) throw new AppError('forbidden', 'Supervisor authorisation is required to assign a Quarantine Assignment. No assignment was created or changed.')
+    return active
+  }
+  /** The stored quarantine part: linked fields come from the quarantine record, never from the caller. */
+  const quarantinePart = (db: Readonly<FixtureDatabase>, active: FixtureDivisionQuarantine, input: { objective: string; inspectionFocus: string; monitoringWindow: string }, authorisedBy: string | null) => ({
+    quarantineId: active.id, caseId: active.caseId, observationId: active.observationId, diseaseId: active.diseaseId ?? null,
+    diseaseName: (active.diseaseId ? db.diseases.find((row) => row.id === active.diseaseId)?.name : undefined) ?? null,
+    objective: input.objective.trim(), inspectionFocus: input.inspectionFocus.trim(), monitoringWindow: input.monitoringWindow.trim(),
+    authorisedBy, authorisedAt: authorisedBy ? now() : null,
+  })
+  /** Links a Quarantine Assignment to its quarantine record and records the history entries. */
+  const trackQuarantineAssignment = (db: FixtureDatabase, active: FixtureDivisionQuarantine, item: FixtureAssignment, actor: FixtureUser, event: 'created' | 'assigned') => {
+    const at = now()
+    const list = (active.assignmentIds ??= [])
+    if (!list.includes(item.id)) list.push(item.id)
+    if (event === 'created') logQuarantineEvent(active, 'Quarantine assignment created', actor.id, at, `${item.id} · ${item.title}`)
+    else {
+      logQuarantineEvent(active, 'Quarantine assignment authorised', actor.id, at, `${item.id} authorised by ${actor.fullName}`)
+      logQuarantineEvent(active, 'Quarantine assignment assigned', actor.id, at, `${item.id} assigned to ${item.fieldWorkerId ?? 'a Field Worker'}`)
+      recordQuarantineDecision(db, active, 'quarantine_assignment', actor.id, at, `${item.id} authorised and assigned under ${active.id} (${item.divisionId})`)
+    }
+  }
   const nextAssignmentNumber = (db: Readonly<FixtureDatabase>) => Math.max(0, ...db.assignments.map((item) => Number(item.id.replace('ASG-', '')))) + 1
 
   /** Simulated mobile submission of an Inspection: a new, normal observation linked to the assignment. */
@@ -114,6 +150,8 @@ export function createFixtureCaptureAdapter(store: FixtureStore, actorId: () => 
         const problems = assignmentErrors(input)
         if (Object.keys(problems).length) throw new AppError('validation', Object.values(problems)[0])
         const division = scopeCheck(db, actor, input.estateId, input.divisionId)
+        // Assigning from the edit page is the Supervisor's explicit authorisation of a Quarantine Assignment.
+        const active = operationsCheck(db, division, input.quarantine?.quarantineId ?? item.quarantine?.quarantineId ?? null, input.status, true)
         let worker: FixtureUser | undefined
         if (input.fieldWorkerId) {
           worker = input.status === 'assigned' ? assignableWorker(db, input.fieldWorkerId, division.id, item.id) : db.users.find((row) => row.id === input.fieldWorkerId)
@@ -123,11 +161,13 @@ export function createFixtureCaptureAdapter(store: FixtureStore, actorId: () => 
         if (input.requirements !== undefined) item.requirements = input.requirements ? structuredClone(input.requirements) : null
         if (input.templateId !== undefined) item.templateId = input.templateId
         if (input.type) item.type = input.type
+        if (active) item.quarantine = quarantinePart(db, active, input.quarantine ?? item.quarantine ?? { objective: '', inspectionFocus: '', monitoringWindow: '' }, input.status === 'assigned' ? actor.id : item.quarantine?.authorisedBy ?? null)
         const reason = input.reason.trim() ? ` Reason: ${input.reason.trim()}` : ''
         item.activity.push(input.status === 'assigned'
           ? `${dayLabel(now())} · Draft assigned to ${worker!.fullName} (${worker!.id}) by ${actor.fullName}${reason ? `.${reason}` : ''}`
           : `${dayLabel(now())} · Draft details changed by ${actor.fullName}.${reason}`)
         item.version += 1
+        if (active && input.status === 'assigned') trackQuarantineAssignment(db, active, item, actor, 'assigned')
         return projectAssignment(item)
       }))
     },
@@ -137,10 +177,15 @@ export function createFixtureCaptureAdapter(store: FixtureStore, actorId: () => 
         if (item.status !== 'draft') throw new AppError('conflict', 'Only a Draft can be submitted.')
         if (!item.fieldWorkerId) throw new AppError('validation', 'Choose a Field Worker (Edit) before submitting this draft.')
         if (!item.instructions?.trim()) throw new AppError('validation', 'Enter instructions (Edit) before submitting this draft.')
+        const division = db.divisions.find((row) => row.id === item.divisionId)!
+        // Submitting is the Supervisor's explicit authorisation. A normal draft cannot be submitted for a division under Restricted Operations.
+        const active = operationsCheck(db, division, item.quarantine?.quarantineId ?? null, 'assigned', true)
         const worker = assignableWorker(db, item.fieldWorkerId, item.divisionId, item.id)
+        if (active && item.quarantine) Object.assign(item.quarantine, { authorisedBy: actor.id, authorisedAt: now() })
         item.status = 'assigned'
         item.activity.push(`${dayLabel(now())} · Draft submitted and assigned to ${worker.fullName} (${worker.id}) by ${actor.fullName}`)
         item.version += 1
+        if (active) trackQuarantineAssignment(db, active, item, actor, 'assigned')
         return projectAssignment(item)
       }))
     },
@@ -180,7 +225,15 @@ export function createFixtureCaptureAdapter(store: FixtureStore, actorId: () => 
         const estates = db.estates.filter((estate) => actor.estateIds.includes(estate.id))
         const divisions = db.divisions.filter((division) => actor.estateIds.includes(division.estateId))
         const ids = new Set(divisions.map((division) => division.id))
-        return { actor: { id: actor.id, fullName: actor.fullName }, estates, divisions,
+        const quarantines = (db.divisionQuarantines ?? []).filter((item) => (item.status ?? 'active') === 'active' && ids.has(item.divisionId)).map((item) => {
+          const diagnosis = db.referrals.find((row) => row.observationId === item.observationId)?.diagnosis
+          const disease = item.diseaseId ? db.diseases.find((row) => row.id === item.diseaseId) : undefined
+          return { id: item.id, estateId: item.estateId, divisionId: item.divisionId, observationId: item.observationId, caseId: item.caseId,
+            disease: item.diseaseId ? { id: item.diseaseId, name: disease?.name ?? item.diseaseId } : null, severity: item.severity ?? null,
+            recommendedAction: diagnosis?.details?.recommendedAction ?? '', followUpDescription: diagnosis?.details?.followUpDescription ?? '',
+            monitoringWindow: diagnosis?.details?.monitoringWindow ?? '', inspectionFocus: diagnosis?.details?.inspectionFocus ?? '' }
+        })
+        return { actor: { id: actor.id, fullName: actor.fullName }, estates, divisions, quarantines,
           workers: db.users.filter((user) => user.role === 'FIELD_WORKER' && user.status === 'active' && user.divisionIds.some((id) => ids.has(id))).map((user) => ({ id: user.id, fullName: user.fullName, divisionIds: user.divisionIds.filter((id) => ids.has(id)) })),
           observations: db.observations.filter((item) => ids.has(item.divisionId)).map((item) => project(db, item)),
           assignments: db.assignments.filter((item) => actor.estateIds.includes(item.estateId) && divisions.some((division) => division.id === item.divisionId && division.estateId === item.estateId)).map(projectAssignment),
@@ -191,13 +244,19 @@ export function createFixtureCaptureAdapter(store: FixtureStore, actorId: () => 
       return store.run(() => store.write((db) => {
         const actor = actorOf(db)
         const division = scopeCheck(db, actor, input.estateId, input.divisionId)
+        const active = operationsCheck(db, division, input.quarantine?.quarantineId ?? null, input.status, input.quarantine?.authorised ?? false)
         if (input.fieldWorkerId) {
           if (input.status === 'assigned') assignableWorker(db, input.fieldWorkerId, division.id)
           else if (!db.users.find((user) => user.id === input.fieldWorkerId)?.divisionIds.includes(division.id)) throw new AppError('validation', 'The selected Field Worker is not eligible for this division.')
         }
         const id = `ASG-${String(nextAssignmentNumber(db)).padStart(3, '0')}`
-        const item: FixtureAssignment = { ...input, type: input.type ?? 'inspection', templateId: input.templateId ?? null, requirements: input.requirements ?? null, groupId: null, id, createdBy: actor.id, createdAt: now().slice(0, 10), observationIds: [], version: 1, acceptedAt: null, submittedAt: null, submission: null, completedAt: null, activity: [`${dayLabel(now())} · ${input.status === 'draft' ? 'Draft created' : 'Assigned'} by ${actor.fullName}`] }
+        const { quarantine: quarantineInput, ...plain } = input
+        const item: FixtureAssignment = { ...plain, quarantine: active && quarantineInput ? quarantinePart(db, active, quarantineInput, input.status === 'assigned' ? actor.id : null) : null, type: input.type ?? 'inspection', templateId: input.templateId ?? null, requirements: input.requirements ?? null, groupId: null, id, createdBy: actor.id, createdAt: now().slice(0, 10), observationIds: [], version: 1, acceptedAt: null, submittedAt: null, submission: null, completedAt: null, activity: [`${dayLabel(now())} · ${input.status === 'draft' ? 'Draft created' : 'Assigned'} by ${actor.fullName}`] }
         db.assignments.push(item)
+        if (active) {
+          trackQuarantineAssignment(db, active, item, actor, 'created')
+          if (item.status === 'assigned') trackQuarantineAssignment(db, active, item, actor, 'assigned')
+        }
         return projectAssignment(item)
       }))
     },
@@ -207,6 +266,7 @@ export function createFixtureCaptureAdapter(store: FixtureStore, actorId: () => 
         const problems = batchErrors(input)
         if (Object.keys(problems).length) throw new AppError('validation', Object.values(problems)[0])
         const division = scopeCheck(db, actor, input.estateId, input.divisionId)
+        const active = operationsCheck(db, division, input.quarantine?.quarantineId ?? null, input.status, input.quarantine?.authorised ?? false)
         // Every worker is checked before anything is written: all assignments are created, or none.
         const workers = input.fieldWorkerIds.map((id) => db.users.find((user) => user.id === id))
         const ineligible = input.fieldWorkerIds.filter((_id, index) => { const w = workers[index]; return !w || w.status !== 'active' || w.role !== 'FIELD_WORKER' || !w.divisionIds.includes(division.id) })
@@ -219,14 +279,20 @@ export function createFixtureCaptureAdapter(store: FixtureStore, actorId: () => 
         const slots = input.fieldWorkerIds.length ? input.fieldWorkerIds : [null]
         const ids = slots.map((_, index) => `ASG-${String(first + index).padStart(3, '0')}`)
         const groupId = ids.length > 1 ? `GRP-${ids[0]}` : null
-        const { fieldWorkerIds: _ignored, ...base } = input
+        const { fieldWorkerIds: _ignored, quarantine: quarantineInput, ...base } = input
         void _ignored
         const created: FixtureAssignment[] = slots.map((fieldWorkerId, index) => ({
-          ...base, fieldWorkerId, id: ids[index], type: input.type ?? 'inspection', templateId: input.templateId ?? null, requirements: input.requirements ? structuredClone(input.requirements) : null, groupId,
+          ...base, fieldWorkerId, id: ids[index], quarantine: active && quarantineInput ? quarantinePart(db, active, quarantineInput, input.status === 'assigned' ? actor.id : null) : null, type: input.type ?? 'inspection', templateId: input.templateId ?? null, requirements: input.requirements ? structuredClone(input.requirements) : null, groupId,
           createdBy: actor.id, createdAt: now().slice(0, 10), observationIds: [], version: 1, acceptedAt: null, submittedAt: null, submission: null, completedAt: null,
           activity: [`${dayLabel(now())} · ${input.status === 'draft' ? 'Draft created' : `Assigned to ${workers[index]?.fullName ?? ''}`} by ${actor.fullName}${groupId ? ` (one of ${ids.length} assignments created together)` : ''}`],
         }))
         db.assignments.push(...created)
+        if (active) {
+          for (const item of created) {
+            trackQuarantineAssignment(db, active, item, actor, 'created')
+            if (item.status === 'assigned') trackQuarantineAssignment(db, active, item, actor, 'assigned')
+          }
+        }
         return created.map(projectAssignment)
       }))
     },

@@ -1,21 +1,20 @@
-import { useEffect, type ComponentProps } from 'react'
+import { useEffect, useState, type ComponentProps } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { EvidenceImage } from '@/features/capture'
-import { Badge, Banner, Button, ButtonLink, Card, DataTable, PageHeader, Skeleton, Timeline, usePageBreadcrumbs } from '@/shared/components'
+import { Badge, Banner, Button, ButtonLink, Card, DataTable, Modal, PageHeader, Skeleton, Timeline, usePageBreadcrumbs, useToast } from '@/shared/components'
 import { REVIEW_STATUS_LABEL, type ObservationReview, type ReviewRevision } from '../../domain/models'
-import { allowedDecisions, canStartReview, type ObservationDecision } from '../../domain/rules'
+import { newIdempotencyKey } from '@/shared/api'
+import { allowedDecisions, canEndProcess, canStartReview, type ObservationDecision } from '../../domain/rules'
 import { OutcomeBadge, QueryBoundary, ReviewStatusBadge } from '../components/badges'
 import { errorText, formatDate, formatDateTime, formatShortDate, reviewPaths } from '../components/format'
 import { Fields, IdLink } from '../components/parts'
-import { ReviewRevisionComparison, SimulateResubmission } from '../components/revisions'
-import { useClaimObservation, useObservationReview } from '../services/queries'
+import { useClaimObservation, useObservationReview, useReviewActions } from '../services/queries'
 import styles from '../components/review.module.css'
 
 type ButtonLinkProps = ComponentProps<typeof ButtonLink>
 
 /** Decision panel buttons, in the REV-03 order; only those the review status allows are shown. */
 const DECISION_BUTTONS: Array<{ decision: ObservationDecision; label: string; route: Parameters<typeof reviewPaths.decision>[1]; icon: ButtonLinkProps['icon']; variant?: ButtonLinkProps['variant'] }> = [
-  { decision: 'verify', label: 'Verify observation', route: 'verify', icon: 'check' },
   { decision: 'flag', label: 'Flag observation', route: 'flag', icon: 'flag', variant: 'destructiveOutline' },
   { decision: 'requestCorrection', label: 'Request correction', route: 'request-correction', icon: 'edit', variant: 'secondary' },
   { decision: 'refer', label: 'Refer to expert', route: 'refer', icon: 'send', variant: 'secondary' },
@@ -24,7 +23,7 @@ const DECISION_BUTTONS: Array<{ decision: ObservationDecision; label: string; ro
 /** REV-03 Observation Review. */
 export function ObservationReviewPage() {
   const { observationId = '' } = useParams()
-  usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Review Queue', to: reviewPaths.queue }, { label: observationId }])
+  usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Observation Review', to: reviewPaths.queue }, { label: observationId }])
   // Keyed so that moving to another observation starts a fresh claim.
   return <ClaimedReview key={observationId} observationId={observationId} />
 }
@@ -61,7 +60,10 @@ function ClaimedReview({ observationId }: { observationId: string }) {
 function ReviewView({ review, claimError, starting, onStart }: { review: ObservationReview; claimError: string | null; starting: boolean; onStart: () => void }) {
   const { observation: o, evidence } = review
   const decisions = allowedDecisions(o.reviewStatus)
-  const buttons = DECISION_BUTTONS.filter((button) => decisions.includes(button.decision))
+  // Verify is no longer offered on this page: the decision process is completed with End Process.
+  // Flag observation is not offered once the expert's decision is in (status Decision); the other statuses keep it.
+  // Once the process has ended no further processing action is offered.
+  const buttons = DECISION_BUTTONS.filter((button) => !o.processEndedAt && decisions.includes(button.decision) && !(o.reviewStatus === 'decision' && button.decision === 'flag'))
   // A corrected observation has more than one revision; decisions apply to the latest one.
   const current = review.revisions[review.revisions.length - 1]
   const corrected = review.revisions.length > 1
@@ -75,24 +77,17 @@ function ReviewView({ review, claimError, starting, onStart }: { review: Observa
         actions={
           <>
             {o.archivedAt && <Badge tone="neutral">Observation History · read-only</Badge>}
+            {corrected && (
+              <ButtonLink variant="secondary" icon="columns" to={reviewPaths.versions(o.id)}>
+                Compare Versions
+              </ButtonLink>
+            )}
             <ButtonLink variant="secondary" icon="image" to={reviewPaths.evidence(o.id)}>
               Open evidence viewer
             </ButtonLink>
           </>
         }
       />
-      {corrected && (
-        <Card
-          title="Revision comparison"
-          action={
-            <Badge tone="teal">
-              Reviewing version {current.number} · {current.id}
-            </Badge>
-          }
-        >
-          <ReviewRevisionComparison review={review} />
-        </Card>
-      )}
       <div className={styles.reviewGrid}>
         <Card title={corrected ? `Evidence · version ${current.number}` : 'Evidence'}>
           {corrected && photo ? (
@@ -150,6 +145,14 @@ function ReviewView({ review, claimError, starting, onStart }: { review: Observa
                 { label: 'Observation', value: o.id },
                 { label: 'Field worker', value: o.fieldWorker.fullName },
                 { label: 'Division', value: `${o.division.name} (${o.division.id})` },
+                {
+                  label: 'Division operations',
+                  value: review.divisionQuarantine ? (
+                    <Link className={styles.idLink} to={`/review/quarantine/divisions/${review.divisionQuarantine.id}`}><Badge tone="danger">Restricted Operations</Badge> {review.divisionQuarantine.id}</Link>
+                  ) : (
+                    <Badge tone="success">Normal Operations</Badge>
+                  ),
+                },
                 { label: 'Catalog version', value: o.catalogVersion },
                 { label: 'Suspected disease', value: `${o.suspectedDisease.name} (${o.suspectedDisease.id})` },
                 { label: 'Review status', value: <ReviewStatusBadge status={o.reviewStatus} /> },
@@ -225,9 +228,77 @@ function ReviewView({ review, claimError, starting, onStart }: { review: Observa
           ) : (
             <DecisionUnavailable review={review} />
           )}
+          <ExpertDiagnosisActions review={review} />
         </Card>
       </div>
       <ObservationDecisions revisions={review.revisions} />
+    </div>
+  )
+}
+
+/** View Expert Diagnosis (always) and End Process (once the observation is Verified or Referred). */
+function ExpertDiagnosisActions({ review }: { review: ObservationReview }) {
+  const o = review.observation
+  const actions = useReviewActions()
+  const toast = useToast()
+  const [idempotencyKey] = useState(newIdempotencyKey)
+  const [failure, setFailure] = useState<unknown>(null)
+  const [confirming, setConfirming] = useState(false)
+  async function endProcess() {
+    setFailure(null)
+    try {
+      await actions.endProcess.mutateAsync({ id: o.id, meta: { expectedVersion: review.version, idempotencyKey } })
+      setConfirming(false)
+      toast.show({ tone: 'success', title: `${o.id} process ended`, message: 'Added to Observation History. Its status, diagnosis and history are unchanged.' })
+    } catch (error) {
+      setConfirming(false)
+      setFailure(error)
+    }
+  }
+  return (
+    <div className={styles.decisionButtons}>
+      {failure !== null && (
+        <Banner tone="error" title="The process was not ended">
+          {errorText(failure)}
+        </Banner>
+      )}
+      <ButtonLink variant="secondary" icon="eye" fullWidth to={`${reviewPaths.observation(o.id)}/diagnosis`}>
+        View Expert Diagnosis
+      </ButtonLink>
+      {canEndProcess(o.reviewStatus, o.processEndedAt) && (
+        <Button icon="check" fullWidth onClick={() => setConfirming(true)}>
+          End Process
+        </Button>
+      )}
+      <Modal
+        open={confirming}
+        title="End the process for this observation?"
+        onClose={() => setConfirming(false)}
+        dismissible={!actions.endProcess.isPending}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirming(false)} disabled={actions.endProcess.isPending}>
+              Cancel
+            </Button>
+            <Button loading={actions.endProcess.isPending} onClick={() => void endProcess()}>
+              Confirm End Process
+            </Button>
+          </>
+        }
+      >
+        <Fields
+          items={[
+            { label: 'Observation ID', value: o.id },
+            { label: 'Division', value: `${o.division.name} (${o.division.id})` },
+            { label: 'Field worker', value: o.fieldWorker.fullName },
+            { label: 'Review status', value: <ReviewStatusBadge status={o.reviewStatus} /> },
+            ...(review.expertDiagnosis ? [{ label: 'Expert diagnosis', value: `${review.expertDiagnosis.disease.name} · ${review.expertDiagnosis.caseId ?? review.expertDiagnosis.referralId}` }] : []),
+          ]}
+        />
+        <p>
+          Ending the process closes further processing of this observation and adds it to Observation History. Its status, expert diagnosis and history are kept unchanged, and nothing is verified, rejected or approved.
+        </p>
+      </Modal>
     </div>
   )
 }
@@ -258,7 +329,6 @@ function ObservationDecisions({ revisions }: { revisions: ReviewRevision[] }) {
 
 function DecisionUnavailable({ review }: { review: ObservationReview }) {
   const status = review.observation.reviewStatus
-  const waiting = status === 'correction_requested' ? review.requests.find((item) => item.status === 'requested') : undefined
   return (
     <div className={styles.decisionButtons}>
       <p className={styles.note}>
@@ -266,7 +336,9 @@ function DecisionUnavailable({ review }: { review: ObservationReview }) {
           ? `Final decision recorded: ${REVIEW_STATUS_LABEL[status]}.`
           : status === 'correction_requested'
             ? 'A correction has been requested. Waiting for the field worker to resubmit.'
-            : 'Referred to a disease expert. Waiting for the expert decision.'}
+            : status === 'decision'
+              ? 'The expert decision is in. Review it with View Expert Diagnosis, then use End Process.'
+              : 'Referred to a disease expert. Waiting for the expert decision.'}
       </p>
       {review.correctionId && status === 'correction_requested' && (
         <p className={styles.note}>
@@ -278,7 +350,6 @@ function DecisionUnavailable({ review }: { review: ObservationReview }) {
           Referral: <IdLink to={reviewPaths.referrals}>{review.referralId}</IdLink>
         </p>
       )}
-      {waiting && <SimulateResubmission request={waiting} currentNote={review.fieldNote} observationId={review.observation.id} />}
       <ButtonLink variant="secondary" icon="history" fullWidth to={reviewPaths.history}>
         View decision history
       </ButtonLink>

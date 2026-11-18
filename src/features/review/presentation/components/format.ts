@@ -40,6 +40,7 @@ export const reviewPaths = {
   dashboard: '/review',
   queue: '/review/queue',
   observation: (id: string) => `/review/observations/${encodeURIComponent(id)}`,
+  versions: (id: string) => `/review/observations/${encodeURIComponent(id)}/compare`,
   decision: (id: string, kind: 'verify' | 'flag' | 'request-correction' | 'refer') => `/review/observations/${encodeURIComponent(id)}/${kind}`,
   corrections: '/review/corrections',
   correction: (id: string) => `/review/corrections/${encodeURIComponent(id)}`,
@@ -48,6 +49,11 @@ export const reviewPaths = {
   reject: (id: string) => `/review/corrections/${encodeURIComponent(id)}/reject`,
   referrals: '/review/referrals',
   quarantine: '/review/quarantine',
+  /** Form that starts a division quarantine. */
+  divisionQuarantineNew: '/review/quarantine/divisions/new',
+  divisionQuarantine: (id: string) => `/review/quarantine/divisions/${encodeURIComponent(id)}`,
+  /** Opens the existing assignment form on the Quarantine Assignment template for this quarantine. */
+  quarantineAssignment: (id: string) => `/assignments/new?quarantine=${encodeURIComponent(id)}`,
   quarantineItem: (id: string) => `/review/quarantine/${encodeURIComponent(id)}`,
   history: '/review/history',
   evidence: (id: string) => `/observations/${encodeURIComponent(id)}/evidence`,

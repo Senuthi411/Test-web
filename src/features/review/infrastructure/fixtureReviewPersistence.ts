@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { persistFixtureSlice, type FixtureDatabase, type FixtureStore } from '@/fixtures'
+import { persistFixtureSlice, syncDivisionStatus, type FixtureDatabase, type FixtureStore } from '@/fixtures'
 import { REVIEW_STATUSES } from '../domain/models'
 
 // Format 2 adds observation revisions; a format 1 slice is discarded and the seed is used.
 const FORMAT_VERSION = 2
 
-type ReviewSlice = Pick<FixtureDatabase, 'reviewRecords' | 'reviewDecisions' | 'corrections' | 'referrals' | 'reviewFollowUpObservationIds' | 'observationRevisions'> & {
+type ReviewSlice = Pick<FixtureDatabase, 'reviewRecords' | 'reviewDecisions' | 'corrections' | 'referrals' | 'reviewFollowUpObservationIds' | 'observationRevisions' | 'divisionQuarantines'> & {
   format: typeof FORMAT_VERSION
   /** Review status of every observation, by observation ID. */
   statuses: Record<string, FixtureDatabase['observations'][number]['reviewStatus']>
@@ -23,6 +23,7 @@ const reviewSliceSchema = z.object({
   referrals: z.array(recordSchema),
   reviewFollowUpObservationIds: z.array(z.string()),
   observationRevisions: z.array(recordSchema.extend({ number: z.number() })),
+  divisionQuarantines: z.array(recordSchema).optional(),
 }) as unknown as z.ZodType<ReviewSlice>
 
 /**
@@ -43,6 +44,7 @@ export function persistFixtureReviewState(store: FixtureStore, storage: Storage 
       referrals: db.referrals,
       reviewFollowUpObservationIds: db.reviewFollowUpObservationIds,
       observationRevisions: db.observationRevisions,
+      divisionQuarantines: db.divisionQuarantines ?? [],
     }),
     consistent: (db, saved) => {
       const known = new Set(db.observations.map((item) => item.id))
@@ -60,6 +62,9 @@ export function persistFixtureReviewState(store: FixtureStore, storage: Storage 
       db.referrals = saved.referrals
       db.reviewFollowUpObservationIds = saved.reviewFollowUpObservationIds
       db.observationRevisions = saved.observationRevisions
+      db.divisionQuarantines = saved.divisionQuarantines ?? []
+      // Restricted Operations is a property of the division record; it comes back with the quarantine records.
+      syncDivisionStatus(db)
     },
   })
 }

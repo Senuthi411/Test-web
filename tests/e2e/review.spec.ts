@@ -17,7 +17,7 @@ test('review decisions, correction lifecycle and history stay consistent across 
   await expect(page.getByRole('heading', { name: 'Supervisor Dashboard' })).toBeVisible()
 
   // REV-02 → REV-03 → REV-06: request a correction for OBS-033.
-  await nav(page).getByRole('link', { name: 'Review Queue' }).click()
+  await nav(page).getByRole('link', { name: 'Observation Review' }).click()
   await page.getByRole('tab', { name: /In review/ }).click()
   await page.getByRole('link', { name: 'OBS-033', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Observation Review · OBS-033' })).toBeVisible()
@@ -29,9 +29,8 @@ test('review decisions, correction lifecycle and history stay consistent across 
   await expect(page.getByText('No revision submitted yet.')).toBeVisible()
 
   // REV-08 → REV-09 → REV-10: approve COR-005, then the simulated RevisionApplied event.
-  // The Correction Queue opens from the Review Queue header (it has no sidebar item).
-  await nav(page).getByRole('link', { name: 'Review Queue' }).click()
-  await page.getByRole('link', { name: 'Correction Queue', exact: true }).click()
+  // The Correction Queue has no sidebar item or button on Observation Review; it opens by its route.
+  await page.goto('/review/corrections')
   await page.getByRole('link', { name: 'COR-005', exact: true }).click()
   await page.getByRole('link', { name: 'Compare revisions' }).click()
   await expect(page.getByRole('heading', { name: 'Original vs Revised' })).toBeVisible()
@@ -52,7 +51,7 @@ test('review decisions, correction lifecycle and history stay consistent across 
   await expect(page.getByRole('row', { name: /ASG-001/ })).toContainText('Submitted')
 
   // Cross-module evidence link.
-  await nav(page).getByRole('link', { name: 'Review Queue' }).click()
+  await nav(page).getByRole('link', { name: 'Observation Review' }).click()
   await page.getByRole('link', { name: 'OBS-014', exact: true }).click()
   await page.getByRole('link', { name: 'Open evidence viewer' }).click()
   await expect(page).toHaveURL(/\/observations\/OBS-014\/evidence$/)
@@ -129,7 +128,7 @@ const VIEWPORTS = [
 
 const SCREENS: Array<[string, string]> = [
   ['/review', 'Supervisor Dashboard'],
-  ['/review/queue', 'Observation Review Queue'],
+  ['/review/queue', 'Observation Review'],
   ['/review/observations/OBS-014', 'Observation Review · OBS-014'],
   ['/review/observations/OBS-014/verify', 'Verify Observation'],
   ['/review/corrections', 'Correction Queue'],

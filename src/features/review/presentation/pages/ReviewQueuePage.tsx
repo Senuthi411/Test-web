@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
-  ActionMenu,
   Button,
-  ButtonLink,
   Card,
   DataTable,
   EmptyState,
@@ -13,17 +11,16 @@ import {
   SearchInput,
   Tabs,
   usePageBreadcrumbs,
-  type ActionMenuItem,
 } from '@/shared/components'
 import { useDebouncedValue } from '@/shared/hooks'
 import { paginate } from '@/shared/utilities/pagination'
-import { REVIEW_STATUSES, REVIEW_STATUS_LABEL, type Correction, type ReviewObservation, type ReviewStatus } from '../../domain/models'
+import { REVIEW_STATUSES, REVIEW_STATUS_LABEL, type ReviewObservation, type ReviewStatus } from '../../domain/models'
 import { countBy } from '../../domain/rules'
 import { QueryBoundary, ReviewStatusBadge } from '../components/badges'
-import { formatDate, reviewPaths } from '../components/format'
+import { reviewPaths } from '../components/format'
 import { IdLink, Person } from '../components/parts'
 import { useTableSort } from '../components/useTableSort'
-import { useReviewExport, useReviewWorkspace } from '../services/queries'
+import { useReviewWorkspace } from '../services/queries'
 import { useReviewServices } from '../services/reviewServices'
 import { useReviewClock } from '../services/useReviewClock'
 import styles from '../components/review.module.css'
@@ -35,12 +32,12 @@ const DAY = 86_400_000
 
 const isTab = (value: string | null): value is Tab => value === 'all' || REVIEW_STATUSES.includes(value as ReviewStatus)
 
-/** REV-02 Observation Review Queue. */
+/** REV-02 Observation Review (formerly the Review Queue). */
 export function ReviewQueuePage() {
-  usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Review Queue' }])
+  usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Observation Review' }])
   const query = useReviewWorkspace()
   return (
-    <QueryBoundary query={query} label="review queue">
+    <QueryBoundary query={query} label="observation review">
       {(workspace) => (
         // Finalised observations leave the queue 24 hours after their final decision (Observation History).
         <Queue
@@ -48,35 +45,16 @@ export function ReviewQueuePage() {
           archived={workspace.observations.filter((item) => item.archivedAt).length}
           estateIds={workspace.estates.map((estate) => estate.id)}
           divisions={workspace.divisions}
-          corrections={workspace.corrections}
         />
       )}
     </QueryBoundary>
   )
 }
 
-/** The actions each review status allows, shown in the row menu. */
-function rowActions(row: ReviewObservation, corrections: Correction[]): ActionMenuItem[] {
-  const details = { id: 'details', label: 'View details', icon: 'eye' as const, to: reviewPaths.observation(row.id) }
-  const start = { id: 'start', label: 'Start review', icon: 'check' as const, to: `${reviewPaths.observation(row.id)}?start=1` }
-  const evidence = { id: 'evidence', label: 'Open evidence viewer', icon: 'image' as const, to: reviewPaths.evidence(row.id) }
-  const correction = [...corrections].reverse().find((item) => item.observation.id === row.id)
-  switch (row.reviewStatus) {
-    case 'submitted': return [start, details, evidence]
-    case 'resubmitted': return [start, { id: 'revision', label: 'View revision', icon: 'history', to: reviewPaths.observation(row.id) }, details]
-    case 'in_review': return [{ id: 'review', label: 'Open review', icon: 'eye', to: reviewPaths.observation(row.id) }, evidence]
-    case 'correction_requested': return [{ id: 'request', label: 'View request status', icon: 'edit', to: correction ? reviewPaths.correction(correction.id) : reviewPaths.corrections }, details]
-    case 'referred': return [{ id: 'referral', label: 'View referral', icon: 'send', to: reviewPaths.referrals }, details]
-    case 'decision': return [{ id: 'decision', label: 'View expert decision', icon: 'eye', to: reviewPaths.observation(row.id) }, details]
-    default: return [details, { id: 'history', label: 'View history', icon: 'history', to: reviewPaths.history }]
-  }
-}
-
-function Queue({ observations, archived, estateIds, divisions, corrections }: { observations: ReviewObservation[]; archived: number; estateIds: string[]; divisions: Array<{ id: string; name: string }>; corrections: Correction[] }) {
+function Queue({ observations, archived, estateIds, divisions }: { observations: ReviewObservation[]; archived: number; estateIds: string[]; divisions: Array<{ id: string; name: string }> }) {
   const { demo } = useReviewServices()
   const now = useReviewClock()
   const navigate = useNavigate()
-  const exportAction = useReviewExport('queue')
   const [params, setParams] = useSearchParams()
   const statusParam = params.get('status')
   const tab: Tab = isTab(statusParam) ? statusParam : 'all'
@@ -138,22 +116,8 @@ function Queue({ observations, archived, estateIds, divisions, corrections }: { 
   return (
     <div className={styles.page}>
       <PageHeader
-        title="Observation Review Queue"
+        title="Observation Review"
         subtitle={`${observations.length} observations in ${estateIds.join(', ')}${archived ? ` · ${archived} in Observation History` : ''}${demo ? ' · demo data' : ''}`}
-        actions={
-          <>
-            {/* The Correction Queue and Expert Referrals belong to this review workflow and open from here. */}
-            <ButtonLink variant="secondary" icon="edit" to={reviewPaths.corrections}>
-              Correction Queue
-            </ButtonLink>
-            <ButtonLink variant="secondary" icon="send" to={reviewPaths.referrals}>
-              Expert Referrals
-            </ButtonLink>
-            <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
-              Export
-            </Button>
-          </>
-        }
       />
       <Tabs<Tab>
         label="Review status"
@@ -206,21 +170,8 @@ function Queue({ observations, archived, estateIds, divisions, corrections }: { 
           columns={[
             { id: 'observation', header: 'Observation', sortable: true, cell: (row) => <IdLink to={reviewPaths.observation(row.id)}>{row.id}</IdLink> },
             { id: 'division', header: 'Division', sortable: true, cell: (row) => row.division.name },
-            { id: 'disease', header: 'Suspected disease', sortable: true, cell: (row) => row.suspectedDisease.name },
-            { id: 'captured', header: 'Captured', sortable: true, cell: (row) => formatDate(row.capturedAt) },
             { id: 'worker', header: 'Field worker', sortable: true, cell: (row) => <Person name={row.fieldWorker.fullName} /> },
-            // Revisions of one observation stay one row: the latest revision number is shown.
-            { id: 'revision', header: 'Revision', sortable: true, cell: (row) => <span title={`Latest revision: version ${row.revisionNumber}`}>V{row.revisionNumber}{row.revisionNumber > 1 ? ' · resubmission' : ''}</span> },
             { id: 'status', header: 'Review status', sortable: true, cell: (row) => <ReviewStatusBadge status={row.reviewStatus} /> },
-            {
-              id: 'actions',
-              header: 'Actions',
-              align: 'end',
-              width: '56px',
-              cell: (row) => (
-                <ActionMenu label={`Actions for ${row.id}`} items={rowActions(row, corrections)} />
-              ),
-            },
           ]}
         />
         {filtered.length > 0 && <Pagination page={currentPage} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} itemLabel="observations" />}

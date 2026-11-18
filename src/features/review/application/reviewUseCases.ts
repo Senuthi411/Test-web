@@ -3,6 +3,7 @@ import type { ReviewPort } from './ports'
 import {
   approveErrors,
   correctionRequestErrors,
+  expertDiagnosisErrors,
   flagErrors,
   referralErrors,
   rejectErrors,
@@ -46,6 +47,18 @@ export function createReviewUseCases(port: ReviewPort): ReviewPort {
     async refer(id, input, meta) {
       await guard(referralErrors(input))
       return port.refer(id, trimmed(input), meta)
+    },
+    async recordExpertDiagnosis(id, input, meta) {
+      await guard(expertDiagnosisErrors(input))
+      return port.recordExpertDiagnosis(id, trimmed(input), meta)
+    },
+    async quarantineDivision(id, input, meta) {
+      await guard(input.reason.trim() ? {} : { reason: 'Enter the quarantine reason' })
+      return port.quarantineDivision(id, trimmed(input), meta)
+    },
+    async releaseDivisionQuarantine(id, input, meta) {
+      await guard(input.reason.trim() ? {} : { reason: 'Enter the reason for release' })
+      return port.releaseDivisionQuarantine(id, trimmed(input), meta)
     },
     async approveCorrection(id, input, meta) {
       await guard(approveErrors(input))

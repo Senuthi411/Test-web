@@ -5,6 +5,7 @@
 export { FixtureStore, type FixtureStoreOptions } from './store'
 export { FIXTURE_ACCOUNTS, FIXTURE_DEV_PASSWORD, findFixtureAccount, type FixtureAccount } from './accounts'
 export { findIntegrityProblems } from './integrity'
+export { activeQuarantineOf, logQuarantineEvent, recordQuarantineDecision, syncDivisionStatus } from './quarantine'
 export { persistFixtureSlice, type PersistedFixtureSlice } from './persistence'
 export { assignments as captureAssignmentSeeds } from './seed/capture'
 export { latestRevisionOf, projectRevision, revisionIdOf, revisionsOf, type ProjectedRevision } from './revisions'

@@ -9,14 +9,14 @@ async function signIn(page: Page) {
   await expect(page).not.toHaveURL(/\/login/)
 }
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' })
-const SUPERVISOR_ITEMS = ['Dashboard', 'Review Queue', 'Quarantine Queue', 'Decision History', 'Fieldwork Assignments']
+const SUPERVISOR_ITEMS = ['Dashboard', 'Observation Review', 'Division Quarantine', 'Decision History', 'Fieldwork Assignments']
 
 test('every Supervisor page shows the same five sidebar items, with the right one highlighted', async ({ page }) => {
   await signIn(page)
   const pages: Array<[string, string]> = [
-    ['/review', 'Dashboard'], ['/review/queue', 'Review Queue'], ['/review/observations/OBS-014', 'Review Queue'],
-    ['/review/corrections', 'Review Queue'], ['/review/corrections/COR-005', 'Review Queue'], ['/review/referrals', 'Review Queue'],
-    ['/observations/OBS-005/evidence', 'Review Queue'], ['/review/quarantine', 'Quarantine Queue'], ['/review/history', 'Decision History'],
+    ['/review', 'Dashboard'], ['/review/queue', 'Observation Review'], ['/review/observations/OBS-014', 'Observation Review'],
+    ['/review/corrections', 'Observation Review'], ['/review/corrections/COR-005', 'Observation Review'], ['/review/referrals', 'Observation Review'],
+    ['/observations/OBS-005/evidence', 'Observation Review'], ['/review/quarantine', 'Division Quarantine'], ['/review/history', 'Decision History'],
     ['/assignments', 'Fieldwork Assignments'], ['/assignments/ASG-001', 'Fieldwork Assignments'], ['/assignments/new', 'Fieldwork Assignments'],
   ]
   for (const [path, active] of pages) {
@@ -29,10 +29,10 @@ test('every Supervisor page shows the same five sidebar items, with the right on
 
 test('Correction Queue, Expert Referrals and Evidence Viewer stay reachable from the review workflow', async ({ page }) => {
   await signIn(page)
-  await nav(page).getByRole('link', { name: 'Review Queue' }).click()
+  await nav(page).getByRole('link', { name: 'Observation Review' }).click()
   await page.getByRole('link', { name: 'Correction Queue', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Correction Queue' })).toBeVisible()
-  await nav(page).getByRole('link', { name: 'Review Queue' }).click()
+  await nav(page).getByRole('link', { name: 'Observation Review' }).click()
   await page.getByRole('link', { name: 'Expert Referrals', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Expert Referral Status' })).toBeVisible()
   await page.goto('/review/observations/OBS-014')

@@ -20,7 +20,8 @@ export function useObservation(id: string) {
 export function useAssignmentActions() {
   const service = useCapture()
   const client = useQueryClient()
-  const refresh = () => client.invalidateQueries({ queryKey: ['capture'] })
+  // Review reads the same assignments (Quarantine Assignments are listed on the division quarantine record).
+  const refresh = () => Promise.all([client.invalidateQueries({ queryKey: ['capture'] }), client.invalidateQueries({ queryKey: ['review'] })])
   return {
     create: useMutation({ mutationFn: (input: AssignmentInput) => service.createAssignment(input), onSuccess: refresh }),
     createForWorkers: useMutation({ mutationFn: (input: AssignmentBatchInput) => service.createAssignments(input), onSuccess: refresh }),

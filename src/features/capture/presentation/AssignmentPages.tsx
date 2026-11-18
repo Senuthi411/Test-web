@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ActionMenu, Badge, Banner, Button, ButtonLink, Card, DataTable, DescriptionList, EmptyState, FilterSelect, Modal, PageHeader, Radio, SearchInput, SelectField, Tabs, TextAreaField, TextField, usePageBreadcrumbs, useToast, type ActionMenuItem } from '@/shared/components'
+import { Badge, Banner, Button, ButtonLink, Card, DataTable, DescriptionList, EmptyState, FilterSelect, Modal, PageHeader, Radio, SearchInput, SelectField, Tabs, TextAreaField, TextField, usePageBreadcrumbs, useToast } from '@/shared/components'
 import type { CaptureWorkspace } from '../application/ports'
 import {
-  ASSIGNMENT_STATUS, ASSIGNMENT_TYPE, activeAssignmentOf, assignmentErrors, assignmentType, busyMessage, canCancelAssignment, canSimulateWorkerAcceptance, completionBlock,
+  ASSIGNMENT_STATUS, ASSIGNMENT_TYPE, assignmentTypeLabel, activeAssignmentOf, assignmentErrors, assignmentType, busyMessage, canCancelAssignment, canSimulateWorkerAcceptance, completionBlock,
   editLock, isAcceptedByWorker, isAssignmentSummary, type Assignment, type AssignmentInput, type AssignmentStatus,
 } from '../domain/assignment'
 import { INSPECTION_OBSERVATION_SECTIONS, templateById, type TaskRequirements } from '../domain/taskTemplates'
@@ -20,24 +20,6 @@ import styles from './capture.module.css'
 const LIFECYCLE: AssignmentStatus[] = ['draft', 'assigned', 'in_progress', 'submitted', 'completed']
 const shortDate = (value: string | null | undefined) => (value ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Colombo' }).format(new Date(value.length === 10 ? `${value}T12:00:00+05:30` : value)) : '—')
 const reviewLabel = (status: string) => status.replaceAll('_', ' ')
-
-/** The actions each status allows (shown in the list menu and on the detail page). */
-function statusActions(a: Assignment): ActionMenuItem[] {
-  const view = { id: 'view', label: 'View details', icon: 'eye' as const, to: `/assignments/${a.id}` }
-  if (a.archivedAt) return [view, { id: 'history', label: 'View history', icon: 'history' as const, to: '/review/history?section=assignments' }]
-  switch (a.status) {
-    case 'draft': return [{ id: 'edit', label: 'Edit draft', icon: 'edit', to: `/assignments/${a.id}/edit` }, { id: 'submit', label: 'Submit assignment', icon: 'send', to: `/assignments/${a.id}` }, { id: 'cancel', label: 'Cancel draft', icon: 'x', to: `/assignments/${a.id}` }]
-    case 'assigned': return canCancelAssignment(a) ? [view, { id: 'cancel', label: 'Cancel assignment', icon: 'x', to: `/assignments/${a.id}` }] : [view]
-    case 'in_progress': return [{ id: 'progress', label: 'View progress', icon: 'history', to: `/assignments/${a.id}` }, view]
-    case 'submitted': return [{ id: 'evidence', label: 'View submitted evidence', icon: 'image', to: `/assignments/${a.id}#submission` }, { id: 'review', label: 'Review submission', icon: 'eye', to: `/assignments/${a.id}#submission` }, { id: 'complete', label: 'Complete assignment', icon: 'check', to: `/assignments/${a.id}#submission` }]
-    case 'completed': return [view, { id: 'history', label: 'View history', icon: 'history', to: `/assignments/${a.id}#activity` }]
-    default: return [view]
-  }
-}
-
-function hasSubmission(a: Assignment) {
-  return assignmentType(a) === 'task' ? Boolean(a.submission) : a.observationIds.length > 0
-}
 
 export function AssignmentsPage() {
   const query = useWorkspace()
@@ -63,8 +45,12 @@ function AssignmentList({ data }: { data: CaptureWorkspace }) {
   const division = (id: string) => data.divisions.find((row) => row.id === id)?.name ?? id
   const worker = (id: string | null) => data.workers.find((row) => row.id === id)?.fullName ?? 'Not assigned'
   const archived = data.assignments.length - active.length
+  const restrictedDivisions = data.divisions.filter((row) => row.operationalStatus === 'restricted')
   return <div className={styles.page}>
     <PageHeader title="Fieldwork Assignments" subtitle={`${data.estates.map((estate) => `${estate.name} (${estate.id})`).join(', ')} · ${active.length} active assignments${archived ? ` · ${archived} in Assignment History` : ''}`} actions={<ButtonLink to="/assignments/new">Create assignment</ButtonLink>} />
+    {restrictedDivisions.length > 0 && <Banner tone="warning" title={`${restrictedDivisions.length} division${restrictedDivisions.length === 1 ? ' is' : 's are'} under Restricted Operations`}>
+      {restrictedDivisions.map((row) => `${row.name} (${row.id})`).join(', ')}. Normal assignments are blocked there; only Supervisor-authorised Quarantine Assignments are allowed. Open the <Link to="/review/quarantine">Division Quarantine</Link> to create one.
+    </Banner>}
     <Tabs label="Assignment status" idBase="assignment-status" value={status} onChange={setStatus} items={[
       { id: 'all' as const, label: `All ${filtered.length}` }, ...(['draft', 'assigned', 'in_progress', 'submitted', 'completed', 'cancelled', 'reassigned'] as const).map((id) => ({ id, label: `${ASSIGNMENT_STATUS[id]} ${filtered.filter((row) => row.status === id).length}` })),
     ]} />
@@ -75,15 +61,11 @@ function AssignmentList({ data }: { data: CaptureWorkspace }) {
       <FilterSelect label="Field worker" value={workerFilter} onChange={setWorkerFilter} options={[{ value: 'all', label: 'All' }, ...data.workers.map((row) => ({ value: row.id, label: row.fullName }))]} />
       <Button variant="ghost" icon="refresh" disabled={!term && typeFilter === 'all' && divisionFilter === 'all' && workerFilter === 'all'} onClick={() => { setSearch(''); setTypeFilter('all'); setDivisionFilter('all'); setWorkerFilter('all') }}>Reset filters</Button>
     </div><DataTable<Assignment> caption="Fieldwork assignments" rows={rows} rowKey={(row) => row.id} onRowActivate={(row) => navigate(`/assignments/${row.id}`)} empty={<EmptyState title="No assignments in this status" message="Change the status tab or filters." />} columns={[
-      { id: 'title', header: 'Title', cell: (row) => row.title },
-      { id: 'type', header: 'Type', cell: (row) => <span>{ASSIGNMENT_TYPE[assignmentType(row)]}{assignmentType(row) === 'task' && templateById(row.templateId) ? ` · ${templateById(row.templateId)!.name}` : ''}</span> },
-      { id: 'id', header: 'Assignment', cell: (row) => row.id },
-      { id: 'division', header: 'Division', cell: (row) => `${row.divisionId} ${division(row.divisionId)}` }, { id: 'worker', header: 'Field worker', cell: (row) => worker(row.fieldWorkerId) },
-      { id: 'created', header: 'Created', cell: (row) => shortDate(row.createdAt) },
+      { id: 'id', header: 'Assignment', cell: (row) => <Link to={`/assignments/${row.id}`} onClick={(event) => event.stopPropagation()}>{row.id}</Link> },
+      { id: 'division', header: 'Division', cell: (row) => <span>{row.divisionId} {division(row.divisionId)}{data.divisions.find((item) => item.id === row.divisionId)?.operationalStatus === 'restricted' && <> <Badge tone="danger">Restricted Operations</Badge></>}</span> },
+      { id: 'worker', header: 'Field worker', cell: (row) => worker(row.fieldWorkerId) },
       { id: 'due', header: 'Due', cell: (row) => shortDate(row.dueDate) },
       { id: 'status', header: 'Status', cell: (row) => <Status value={row.status} /> },
-      { id: 'submission', header: 'Submission', cell: (row) => hasSubmission(row) ? <Badge tone="success">{assignmentType(row) === 'task' ? 'Evidence received' : row.observationIds.join(', ')}</Badge> : '—' },
-      { id: 'actions', header: 'Actions', align: 'end', width: '56px', cell: (row) => <ActionMenu label={`Actions for ${row.id}`} items={statusActions(row)} /> },
     ]} /></Card>
     <Banner tone="info" action={<Button variant="secondary" loading={actions.reset.isPending} onClick={() => actions.reset.mutate(undefined, { onSuccess: () => toast.show({ tone: 'success', title: 'Assignment demo restored' }), onError: (error) => toast.show({ tone: 'error', title: 'Restore failed', message: failure(error) }) })}>Restore demo state</Button>}>Demo data</Banner>
   </div>
@@ -179,7 +161,7 @@ function assignmentFacts(data: CaptureWorkspace, a: Assignment) {
   const estate = data.estates.find((row) => row.id === a.estateId)
   const worker = data.workers.find((row) => row.id === a.fieldWorkerId)
   return [
-    { label: 'Assignment ID', value: a.id }, { label: 'Type', value: `${ASSIGNMENT_TYPE[assignmentType(a)]}${assignmentType(a) === 'task' ? ` · ${templateById(a.templateId)?.name ?? 'Custom task'}` : ''}` },
+    { label: 'Assignment ID', value: a.id }, { label: 'Type', value: `${assignmentTypeLabel(a)}${assignmentType(a) === 'task' ? ` · ${templateById(a.templateId)?.name ?? 'Custom task'}` : ''}` },
     { label: 'Estate', value: `${a.estateId} · ${estate?.name ?? ''}` },
     { label: 'Division', value: `${a.divisionId} · ${division?.name ?? ''}` }, { label: 'Field Worker', value: worker ? `${worker.fullName} (${worker.id})` : a.fieldWorkerId ?? 'Not assigned' },
     { label: 'Assigned by', value: a.createdBy === data.actor.id ? `${data.actor.fullName} (${a.createdBy}) · Supervisor` : a.createdBy },
@@ -190,6 +172,16 @@ function assignmentFacts(data: CaptureWorkspace, a: Assignment) {
     ...(a.completedAt ? [{ label: 'Completed', value: dateTime(a.completedAt) }] : []),
     ...(a.archivedAt ? [{ label: 'Moved to Assignment History', value: dateTime(a.archivedAt) }] : []),
     { label: 'Instructions', value: a.instructions ?? 'Not specified in this summary fixture' },
+    ...(a.quarantine ? [
+      { label: 'Quarantine ID', value: a.quarantine.quarantineId },
+      { label: 'Related disease', value: a.quarantine.diseaseName ?? 'Not recorded' },
+      { label: 'Linked observation', value: a.quarantine.observationId },
+      { label: 'Linked case', value: a.quarantine.caseId ?? 'Not linked' },
+      { label: 'Assignment objective', value: a.quarantine.objective },
+      { label: 'Inspection focus', value: a.quarantine.inspectionFocus },
+      { label: 'Monitoring window', value: a.quarantine.monitoringWindow },
+      { label: 'Supervisor authorisation', value: a.quarantine.authorisedAt ? `Authorised by ${a.quarantine.authorisedBy} · ${dateTime(a.quarantine.authorisedAt)}` : 'Not yet authorised (draft)' },
+    ] : []),
   ]
 }
 
@@ -328,21 +320,17 @@ function GroupCard({ data, a }: { data: CaptureWorkspace; a: Assignment }) {
 export function AssignmentHistorySection() {
   const query = useWorkspace()
   return <Boundary query={query}>{(data) => {
-    const rows = data.assignments.filter((row) => row.archivedAt)
+    // Every completed assignment, newest completion first; completion time is the recorded completedAt.
+    const rows = data.assignments.filter((row) => row.status === 'completed').sort((x, y) => (y.completedAt ?? '').localeCompare(x.completedAt ?? ''))
     const division = (id: string) => data.divisions.find((row) => row.id === id)?.name ?? id
     const worker = (id: string | null) => data.workers.find((row) => row.id === id)?.fullName ?? 'Not assigned'
     return <DataTable<Assignment> caption="Assignment history" rows={rows} rowKey={(row) => row.id}
-      empty={<EmptyState title="No archived assignments" message="Completed assignments move here 24 hours after completion." icon="history" />}
+      empty={<EmptyState title="No completed assignments" message="An assignment appears here once the Supervisor completes it." icon="history" />}
       columns={[
-        { id: 'id', header: 'Assignment', cell: (row) => <Link className={styles.link} to={`/assignments/${row.id}`}>{row.id}</Link> },
-        { id: 'type', header: 'Type', cell: (row) => ASSIGNMENT_TYPE[assignmentType(row)] },
-        { id: 'title', header: 'Title', cell: (row) => row.title },
+        { id: 'id', header: 'Assignment ID', cell: (row) => <Link className={styles.link} to={`/assignments/${row.id}`}>{row.id}</Link> },
         { id: 'division', header: 'Division', cell: (row) => division(row.divisionId) },
-        { id: 'worker', header: 'Assigned worker', cell: (row) => worker(row.fieldWorkerId) },
-        { id: 'status', header: 'Final status', cell: (row) => <Status value={row.status} /> },
-        { id: 'completed', header: 'Completed', cell: (row) => (row.completedAt ? dateTime(row.completedAt) : '—') },
-        { id: 'archived', header: 'Archived', cell: (row) => (row.archivedAt ? dateTime(row.archivedAt) : '—') },
-        { id: 'linked', header: 'Linked observation', cell: (row) => (row.observationIds.length ? row.observationIds.map((id) => <Link key={id} className={styles.link} to={`/review/observations/${id}`}>{id}</Link>) : '—') },
+        { id: 'worker', header: 'Field Worker', cell: (row) => worker(row.fieldWorkerId) },
+        { id: 'completed', header: 'Completed At', cell: (row) => (row.completedAt ? dateTime(row.completedAt) : 'Not recorded') },
       ]} />
   }}</Boundary>
 }

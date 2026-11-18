@@ -205,7 +205,7 @@ function checkReview(
     const decider = userById.get(decision.decidedBy)
     if (decider?.role !== 'SUPERVISOR') problems.push(`${decision.id} decided by a non-Supervisor`)
     else if (!decider.estateIds.includes(decision.estateId)) problems.push(`${decision.id} decided outside the Supervisor's scope`)
-    const targetEstate = decision.type === 'quarantine' ? db.quarantineItems.find((item) => item.id === decision.targetId)?.estateId : estateOf(decision.targetId)
+    const targetEstate = decision.type === 'quarantine' ? (db.quarantineItems.find((item) => item.id === decision.targetId)?.estateId ?? db.divisionQuarantines?.find((item) => item.id === decision.targetId)?.estateId) : estateOf(decision.targetId)
     if (targetEstate !== decision.estateId) problems.push(`${decision.id} target ${decision.targetId} is not in ${decision.estateId}`)
   }
   for (const detail of db.reviewObservationDetails) {

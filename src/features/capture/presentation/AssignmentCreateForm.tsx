@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { Badge, Banner, Button, ButtonLink, Card, Checkbox, DataTable, DescriptionList, Modal, PageHeader, Radio, SearchInput, SelectField, TextAreaField, TextField, useToast } from '@/shared/components'
 import type { CaptureWorkspace } from '../application/ports'
 import { ASSIGNMENT_STATUS, ASSIGNMENT_TYPE, activeAssignmentOf, batchErrors, type Assignment, type AssignmentBatchInput, type AssignmentType } from '../domain/assignment'
@@ -39,7 +39,16 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
   const navigate = useNavigate()
   const actions = useAssignmentActions()
   const toast = useToast()
-  const preferred = data.divisions.find((row) => row.id === 'DIV-005') ?? data.divisions.find((row) => row.status === 'active')
+  // Opened from an expert diagnosis ("Create New Assignment"): the linked division, title and instructions arrive as search parameters and stay editable.
+  const [params] = useSearchParams()
+  // "Create Quarantine Assignment" opens this form on the Quarantine Assignment template (?quarantine=DQ-001). Only an active quarantine of the data layer counts.
+  const quarantineTemplate = data.quarantines.find((row) => row.id === params.get('quarantine'))
+  const linked = quarantineTemplate
+    ? data.divisions.find((row) => row.id === quarantineTemplate.divisionId && row.status === 'active')
+    : data.divisions.find((row) => row.id === params.get('division') && row.status === 'active')
+  const template0 = linked ? quarantineTemplate : undefined
+  const planText = template0 ? [template0.recommendedAction, template0.followUpDescription && `Follow-up plan: ${template0.followUpDescription}`].filter(Boolean).join('\n\n') : ''
+  const preferred = linked ?? data.divisions.find((row) => row.id === 'DIV-005') ?? data.divisions.find((row) => row.status === 'active')
   const activeOf = (workerId: string) => activeAssignmentOf(data.assignments, workerId)
   const eligible = (division: string) => data.workers.filter((worker) => worker.divisionIds.includes(division))
   const [type, setType] = useState<AssignmentType>('inspection')
@@ -49,8 +58,12 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
   const [workerIds, setWorkerIds] = useState<string[]>(() => eligible(preferred?.id ?? '').filter((worker) => !activeOf(worker.id)).slice(0, 1).map((worker) => worker.id))
   const [search, setSearch] = useState('')
   const [removedNotice, setRemovedNotice] = useState<string | null>(null)
-  const [title, setTitle] = useState(preferred?.id === 'DIV-005' ? INSPECTION_TITLE : '')
-  const [instructions, setInstructions] = useState(preferred?.id === 'DIV-005' ? INSPECTION_INSTRUCTIONS : '')
+  const [title, setTitle] = useState(template0 ? `Quarantine inspection · ${template0.id} · ${linked?.name ?? ''}` : linked && params.has('title') ? (params.get('title') ?? '') : preferred?.id === 'DIV-005' ? INSPECTION_TITLE : '')
+  const [instructions, setInstructions] = useState(template0 ? planText : linked && params.has('instructions') ? (params.get('instructions') ?? '') : preferred?.id === 'DIV-005' ? INSPECTION_INSTRUCTIONS : '')
+  const [objective, setObjective] = useState(template0 ? `Inspect and monitor ${linked?.name ?? 'the division'} under Restricted Operations for ${template0.disease?.name ?? 'the confirmed disease'}${template0.severity ? ` (${template0.severity} severity)` : ''}` : '')
+  const [inspectionFocus, setInspectionFocus] = useState(template0?.inspectionFocus ?? '')
+  const [monitoringWindow, setMonitoringWindow] = useState(template0?.monitoringWindow ?? '')
+  const [authorised, setAuthorised] = useState(false)
   const [priority, setPriority] = useState<Priority>('High')
   const [dueDate, setDueDate] = useState('2026-10-28')
   const [requirements, setRequirements] = useState<TaskRequirements>(structuredClone(TASK_TEMPLATES[0].requirements))
@@ -67,9 +80,13 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
   const busySelected = selected.filter((worker) => activeOf(worker.id))
   const available = divisionWorkers.filter((worker) => !activeOf(worker.id))
   const template = templateById(templateId)
-  const isTask = type === 'task'
+  const isTask = type === 'task' && !template0
+  // Restricted Operations: normal assignments are blocked for the selected division; only the Quarantine Assignment template works.
+  const isQuarantine = Boolean(template0) && divisionId === template0?.divisionId
+  const restrictedHere = data.quarantines.find((row) => row.divisionId === divisionId)
+  const blocked = Boolean(restrictedHere) && !isQuarantine
   const pending = actions.createForWorkers.isPending
-  const noun = isTask ? 'Task' : 'Inspection'
+  const noun = isTask ? 'Task' : isQuarantine ? 'Quarantine assignment' : 'Inspection'
 
   function chooseType(next: AssignmentType) {
     setType(next)
@@ -111,9 +128,14 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
     estateId, divisionId, fieldWorkerIds: workerIds, title, instructions, priority, dueDate, status, type,
     templateId: isTask && templateId !== CUSTOM_TASK ? templateId : null,
     requirements: isTask ? requirements : null,
+    quarantine: isQuarantine && template0 ? { quarantineId: template0.id, objective, inspectionFocus, monitoringWindow, authorised } : null,
   })
 
   function validate(status: 'draft' | 'assigned') {
+    if (blocked) {
+      setError(`${divisionId} is under Restricted Operations (${restrictedHere?.id}). Normal field assignments are blocked; create a Quarantine Assignment from the quarantine record.`)
+      return false
+    }
     const problems = batchErrors(input(status))
     if (status === 'assigned' && busySelected.length) problems.fieldWorkerIds = `${busySelected.map((worker) => worker.fullName).join(', ')} already ${busySelected.length === 1 ? 'has' : 'have'} an active assignment. Remove them to continue.`
     setErrors(problems)
@@ -138,11 +160,25 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
 
   return (
     <div className={`${styles.page} ${styles.assignment}`}>
-      <PageHeader title="Create assignment" actions={<ButtonLink variant="secondary" to="/assignments">Cancel</ButtonLink>} />
+      <PageHeader title={isQuarantine ? 'Create Quarantine Assignment' : 'Create assignment'} subtitle={isQuarantine && template0 ? `${template0.id} · ${linked?.name ?? ''} (${template0.divisionId}) · Restricted Operations` : undefined} actions={<ButtonLink variant="secondary" to="/assignments">Cancel</ButtonLink>} />
       {error && <Banner tone="error">{error}</Banner>}
+      {blocked && restrictedHere && (
+        <Banner tone="warning" title={`${divisionId} is under Restricted Operations (${restrictedHere.id})`}>
+          Why: a quarantine is active on {restrictedHere.divisionId}, so normal field activities are restricted and normal field assignments cannot be created or submitted for it. Only a Supervisor-authorised Quarantine Assignment is allowed.{' '}
+          <Link to={`/assignments/new?quarantine=${restrictedHere.id}`}><strong>Create a Quarantine Assignment</strong></Link> instead, or choose a division operating normally.
+        </Banner>
+      )}
+      {isQuarantine && template0 && (
+        <Banner tone="info" title={`Quarantine Assignment · ${template0.id}`}>
+          This assignment works under the Restricted Operations quarantine of {linked?.name}. <strong>Supervisor authorisation is required:</strong> tick the authorisation box and click Review &amp; assign. Nothing is assigned until you do.
+        </Banner>
+      )}
       <div className={styles.split}>
         <Card>
           <form className={styles.form} noValidate onSubmit={(event) => { event.preventDefault(); if (validate('assigned')) setReviewing(true) }}>
+            {isQuarantine ? (
+              <DescriptionList items={[{ label: 'Assignment type', value: 'Quarantine Assignment' }]} />
+            ) : (
             <fieldset className={styles.fieldset}>
               <legend>Assignment type</legend>
               <div className={styles.actions}>
@@ -150,6 +186,7 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
                 <Radio label="Task" description="The Field Worker performs work and submits completion evidence" name="assignment-type" checked={type === 'task'} onChange={() => chooseType('task')} />
               </div>
             </fieldset>
+            )}
 
             <h2>1 · {noun} details</h2>
             <DescriptionList items={[{ label: `${noun} ID`, value: 'Generated on save' }]} />
@@ -164,12 +201,12 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
             )}
 
             <h2>2 · Location</h2>
-            <SelectField label="Estate" options={data.estates.map((estate) => ({ value: estate.id, label: `${estate.id} · ${estate.name}` }))} value={estateId} error={errors.estateId} onChange={(event) => { setEstateId(event.target.value); chooseDivision('') }} />
+            <SelectField label="Estate" options={data.estates.map((estate) => ({ value: estate.id, label: `${estate.id} · ${estate.name}` }))} value={estateId} error={errors.estateId} disabled={isQuarantine} onChange={(event) => { setEstateId(event.target.value); chooseDivision('') }} />
             <fieldset className={styles.fieldset}>
               <legend>Division</legend>
               <div className={styles.actions}>
                 {divisions.map((item) => (
-                  <Radio key={item.id} label={`${item.id} · ${item.name}`} name="division" checked={divisionId === item.id} disabled={item.status !== 'active'} onChange={() => chooseDivision(item.id)} />
+                  <Radio key={item.id} label={`${item.id} · ${item.name}${item.operationalStatus === 'restricted' ? ' · Restricted Operations' : ''}`} name="division" checked={divisionId === item.id} disabled={item.status !== 'active' || (isQuarantine && item.id !== template0?.divisionId)} onChange={() => chooseDivision(item.id)} />
                 ))}
               </div>
               {errors.divisionId && <p role="alert" className={styles.error}>{errors.divisionId}</p>}
@@ -224,6 +261,13 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
             </fieldset>
 
             <h2>4 · {isTask ? 'Work details' : 'Inspection instructions'}</h2>
+            {isQuarantine && template0 && (
+              <>
+                <TextAreaField label="Assignment objective" value={objective} error={errors.objective} onChange={(event) => setObjective(event.target.value)} />
+                <TextField label="Inspection focus" value={inspectionFocus} error={errors.inspectionFocus} onChange={(event) => setInspectionFocus(event.target.value)} />
+                <TextField label="Monitoring window" value={monitoringWindow} error={errors.monitoringWindow} onChange={(event) => setMonitoringWindow(event.target.value)} />
+              </>
+            )}
             <TextAreaField label="Supervisor instructions" value={instructions} error={errors.instructions} onChange={(event) => setInstructions(event.target.value)} />
             <div className={styles.equal}>
               <SelectField label="Priority" options={['Low', 'Medium', 'High'].map((value) => ({ value, label: value }))} value={priority} error={errors.priority} onChange={(event) => setPriority(event.target.value as Priority)} />
@@ -242,16 +286,38 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
               </>
             )}
 
+            {isQuarantine && (
+              <>
+                <Checkbox label="I authorise this Quarantine Assignment under Restricted Operations" description="Required to assign it. Saving a draft does not authorise it." checked={authorised} onChange={(event) => setAuthorised(event.target.checked)} />
+                {errors.authorised && <p role="alert" className={styles.error}>{errors.authorised}</p>}
+              </>
+            )}
             <div className={styles.actions}>
-              <Button type="submit">Review &amp; assign</Button>
-              <Button variant="secondary" loading={pending && !reviewing} disabled={pending} onClick={() => { if (validate('draft')) create('draft') }}>Save as draft</Button>
+              <Button type="submit" disabled={blocked}>Review &amp; assign</Button>
+              <Button variant="secondary" loading={pending && !reviewing} disabled={pending || blocked} onClick={() => { if (validate('draft')) create('draft') }}>Save as draft</Button>
             </div>
           </form>
         </Card>
         <div className={styles.stack}>
+          {isQuarantine && template0 && (
+            <Card title="Quarantine details">
+              <DescriptionList items={[
+                { label: 'Quarantine ID', value: template0.id },
+                { label: 'Estate', value: data.estates.find((row) => row.id === template0.estateId)?.name ? `${template0.estateId} · ${data.estates.find((row) => row.id === template0.estateId)?.name}` : template0.estateId },
+                { label: 'Division', value: `${template0.divisionId} · ${linked?.name ?? ''}` },
+                { label: 'Operational status', value: 'Restricted Operations' },
+                { label: 'Related disease', value: template0.disease ? `${template0.disease.name} (${template0.disease.id})` : 'Not recorded' },
+                { label: 'Severity', value: template0.severity ?? 'Not recorded' },
+                { label: 'Linked observation', value: template0.observationId },
+                { label: 'Linked case', value: template0.caseId ?? 'Not linked' },
+                { label: 'Authorisation', value: authorised ? 'Authorised by you' : 'Required before assigning' },
+              ]} />
+            </Card>
+          )}
           <Card title="Assignment summary">
             <DescriptionList items={[
-              { label: 'Type', value: ASSIGNMENT_TYPE[type] },
+              { label: 'Type', value: isQuarantine ? 'Quarantine Assignment' : ASSIGNMENT_TYPE[type] },
+              ...(isQuarantine && template0 ? [{ label: 'Quarantine', value: template0.id }] : []),
               ...(isTask ? [{ label: 'Category', value: template?.name ?? 'Custom task' }] : []),
               { label: 'Division', value: division ? `${division.id} ${division.name}` : 'Not selected' },
               { label: 'Field Workers', value: selected.length ? selected.map((worker) => worker.fullName).join(', ') : 'Not selected' },
@@ -277,7 +343,7 @@ export function AssignmentCreateForm({ data }: { data: CaptureWorkspace }) {
         }
       >
         <DescriptionList items={[
-          { label: 'Type', value: isTask ? `Task · ${template?.name ?? 'Custom task'}` : 'Inspection' },
+          { label: 'Type', value: isQuarantine ? `Quarantine Assignment · ${template0?.id ?? ''}` : isTask ? `Task · ${template?.name ?? 'Custom task'}` : 'Inspection' },
           { label: 'Title', value: title },
           { label: 'Division', value: division ? `${division.id} ${division.name}` : '' },
           { label: `Field Workers (${selected.length})`, value: selected.map((worker) => worker.fullName).join(', ') },

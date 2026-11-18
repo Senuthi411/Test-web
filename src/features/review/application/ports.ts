@@ -1,5 +1,9 @@
 import type {
   ApproveCorrectionInput,
+  ExpertDiagnosisInput,
+  QuarantineDivisionInput,
+  ReleaseDivisionInput,
+  DivisionQuarantine,
   Correction,
   CorrectionRequestInput,
   DecisionMeta,
@@ -50,6 +54,28 @@ export interface ReviewPort {
    * unchanged) and the observation becomes Resubmitted only after the write succeeds.
    */
   simulateResubmission(correctionId: string, input: ResubmissionInput, expectedVersion: number): Promise<Correction>
+  /**
+   * Records the expert's diagnosis for a Referred observation on the expert's behalf (case and
+   * referral linked automatically, catalog version pinned). The case becomes Diagnosed, or Closed
+   * with its closing time when `closeCase` is set. The Supervisor assigns any follow-up inspection.
+   */
+  recordExpertDiagnosis(observationId: string, input: ExpertDiagnosisInput, meta: DecisionMeta): Promise<ObservationReview>
+  /** Close Case on an already Diagnosed case; stamps the closing time. */
+  closeExpertCase(observationId: string, meta: DecisionMeta): Promise<ObservationReview>
+  /**
+   * Sets the observation's division to Restricted Operations and creates its quarantine record from the
+   * recorded expert diagnosis. A division has at most one active quarantine: repeating the action returns
+   * the existing one. Nothing is assigned automatically.
+   */
+  quarantineDivision(observationId: string, input: QuarantineDivisionInput, meta: DecisionMeta): Promise<ObservationReview>
+  /**
+   * Releases a division from its active quarantine: the quarantine record becomes Released (reason, time and
+   * Supervisor kept, nothing deleted) and the division returns to Normal Operations. An explicit Supervisor
+   * action only; it never assigns or creates work, and a released or unknown quarantine is refused.
+   */
+  releaseDivisionQuarantine(quarantineId: string, input: ReleaseDivisionInput, meta: DecisionMeta): Promise<DivisionQuarantine>
+  /** End Process: completes the decision process, keeps the review status and diagnosis, and moves the observation to history. */
+  endProcess(observationId: string, meta: DecisionMeta): Promise<DecisionResult>
   /** Export of a Review list. Fixture mode produces no file and says so (`simulated`). */
   exportList(kind: ReviewExportKind): Promise<{ simulated: boolean }>
 }

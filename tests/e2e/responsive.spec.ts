@@ -97,7 +97,7 @@ for (const width of [320, 375, 430]) {
     const drawer = page.getByRole('dialog', { name: 'Navigation' })
     await expect(drawer).toBeVisible()
     await expect(page.locator('body')).toHaveCSS('overflow', 'hidden')
-    await expect(drawer.getByRole('link', { name: 'Review Queue' })).toHaveCount(0)
+    await expect(drawer.getByRole('link', { name: 'Observation Review' })).toHaveCount(0)
     for (let i = 0; i < 14; i++) {
       await page.keyboard.press('Tab')
       expect(await drawer.evaluate((node) => node.contains(document.activeElement))).toBe(true)

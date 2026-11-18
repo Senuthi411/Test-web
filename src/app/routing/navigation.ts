@@ -44,8 +44,8 @@ export const ROLE_NAVIGATION: Record<WebRole, RoleNavigation> = {
       { label: 'Dashboard', to: '/review', icon: 'home', end: true },
       // Corrections, expert referrals and observation evidence are opened from the review
       // workflow (Review Queue header, Dashboard KPIs, Observation Review), so they stay under it.
-      { label: 'Review Queue', to: '/review/queue', icon: 'inbox', activePaths: ['/review/observations', '/review/corrections', '/review/referrals', '/observations'] },
-      { label: 'Quarantine Queue', to: '/review/quarantine', icon: 'archive' },
+      { label: 'Observation Review', to: '/review/queue', icon: 'inbox', activePaths: ['/review/observations', '/review/corrections', '/review/referrals', '/observations'] },
+      { label: 'Division Quarantine', to: '/review/quarantine', icon: 'archive' },
       { label: 'Decision History', to: '/review/history', icon: 'history' },
       { label: 'Fieldwork Assignments', to: '/assignments', icon: 'image' },
     ],

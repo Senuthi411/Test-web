@@ -42,8 +42,8 @@ async function simulateResubmission(page: Page, id: string, version: number) {
 test('a first-time submission and a resubmission share the Review Queue, compare side by side, and keep their history', async ({ page }) => {
   await signIn(page)
   // 1, 5: Submitted and Resubmitted observations in the same queue; the sidebar is unchanged.
-  await nav(page).getByRole('link', { name: 'Review Queue' }).click()
-  await expect(nav(page).getByRole('link')).toHaveText(['Dashboard', 'Review Queue', 'Quarantine Queue', 'Decision History', 'Fieldwork Assignments'])
+  await nav(page).getByRole('link', { name: 'Observation Review' }).click()
+  await expect(nav(page).getByRole('link')).toHaveText(['Dashboard', 'Observation Review', 'Division Quarantine', 'Decision History', 'Fieldwork Assignments'])
   await expect(queueRow(page, 'OBS-005')).toContainText('Resubmitted')
   await expect(queueRow(page, 'OBS-005')).toContainText('V2')
   await page.getByRole('tab', { name: /Resubmitted/ }).click()
@@ -124,8 +124,8 @@ test('a resubmitted observation can be flagged (rejected) or referred, like any 
   await signIn(page)
   // The queue's Start review action opens the review and moves Resubmitted to In review.
   await page.goto('/review/queue?status=resubmitted')
-  await page.getByRole('button', { name: 'Actions for OBS-005' }).click()
-  await page.getByRole('menuitem', { name: 'Start review' }).click()
+  await page.getByRole('link', { name: 'OBS-005', exact: true }).click()
+  await page.getByRole('button', { name: 'Start review' }).click()
   await expect(reviewStatus(page)).toContainText('In review')
   await expect(page.getByRole('table', { name: 'Decisions on this observation' })).toContainText('Retake clearer image')
   await page.getByRole('link', { name: 'Flag observation' }).click()

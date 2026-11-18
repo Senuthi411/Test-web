@@ -1,105 +1,30 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router'
 import { AssignmentHistorySection } from '@/features/capture'
-import { Button, Card, DataTable, EmptyState, FilterSelect, PageHeader, Pagination, SearchInput, Tabs, usePageBreadcrumbs } from '@/shared/components'
-import { useDebouncedValue } from '@/shared/hooks'
-import { paginate } from '@/shared/utilities/pagination'
-import { DECISION_OUTCOME_LABEL, DECISION_TYPE_LABEL, type DecisionOutcome, type DecisionType, type ReviewDecision, type ReviewObservation, type ReviewWorkspace } from '../../domain/models'
-import { OutcomeBadge, QueryBoundary, ReviewStatusBadge } from '../components/badges'
-import { formatDate, formatDateTime, reviewPaths } from '../components/format'
-import { IdLink, Person } from '../components/parts'
+import { Button, Card, DataTable, EmptyState, PageHeader, usePageBreadcrumbs } from '@/shared/components'
+import type { DivisionQuarantine, ReviewObservation } from '../../domain/models'
+import { QueryBoundary } from '../components/badges'
+import { formatDateTime, reviewPaths } from '../components/format'
+import { IdLink } from '../components/parts'
 import { useReviewExport, useReviewWorkspace } from '../services/queries'
-import { useReviewClock } from '../services/useReviewClock'
 import styles from '../components/review.module.css'
 
-const PAGE_SIZE = 15
-const TYPES: DecisionType[] = ['verification', 'flag', 'correction', 'referral', 'quarantine']
-type Tab = 'all' | DecisionType
-type DateFilter = '30' | '7' | 'all'
-const DAY = 86_400_000
-
-function recordPath(decision: ReviewDecision): string {
-  if (decision.type === 'correction') return reviewPaths.correction(decision.recordId)
-  if (decision.type === 'referral') return reviewPaths.referrals
-  if (decision.type === 'quarantine') return reviewPaths.quarantineItem(decision.targetId)
-  return reviewPaths.observation(decision.targetId)
-}
-
-const instant = (iso: string) => new Date(iso.includes('T') ? iso : `${iso}T12:00:00+05:30`).getTime()
-
-/** REV-17 Review and Decision History. */
-type Section = 'observations' | 'assignments'
-
-/** Observations archived 24 hours after their final decision. Read-only: links open the review page, whose status allows no decision. */
-function ObservationHistory({ workspace }: { workspace: ReviewWorkspace }) {
-  const rows = workspace.observations.filter((item) => item.archivedAt)
-  const lastDecision = (id: string) => workspace.decisions.find((item) => item.targetId === id && item.type !== 'quarantine')
-  const expert = (id: string) => workspace.referrals.find((item) => item.observation.id === id && item.diagnosis)
-  return (
-    <Card title="Archived observations">
-      <DataTable<ReviewObservation>
-        caption="Observation history"
-        rows={rows}
-        rowKey={(row) => row.id}
-        empty={<EmptyState title="No archived observations" message="Verified and flagged observations move here 24 hours after the final decision." icon="history" />}
-        columns={[
-          { id: 'id', header: 'Observation', cell: (row) => <IdLink to={reviewPaths.observation(row.id)}>{row.id}</IdLink> },
-          { id: 'division', header: 'Division', cell: (row) => row.division.name },
-          { id: 'worker', header: 'Field worker', cell: (row) => <Person name={row.fieldWorker.fullName} /> },
-          { id: 'disease', header: 'Suspected disease', cell: (row) => row.suspectedDisease.name },
-          { id: 'final', header: 'Final decision', cell: (row) => <ReviewStatusBadge status={row.reviewStatus} /> },
-          { id: 'expert', header: 'Expert decision', cell: (row) => { const r = expert(row.id); return r?.diagnosis ? `${r.diagnosis.disease.name} (${r.id})` : '—' } },
-          { id: 'decided', header: 'Final decision date', cell: (row) => formatDate(lastDecision(row.id)?.decidedAt ?? row.finalisedAt ?? row.capturedAt) },
-          { id: 'archived', header: 'Archived', cell: (row) => (row.archivedAt ? formatDateTime(row.archivedAt) : '—') },
-        ]}
-      />
-    </Card>
-  )
-}
-
+/**
+ * REV-17 Review and Decision History: three tables, each drawn from the live records.
+ * Observation History: observations whose process has ended (End Process).
+ * Assignment History: completed fieldwork assignments.
+ * Quarantine History: every division quarantine, active or released.
+ * The decision log and audit records are unchanged; they are kept in the data and on the record pages.
+ */
 export function DecisionHistoryPage() {
-  const [params, setParams] = useSearchParams()
-  const section: Section = params.get('section') === 'assignments' ? 'assignments' : 'observations'
   usePageBreadcrumbs([{ label: 'Review', to: reviewPaths.dashboard }, { label: 'Decision History' }])
   const query = useReviewWorkspace()
-  const now = useReviewClock()
   const exportAction = useReviewExport('history')
-  const [tab, setTab] = useState<Tab>('all')
-  const [search, setSearch] = useState('')
-  const [outcome, setOutcome] = useState<'all' | DecisionOutcome>('all')
-  const [division, setDivision] = useState('all')
-  const [date, setDate] = useState<DateFilter>('30')
-  const [page, setPage] = useState(1)
-  const term = useDebouncedValue(search.trim().toLowerCase(), 200)
-  const reset = () => {
-    setSearch('')
-    setOutcome('all')
-    setDivision('all')
-    setDate('30')
-    setPage(1)
-  }
-  const withReset =
-    <T,>(setter: (value: T) => void) =>
-    (value: T) => {
-      setter(value)
-      setPage(1)
-    }
-
   return (
     <QueryBoundary query={query} label="decision history">
       {(workspace) => {
-        const decisions = workspace.decisions
-        const filtered = decisions.filter(
-          (item) =>
-            (tab === 'all' || item.type === tab) &&
-            (outcome === 'all' || item.outcome === outcome) &&
-            (division === 'all' || item.divisionId === division) &&
-            (date === 'all' || now.getTime() - instant(item.decidedAt) <= Number(date) * DAY) &&
-            (!term || `${item.recordId} ${item.targetId} ${item.revision?.id ?? ''}`.toLowerCase().includes(term)),
-        )
-        const outcomes = [...new Set(decisions.map((item) => item.outcome))]
-        const filtersActive = search !== '' || outcome !== 'all' || division !== 'all' || date !== '30'
-        const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)))
+        const ended = workspace.observations
+          .filter((item) => item.processEndedAt !== null)
+          .sort((a, b) => (b.processEndedAt ?? '').localeCompare(a.processEndedAt ?? ''))
+        const quarantines = [...workspace.divisionQuarantines].sort((a, b) => b.initiatedAt.localeCompare(a.initiatedAt))
         return (
           <div className={styles.page}>
             <PageHeader
@@ -110,78 +35,39 @@ export function DecisionHistoryPage() {
                 </Button>
               }
             />
-            <Tabs<Section>
-              label="History section"
-              value={section}
-              onChange={(value) => setParams(value === 'assignments' ? { section: value } : {}, { replace: true })}
-              items={[
-                { id: 'observations', label: 'Observation History', count: workspace.observations.filter((item) => item.archivedAt).length },
-                { id: 'assignments', label: 'Assignment History' },
-              ]}
-            />
-            {section === 'assignments' ? (
-              <Card title="Archived assignments">
-                <AssignmentHistorySection />
-              </Card>
-            ) : (
-            <>
-            <ObservationHistory workspace={workspace} />
-            <h2 className={styles.sectionHeading}>Decision log</h2>
-            <Tabs<Tab>
-              label="Decision type"
-              value={tab}
-              onChange={withReset(setTab)}
-              items={[
-                { id: 'all', label: 'All', count: decisions.length },
-                ...TYPES.map((type) => ({ id: type, label: DECISION_TYPE_LABEL[type], count: decisions.filter((item) => item.type === type).length })),
-              ]}
-            />
-            <Card>
-              <div className={styles.filterBar}>
-                <SearchInput label="Search decisions" placeholder="Search by observation or record ID" width={420} value={search} onChange={(event) => withReset(setSearch)(event.target.value)} />
-                <FilterSelect<'all' | DecisionOutcome>
-                  label="Decision type"
-                  value={outcome}
-                  onChange={withReset(setOutcome)}
-                  options={[{ value: 'all', label: 'All' }, ...outcomes.map((value) => ({ value, label: DECISION_OUTCOME_LABEL[value] }))]}
-                />
-                <FilterSelect label="Division" value={division} onChange={withReset(setDivision)} options={[{ value: 'all', label: 'All' }, ...workspace.divisions.map((item) => ({ value: item.id, label: item.name }))]} />
-                <FilterSelect<DateFilter>
-                  label="Date"
-                  value={date}
-                  onChange={withReset(setDate)}
-                  options={[
-                    { value: '30', label: 'Last 30 days' },
-                    { value: '7', label: 'Last 7 days' },
-                    { value: 'all', label: 'All dates' },
-                  ]}
-                />
-                <Button variant="ghost" icon="refresh" onClick={reset} disabled={!filtersActive}>
-                  Reset filters
-                </Button>
-              </div>
-              <DataTable<ReviewDecision>
-                caption="Decision history"
-                rows={paginate(filtered, currentPage, PAGE_SIZE)}
+            <Card title="Observation History">
+              <p className={styles.note}>Process-ended observations.</p>
+              <DataTable<ReviewObservation>
+                caption="Observation history"
+                rows={ended}
                 rowKey={(row) => row.id}
-                empty={<EmptyState title="No decisions match these filters" message="Change the type tab, search or filters." icon="history" />}
+                empty={<EmptyState title="No process-ended observations" message="An observation appears here when its process is ended with End Process." icon="history" />}
                 columns={[
-                  { id: 'date', header: 'Date', cell: (row) => formatDate(row.decidedAt) },
-                  { id: 'type', header: 'Type', cell: (row) => DECISION_TYPE_LABEL[row.type] },
-                  { id: 'record', header: 'Record', cell: (row) => <IdLink to={recordPath(row)}>{row.recordId}</IdLink> },
-                  { id: 'target', header: 'Target', cell: (row) => row.targetId },
-                  { id: 'division', header: 'Division', cell: (row) => workspace.divisions.find((item) => item.id === row.divisionId)?.name ?? '—' },
-                  // The revision the decision was made on, so decisions on different versions stay distinct.
-                  { id: 'revision', header: 'Revision', cell: (row) => (row.revision ? <span title={row.revision.id}>V{row.revision.number} · {row.revision.id}</span> : '—') },
-                  { id: 'decision', header: 'Decision', cell: (row) => <OutcomeBadge outcome={row.outcome} /> },
-                  { id: 'by', header: 'Decided by', cell: (row) => <Person name={row.decidedBy.fullName} /> },
-                  { id: 'note', header: 'Note', cell: (row) => row.note ?? '—' },
+                  { id: 'id', header: 'Observation ID', cell: (row) => <IdLink to={reviewPaths.observation(row.id)}>{row.id}</IdLink> },
+                  { id: 'division', header: 'Division', cell: (row) => row.division.name },
+                  { id: 'worker', header: 'Field Worker', cell: (row) => row.fieldWorker.fullName },
                 ]}
               />
-              {filtered.length > 0 && <Pagination page={currentPage} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} itemLabel="decisions" />}
             </Card>
-            </>
-            )}
+            <Card title="Assignment History">
+              <p className={styles.note}>Completed assignments.</p>
+              <AssignmentHistorySection />
+            </Card>
+            <Card title="Quarantine History">
+              <p className={styles.note}>Quarantined and released divisions.</p>
+              <DataTable<DivisionQuarantine>
+                caption="Quarantine history"
+                rows={quarantines}
+                rowKey={(row) => row.id}
+                empty={<EmptyState title="No division quarantines" message="A division appears here once it is quarantined, and stays after it is released." icon="archive" />}
+                columns={[
+                  { id: 'id', header: 'Quarantine ID', cell: (row) => <IdLink to={reviewPaths.divisionQuarantine(row.id)}>{row.id}</IdLink> },
+                  { id: 'division', header: 'Division', cell: (row) => row.division.name },
+                  { id: 'disease', header: 'Disease', cell: (row) => row.disease?.name ?? 'Not recorded' },
+                  { id: 'released', header: 'Released At', cell: (row) => (row.release ? formatDateTime(row.release.at) : 'Not released') },
+                ]}
+              />
+            </Card>
           </div>
         )
       }}

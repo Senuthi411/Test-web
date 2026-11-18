@@ -1,6 +1,8 @@
 import type {
   FixtureCorrection,
   FixtureDatabase,
+  FixtureDiagnosisDetails,
+  FixtureDivisionQuarantine,
   FixtureObservation,
   FixtureQuarantineItem,
   FixtureReferral,
@@ -12,10 +14,13 @@ import { latestRevisionOf, projectRevision, revisionIdOf, revisionsOf } from '@/
 import { revisionDifferences } from '@/features/capture'
 import { AppError } from '@/shared/api'
 import type { Clock } from '@/shared/utilities/clock'
+import { activeQuarantineOf, logQuarantineEvent, recordQuarantineDecision, syncDivisionStatus } from '@/fixtures'
 import type { DecisionResult, ReviewPort } from '../application/ports'
 import type {
   Correction,
   DecisionMeta,
+  DivisionQuarantine,
+  ExpertDiagnosis,
   ObservationReview,
   PersonRef,
   QuarantineItem,
@@ -33,6 +38,8 @@ import {
   isFinalReviewStatus,
   observationArchivedAt,
   canDecide,
+  canEndProcess,
+  canRecordDiagnosis,
   canRejectCorrection,
   canResubmit,
   canStartReview,
@@ -128,8 +135,64 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
       revisionNumber: latestRevisionOf(db, observation.id).number,
       assignmentId: db.assignments.find((item) => item.observationIds.includes(observation.id))?.id ?? null,
       finalisedAt: finalisedAtOf(db, observation),
-      archivedAt: observationArchivedAt(finalisedAtOf(db, observation), now()),
+      archivedAt: observationArchivedAt(finalisedAtOf(db, observation), now()) ?? processEndedAtOf(db, observation.id),
+      processEndedAt: processEndedAtOf(db, observation.id),
     }
+  }
+
+  /** When End Process was used on the observation; null while its decision process is open. */
+  function processEndedAtOf(db: ReadDb, observationId: string): string | null {
+    return db.reviewRecords.find((item) => item.observationId === observationId)?.processEndedAt ?? null
+  }
+
+  /** The recorded expert diagnosis (sections A–H) for the observation's referral, with the division it concerns. */
+  const projectDiagnosis = (db: ReadDb, observation: FixtureObservation): ExpertDiagnosis | null => {
+    const referral = db.referrals.find((item) => item.observationId === observation.id && item.diagnosis)
+    const diagnosis = referral?.diagnosis
+    if (!referral || !diagnosis) return null
+    const disease = db.diseases.find((item) => item.id === diagnosis.diseaseId)
+    const division = db.divisions.find((item) => item.id === observation.divisionId)
+    const estate = db.estates.find((item) => item.id === division?.estateId)
+    if (!division || !estate) throw new AppError('contract_mismatch', 'The observation has incomplete related records.')
+    const details = diagnosis.details
+    return {
+      caseId: referral.caseId, referralId: referral.id, observationId: observation.id,
+      estate: { id: estate.id, name: estate.name }, division: { id: division.id, name: division.name },
+      expert: person(db, referral.expertId).fullName, diagnosedAt: diagnosis.at,
+      caseStatus: details?.caseStatus ?? 'Diagnosed', closedAt: details?.closedAt ?? null,
+      disease: { id: diagnosis.diseaseId, name: disease?.name ?? diagnosis.diseaseId }, catalogVersion: details?.catalogVersion ?? null,
+      symptomsConfirmed: details?.symptomsConfirmed ?? '', severity: details?.severity ?? null,
+      clinicalFindings: details?.clinicalFindings ?? diagnosis.statement, reasoning: details?.reasoning ?? '', recommendedAction: details?.recommendedAction ?? '',
+      followUpDescription: details?.followUpDescription ?? '', monitoringWindow: details?.monitoringWindow ?? '', inspectionFocus: details?.inspectionFocus ?? '',
+    }
+  }
+
+  /** A division quarantine with its diagnosis, assignments (and their current status) and history. */
+  const projectDivisionQuarantine = (db: ReadDb, found: FixtureDivisionQuarantine): DivisionQuarantine | null => {
+    const division = db.divisions.find((item) => item.id === found.divisionId)
+    const estate = db.estates.find((item) => item.id === found.estateId)
+    const observation = db.observations.find((item) => item.id === found.observationId)
+    if (!division || !estate) return null
+    const disease = found.diseaseId ? db.diseases.find((item) => item.id === found.diseaseId) : undefined
+    return {
+      id: found.id, estate: { id: estate.id, name: estate.name }, division: { id: division.id, name: division.name }, observationId: found.observationId,
+      caseId: found.caseId, referralId: db.referrals.find((item) => item.observationId === found.observationId)?.id ?? null,
+      disease: found.diseaseId ? { id: found.diseaseId, name: disease?.name ?? found.diseaseId } : null, severity: found.severity ?? null,
+      reason: found.reason ?? '', policy: 'Restricted Operations', status: (found.status ?? 'active') === 'active' ? 'Active' : 'Released', operationalStatus: division.operationalStatus ?? 'normal',
+      release: found.status === 'released' && found.releasedAt ? { at: found.releasedAt, by: person(db, found.releasedBy ?? '').fullName, reason: found.releaseReason ?? '' } : null,
+      initiatedBy: person(db, found.quarantinedBy).fullName, initiatedAt: found.quarantinedAt,
+      assignments: (found.assignmentIds ?? []).flatMap((id) => {
+        const item = db.assignments.find((row) => row.id === id)
+        return item ? [{ id: item.id, title: item.title, status: item.status, fieldWorker: item.fieldWorkerId ? person(db, item.fieldWorkerId).fullName : null }] : []
+      }),
+      history: (found.history ?? []).map((entry) => ({ id: entry.id, event: entry.event, at: entry.at, by: person(db, entry.by).fullName, note: entry.note })),
+      diagnosis: observation ? projectDiagnosis(db, observation) : null,
+    }
+  }
+
+  const projectQuarantineOf = (db: ReadDb, observation: FixtureObservation): DivisionQuarantine | null => {
+    const found = activeQuarantineOf(db, observation.divisionId)
+    return found ? projectDivisionQuarantine(db, found) : null
   }
 
   const scopedObservation = (db: ReadDb, actor: FixtureUser, observationId: string) => {
@@ -188,7 +251,7 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
       caseId: item.caseId,
       caseCreatedAt: item.caseCreatedAt,
       caseStatus: item.caseStatus,
-      diagnosis: item.diagnosis && disease ? { id: item.diagnosis.id, disease: { id: disease.id, name: disease.name }, at: item.diagnosis.at, statement: item.diagnosis.statement } : null,
+      diagnosis: item.diagnosis && disease ? { id: item.diagnosis.id, disease: { id: disease.id, name: disease.name }, at: item.diagnosis.at, statement: item.diagnosis.statement, severity: item.diagnosis.details?.severity ?? null } : null,
     }
   }
 
@@ -220,11 +283,11 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
       decidedBy: person(db, item.decidedBy),
       decidedAt: item.decidedAt,
       // REV-17 shows "Linked to CASE-006" for linked referrals.
-      note: referral?.linkStatus === 'linked' && referral.caseId ? `Linked to ${referral.caseId}` : item.note,
+      note: item.outcome !== 'process_ended' && referral?.linkStatus === 'linked' && referral.caseId ? `Linked to ${referral.caseId}` : item.note,
       // Seeded decisions predate every resubmission, so they were made on revision 1.
       revision: item.type === 'quarantine' ? null : { id: item.revisionId ?? revisionIdOf(item.targetId, item.revisionNumber ?? 1), number: item.revisionNumber ?? 1 },
       divisionId: item.type === 'quarantine'
-        ? db.quarantineItems.find((row) => row.id === item.targetId)?.divisionId ?? null
+        ? db.quarantineItems.find((row) => row.id === item.targetId)?.divisionId ?? db.divisionQuarantines?.find((row) => row.id === item.targetId)?.divisionId ?? null
         : db.observations.find((row) => row.id === item.targetId)?.divisionId ?? null,
     }
   }
@@ -279,6 +342,7 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
         const record = db.reviewRecords.find((item) => item.observationId === observation.id)
         if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
         if (record.version !== meta.expectedVersion) throw new AppError('conflict', 'Another reviewer changed this record. Refresh before deciding.')
+        if (record.processEndedAt) throw new AppError('conflict', 'The process for this observation has ended; no further decisions can be recorded.')
         const status = effectiveStatus(db, observation)
         if (!canDecide(status, decisionKind)) {
           throw new AppError('conflict', `This decision is not available while the observation is ${REVIEW_STATUS_LABEL[status]}.`)
@@ -375,6 +439,7 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
       nextRevisionNumber: latest.number + 1,
       correctionId: correction?.id ?? null,
       referralId: referral?.id ?? null,
+      referral: referral ? { id: referral.id, caseId: referral.caseId, expert: person(db, referral.expertId).fullName } : null,
       experts: db.users
         .filter((user) => user.role === 'DISEASE_EXPERT' && user.status === 'active' && estateId !== null && user.estateIds.includes(estateId))
         .map((user) => ({
@@ -395,6 +460,9 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
           decisions: on.map((item) => ({ id: item.id, outcome: item.outcome, decidedAt: item.decidedAt, decidedBy: person(db, item.decidedBy).fullName, note: projectDecision(db, item).note })),
         }
       }),
+      expertDiagnosis: projectDiagnosis(db, observation),
+      catalog: db.diseases.filter((item) => item.status === 'active').map((item) => ({ id: item.id, name: item.name, catalogVersion: item.catalogVersion })),
+      divisionQuarantine: projectQuarantineOf(db, observation),
       expertDecision: (() => {
         const decided = db.referrals.find((item) => item.observationId === observation.id && item.diagnosis)
         const disease = decided?.diagnosis ? db.diseases.find((item) => item.id === decided.diagnosis!.diseaseId) : undefined
@@ -424,7 +492,8 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
             return {
               actor: { id: actor.id, fullName: actor.fullName },
               estates: db.estates.filter((item) => actor.estateIds.includes(item.id)).map(({ id, name }) => ({ id, name })),
-              divisions: divisions.map(({ id, name, estateId }) => ({ id, name, estateId })),
+              divisions: divisions.map(({ id, name, estateId, operationalStatus }) => ({ id, name, estateId, operationalStatus: operationalStatus ?? 'normal' })),
+              divisionQuarantines: (db.divisionQuarantines ?? []).filter((item) => actor.estateIds.includes(item.estateId)).flatMap((item) => projectDivisionQuarantine(db, item) ?? []),
               observations: observations.map((item) => projectObservation(db, item)),
               corrections: db.corrections.filter((item) => observationIds.has(item.observationId)).map((item) => projectCorrection(db, item)),
               referrals: db.referrals.filter((item) => observationIds.has(item.observationId)).map((item) => projectReferral(db, item)),
@@ -581,6 +650,148 @@ export function createFixtureReviewAdapter(store: FixtureStore, options: Fixture
       })
     },
 
+    recordExpertDiagnosis(observationId, input, meta) {
+      return store.run(() =>
+        store.write((db): ObservationReview => {
+          const actor = actorOf(db)
+          const observation = scopedObservation(db, actor, observationId)
+          const record = db.reviewRecords.find((item) => item.observationId === observation.id)
+          if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
+          if (record.version !== meta.expectedVersion) throw new AppError('conflict', 'Another reviewer changed this record. Refresh before recording.')
+          const referral = db.referrals.find((item) => item.observationId === observation.id)
+          if (!canRecordDiagnosis(effectiveStatus(db, observation)) || !referral || referral.diagnosis) {
+            throw new AppError('conflict', 'An expert diagnosis can only be recorded for a referred observation that has no diagnosis yet.')
+          }
+          const disease = db.diseases.find((item) => item.id === input.diseaseId && item.status === 'active')
+          if (!disease) throw new AppError('validation', 'Select a disease from the Active Disease Catalog.', { details: [{ path: 'diseaseId', message: 'Select the confirmed disease' }] })
+          const at = now()
+          // The Supervisor records the diagnosis on the expert's behalf: the case is linked to the referral here when no case existed yet.
+          if (!referral.caseId) {
+            referral.caseId = observation.id.replace('OBS-', 'CASE-')
+            referral.caseCreatedAt = at
+          }
+          referral.linkStatus = 'linked'
+          referral.caseStatus = 'diagnosed'
+          referral.diagnosis = {
+            id: observation.id.replace('OBS-', 'DIAG-'), diseaseId: disease.id, at, statement: input.clinicalFindings,
+            details: {
+              severity: input.severity as FixtureDiagnosisDetails['severity'],
+              symptomsConfirmed: input.symptomsConfirmed, clinicalFindings: input.clinicalFindings, reasoning: input.reasoning, recommendedAction: input.recommendedAction,
+              followUpDescription: input.followUpDescription, monitoringWindow: input.monitoringWindow, inspectionFocus: input.inspectionFocus,
+              catalogVersion: disease.catalogVersion, caseStatus: input.closeCase ? 'Closed' : 'Diagnosed', closedAt: input.closeCase ? at : null, recordedBy: actor.id,
+            },
+          }
+          record.version += 1
+          return projectReview(db, observation)
+        }),
+      )
+    },
+
+    closeExpertCase(observationId, meta) {
+      return store.run(() =>
+        store.write((db): ObservationReview => {
+          const actor = actorOf(db)
+          const observation = scopedObservation(db, actor, observationId)
+          const record = db.reviewRecords.find((item) => item.observationId === observation.id)
+          if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
+          if (record.version !== meta.expectedVersion) throw new AppError('conflict', 'Another reviewer changed this record. Refresh before closing the case.')
+          const diagnosis = db.referrals.find((item) => item.observationId === observation.id)?.diagnosis
+          if (!diagnosis?.details) throw new AppError('conflict', 'Only a case with a recorded expert diagnosis can be closed.')
+          if (diagnosis.details.caseStatus === 'Closed') throw new AppError('conflict', 'This case is already closed.')
+          diagnosis.details.caseStatus = 'Closed'
+          diagnosis.details.closedAt = now()
+          record.version += 1
+          return projectReview(db, observation)
+        }),
+      )
+    },
+
+    quarantineDivision(observationId, input, meta) {
+      void meta
+      return store.run(() =>
+        store.write((db): ObservationReview => {
+          const actor = actorOf(db)
+          const observation = scopedObservation(db, actor, observationId)
+          const estateId = estateOfDivision(db, observation.divisionId)!
+          const list = (db.divisionQuarantines ??= [])
+          // A division has one active quarantine: repeating the action returns the existing record.
+          if (activeQuarantineOf(db, observation.divisionId)) return projectReview(db, observation)
+          const referral = db.referrals.find((item) => item.observationId === observation.id)
+          if (!referral?.diagnosis) throw new AppError('conflict', 'Record the expert diagnosis before quarantining the division.')
+          if (!input.reason.trim()) throw new AppError('validation', 'Enter the quarantine reason', { details: [{ path: 'reason', message: 'Enter the quarantine reason' }] })
+          const at = now()
+          const division = db.divisions.find((item) => item.id === observation.divisionId)!
+          const record: FixtureDivisionQuarantine = {
+            id: nextId(list.map((item) => item.id), 'DQ-'), divisionId: observation.divisionId, estateId, observationId: observation.id, caseId: referral.caseId,
+            policy: 'restricted_operations', quarantinedBy: actor.id, quarantinedAt: at, diagnosisId: referral.diagnosis.id, diseaseId: referral.diagnosis.diseaseId,
+            severity: referral.diagnosis.details?.severity ?? null, reason: input.reason, status: 'active', assignmentIds: [], history: [],
+          }
+          list.push(record)
+          logQuarantineEvent(record, 'Quarantine initiated', actor.id, at, input.reason)
+          // Restricted Operations is set on the division record itself.
+          syncDivisionStatus(db)
+          logQuarantineEvent(record, 'Division changed to Restricted Operations', actor.id, at, `${division.name} (${division.id})`)
+          recordQuarantineDecision(db, record, 'quarantined', actor.id, at, `${division.name} (${division.id}) set to Restricted Operations · ${referral.caseId ?? referral.id}`)
+          return projectReview(db, observation)
+        }),
+      )
+    },
+
+    releaseDivisionQuarantine(quarantineId, input, meta) {
+      void meta
+      return store.run(() =>
+        store.write((db): DivisionQuarantine => {
+          const actor = actorOf(db)
+          const record = (db.divisionQuarantines ?? []).find((item) => item.id === quarantineId)
+          if (!record || !inScope(actor, record.estateId)) throw new AppError('not_found', 'This quarantine is unavailable in your estate scope.')
+          if ((record.status ?? 'active') !== 'active') throw new AppError('conflict', `${record.id} has already been released. No change was made.`)
+          if (!input.reason.trim()) throw new AppError('validation', 'Enter the reason for release', { details: [{ path: 'reason', message: 'Enter the reason for release' }] })
+          const at = now()
+          const division = db.divisions.find((item) => item.id === record.divisionId)!
+          // The same record is updated; nothing is deleted. The division returns to Normal Operations from the records.
+          record.status = 'released'
+          record.releasedAt = at
+          record.releasedBy = actor.id
+          record.releaseReason = input.reason
+          logQuarantineEvent(record, 'Quarantine released', actor.id, at, input.reason)
+          syncDivisionStatus(db)
+          logQuarantineEvent(record, 'Division changed to Normal Operations', actor.id, at, `${division.name} (${division.id})`)
+          recordQuarantineDecision(db, record, 'quarantine_released', actor.id, at, `${division.name} (${division.id}) released to Normal Operations · ${input.reason}`)
+          return projectDivisionQuarantine(db, record)!
+        }),
+      )
+    },
+
+    endProcess(observationId, meta) {
+      return store.run(() =>
+        store.write((db): DecisionResult => {
+          const actor = actorOf(db)
+          const observation = scopedObservation(db, actor, observationId)
+          const replayed = replay(db, actor, meta.idempotencyKey)
+          if (replayed) return replayed
+          const record = db.reviewRecords.find((item) => item.observationId === observation.id)
+          if (!record) throw new AppError('contract_mismatch', 'The review record for this observation is unavailable.')
+          if (record.version !== meta.expectedVersion) throw new AppError('conflict', 'Another reviewer changed this record. Refresh before ending the process.')
+          if (!canEndProcess(effectiveStatus(db, observation), record.processEndedAt ?? null)) {
+            throw new AppError('conflict', 'End Process is only available once the observation is Verified or Referred, and only once.')
+          }
+          const referral = db.referrals.find((item) => item.observationId === observation.id)
+          const at = now()
+          record.processEndedAt = at
+          record.processEndedBy = actor.id
+          record.version += 1
+          // Recorded like every other decision. The review status is left as the workflow set it,
+          // and the referral, case and diagnosis it links to are kept.
+          const decision = recordDecision(db, actor, estateOfDivision(db, observation.divisionId)!, {
+            type: referral ? 'referral' : 'verification', outcome: 'process_ended', recordId: referral?.id ?? observation.id.replace('OBS-', 'REV-'), targetId: observation.id,
+            note: [referral?.caseId, referral?.diagnosis?.id].filter(Boolean).join(' · ') || null, idempotencyKey: meta.idempotencyKey,
+            details: { ...(referral?.caseId ? { caseId: referral.caseId } : {}), ...(referral?.diagnosis ? { diagnosisId: referral.diagnosis.id } : {}), status: observation.reviewStatus },
+          })
+          return { decision: projectDecision(db, decision) }
+        }),
+      )
+    },
+
     exportList() {
       return store.run(() =>
         store.read((db) => {
@@ -657,6 +868,10 @@ function decisionTitle(outcome: FixtureReviewDecision['outcome']): string {
     revision_applied: 'RevisionApplied',
     referred: 'Referred to expert',
     released: 'Released',
+    process_ended: 'Process ended',
+    quarantined: 'Quarantined',
+    quarantine_assignment: 'Quarantine assignment',
+    quarantine_released: 'Quarantine released',
   }
   return titles[outcome]
 }
