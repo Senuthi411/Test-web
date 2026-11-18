@@ -1,4 +1,4 @@
-import type { AccountPort, AuthPort, DevelopmentAccount, IdentityAdminPort } from '@/features/identity'
+import type { AccessGrantPort, AccountActivationPort, AccountPort, AuditLogPort, AuthPort, ConfigurationPort, IdentityAdminPort, PasswordRecoveryPort } from '@/features/identity'
 import type { AppErrorKind } from '@/shared/api'
 import type { CaptureReadPort } from '@/features/capture'
 import type { ReviewPort } from '@/features/review'
@@ -9,14 +9,21 @@ export interface FixtureControls {
   reset(): void
   /** Makes the next fixture request fail with the given error kind. */
   failNext(kind: AppErrorKind): void
-  /** Development sign-in accounts (fixture mode only). */
-  developmentAccounts: readonly DevelopmentAccount[]
 }
 
 /** One implementation of every port. Later phases add the other features' ports here. */
 export interface AdapterSet {
   capture: CaptureReadPort
-  identity: { auth: AuthPort; admin: IdentityAdminPort; account: AccountPort }
+  identity: {
+    auth: AuthPort
+    admin: IdentityAdminPort
+    account: AccountPort
+    recovery: PasswordRecoveryPort
+    activation: AccountActivationPort
+    accessGrants: AccessGrantPort
+    auditLog: AuditLogPort
+    configuration: ConfigurationPort
+  }
   review: ReviewPort
   fixtures: FixtureControls | null
 }

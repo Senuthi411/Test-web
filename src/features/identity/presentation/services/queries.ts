@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DivisionId, EstateId, UserId } from '@/shared/types'
 import type { DivisionInput, EstateInput, ScopeChangeInput, UserInput, VersionedInput } from '../../application/ports'
 import type { ExportKind, NotificationPreferenceKey, Profile } from '../../domain/models'
+import type { ConfigurationDocument } from '../../domain/configuration'
 import { useIdentityServices } from './identityServices'
 
 /** Every Identity query key starts with this, so a write can refresh all Identity screens. */
@@ -9,6 +10,7 @@ export const IDENTITY_KEY = ['identity'] as const
 
 export const identityKeys = {
   dashboard: () => [...IDENTITY_KEY, 'dashboard'] as const,
+  securityAlerts: () => [...IDENTITY_KEY, 'security-alerts'] as const,
   users: () => [...IDENTITY_KEY, 'users'] as const,
   user: (id: UserId) => [...IDENTITY_KEY, 'user', id] as const,
   estates: () => [...IDENTITY_KEY, 'estates'] as const,
@@ -18,11 +20,19 @@ export const identityKeys = {
   sessions: () => [...IDENTITY_KEY, 'device-sessions'] as const,
   recovery: (sessionId: string) => [...IDENTITY_KEY, 'recovery', sessionId] as const,
   profile: (id: UserId) => [...IDENTITY_KEY, 'profile', id] as const,
+  auditLog: () => [...IDENTITY_KEY, 'audit-log'] as const,
+  configuration: () => [...IDENTITY_KEY, 'configuration'] as const,
 }
 
 export function useAdminDashboard() {
   const { admin } = useIdentityServices()
   return useQuery({ queryKey: identityKeys.dashboard(), queryFn: ({ signal }) => admin.getDashboard(signal) })
+}
+
+/** Security events reported by the source; `contract_pending` in API mode, not retried. */
+export function useSecurityAlerts() {
+  const { admin } = useIdentityServices()
+  return useQuery({ queryKey: identityKeys.securityAlerts(), queryFn: ({ signal }) => admin.listSecurityAlerts(signal), retry: false })
 }
 
 export function useUsers() {
@@ -145,5 +155,39 @@ export function useSetNotificationPreference(userId: UserId) {
   const { account } = useIdentityServices()
   return useIdentityMutation(({ key, enabled }: { key: NotificationPreferenceKey; enabled: boolean }) =>
     account.setNotificationPreference(userId, key, enabled),
+  )
+}
+
+/** The administrative audit log (contract pending in API mode, not retried). */
+export function useAuditLog() {
+  const { auditLog } = useIdentityServices()
+  return useQuery({ queryKey: identityKeys.auditLog(), queryFn: ({ signal }) => auditLog.listAuditLog(signal), retry: false })
+}
+
+/** The system configuration: current version, history and open draft (contract pending in API mode). */
+export function useConfiguration() {
+  const { configuration } = useIdentityServices()
+  return useQuery({ queryKey: identityKeys.configuration(), queryFn: ({ signal }) => configuration.getConfiguration(signal), retry: false })
+}
+
+export function useSaveConfigurationDraft() {
+  const { configuration } = useIdentityServices()
+  return useIdentityMutation(({ document, baseVersion }: { document: ConfigurationDocument; baseVersion: number }) => configuration.saveDraft(document, baseVersion))
+}
+
+export function useDiscardConfigurationDraft() {
+  const { configuration } = useIdentityServices()
+  return useIdentityMutation((baseVersion: number) => configuration.discardDraft(baseVersion))
+}
+
+export function usePublishConfiguration() {
+  const { configuration } = useIdentityServices()
+  return useIdentityMutation(({ baseVersion, reason }: { baseVersion: number; reason: string }) => configuration.publishDraft(baseVersion, reason))
+}
+
+export function useRollbackConfiguration() {
+  const { configuration } = useIdentityServices()
+  return useIdentityMutation(({ targetVersion, baseVersion, reason }: { targetVersion: number; baseVersion: number; reason: string }) =>
+    configuration.rollback(targetVersion, baseVersion, reason),
   )
 }

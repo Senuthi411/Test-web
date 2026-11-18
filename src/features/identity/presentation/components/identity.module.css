@@ -63,23 +63,24 @@
   min-width: 0;
 }
 
+/* Name over a secondary line (e.g. user ID) inside a table cell. */
+.stackTight {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stackTight > .muted {
+  padding-left: 38px;
+  font-size: 12.5px;
+}
+
 .filterBar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-}
-
-.filterSpacer {
-  flex: 1;
-}
-
-.tableFooter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .person {
@@ -118,6 +119,26 @@
 .muted {
   font: 400 13px/1.35 var(--tl-font-family);
   color: var(--tl-text-muted);
+}
+
+/* Identifiers such as USR-001 stay on one line; narrow tables scroll instead. */
+.nowrap {
+  white-space: nowrap;
+}
+
+.readOnlyField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px dashed var(--tl-border-control);
+  border-radius: var(--tl-radius-control);
+  background: var(--tl-bg-subtle, #f6f8f4);
+}
+
+.readOnlyLabel {
+  font: 600 13px/1.3 var(--tl-font-family);
+  color: var(--tl-text-ink);
 }
 
 .caption {

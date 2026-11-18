@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 test.setTimeout(90_000)
 
-async function signIn(page: Page, user = 'malini.fernando') {
+async function signIn(page: Page, user = 'USR-003') {
   await page.goto('/login')
-  await page.getByRole('textbox', { name: 'Email or username' }).fill(user)
+  await page.getByRole('textbox', { name: 'User ID' }).fill(user)
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
 }
 
@@ -104,13 +104,13 @@ test('referral creates a pending case link, never a case', async ({ page }) => {
 })
 
 test('Review is denied to administrators', async ({ page }) => {
-  await signIn(page, 'anika.perera')
+  await signIn(page, 'USR-001')
   await page.goto('/review/queue')
   await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible()
 })
 
 test('Review data is limited to the supervisor estate scope', async ({ page }) => {
-  await signIn(page, 'nimal.silva')
+  await signIn(page, 'USR-002')
   await page.goto('/review/corrections/COR-005')
   await expect(page.getByText('Correction unavailable')).toBeVisible()
   await page.goto('/review/quarantine')

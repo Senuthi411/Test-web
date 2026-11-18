@@ -3,9 +3,9 @@ test.setTimeout(120_000)
 
 async function signIn(page: Page) {
   await page.goto('/login')
-  await page.getByRole('textbox', { name: 'Email or username' }).fill('malini.fernando')
+  await page.getByRole('textbox', { name: 'User ID' }).fill('USR-003')
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
 }
 
@@ -43,7 +43,7 @@ test('a first-time submission and a resubmission share the Review Queue, compare
   await signIn(page)
   // 1, 5: Submitted and Resubmitted observations in the same queue; the sidebar is unchanged.
   await nav(page).getByRole('link', { name: 'Observation Review' }).click()
-  await expect(nav(page).getByRole('link')).toHaveText(['Dashboard', 'Observation Review', 'Division Quarantine', 'Decision History', 'Fieldwork Assignments'])
+  await expect(nav(page).getByRole('link')).toHaveText(['Dashboard', 'Observation Review', 'Division Quarantine', 'Decision History', 'Fieldwork Assignments', 'My Profile'])
   await expect(queueRow(page, 'OBS-005')).toContainText('Resubmitted')
   await expect(queueRow(page, 'OBS-005')).toContainText('V2')
   await page.getByRole('tab', { name: /Resubmitted/ }).click()

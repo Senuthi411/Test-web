@@ -69,7 +69,7 @@ function RecoveryView({ session, request }: { session: DeviceSession; request: R
             title="No recovery has been requested"
             message={
               session.status === 'revoked'
-                ? 'Start recovery from the device session panel to open an audited recovery ticket.'
+                ? 'Start recovery from the session’s details on Device Sessions to open an audited recovery ticket.'
                 : 'Only revoked sessions enter controlled recovery.'
             }
             action={

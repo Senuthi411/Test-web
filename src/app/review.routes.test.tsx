@@ -9,7 +9,7 @@ import { assembleContainer } from './composition/container'
 import { createFixtureAdapterSet, fixtureClock } from './composition/fixtureAdapters'
 import { AppProviders } from './providers/AppProviders'
 import { createAppRoutes } from './routing/routes'
-import { ROLE_NAVIGATION } from './routing/navigation'
+import { navItemsOf, ROLE_NAVIGATION } from './routing/navigation'
 
 const USERS: Record<string, { fullName: string; role: WebRole; estateIds: string[] }> = {
   'USR-003': { fullName: 'Malini Fernando', role: 'SUPERVISOR', estateIds: ['EST-002'] },
@@ -23,7 +23,6 @@ function renderReview(path: string, userId = 'USR-003') {
   const user = USERS[userId]
   persistence.save(
     { user: { id: userId, fullName: user.fullName, email: 'demo@example.test', role: user.role, estateIds: user.estateIds, divisionIds: [] }, source: 'fixtures', accessToken: null, signedInAt: '2026-10-21T09:00:00+05:30' },
-    false,
   )
   const adapters = createFixtureAdapterSet(() => persistence.load()?.user.id ?? null, store)
   const container = assembleContainer({ dataSource: 'fixtures', apiBaseUrl: '', apiTimeoutMs: 15000 }, adapters, fixtureClock, persistence)
@@ -181,19 +180,21 @@ describe('REV-02 / REV-03 claim on open and status-dependent decisions', () => {
 })
 
 describe('Supervisor sidebar navigation', () => {
-  it('has exactly the five Supervisor items, in order', () => {
-    expect(ROLE_NAVIGATION.SUPERVISOR.items.map((item) => [item.label, item.to])).toEqual([
+  it('has the five Supervisor items, in order, followed by the shared Account item', () => {
+    expect(navItemsOf(ROLE_NAVIGATION.SUPERVISOR).map((item) => [item.label, item.to])).toEqual([
       ['Dashboard', '/review'],
       ['Observation Review', '/review/queue'],
       ['Division Quarantine', '/review/quarantine'],
       ['Decision History', '/review/history'],
       ['Fieldwork Assignments', '/assignments'],
+      // Member 1's shared sidebar adds My Profile to every role.
+      ['My Profile', '/profile'],
     ])
   })
 
   it('lists Correction Queue, Expert Referrals and Evidence Viewer for no role', () => {
     for (const navigation of Object.values(ROLE_NAVIGATION)) {
-      expect(navigation.items.filter((item) => ['Correction Queue', 'Expert Referrals', 'Evidence Viewer'].includes(item.label))).toEqual([])
+      expect(navItemsOf(navigation).filter((item) => ['Correction Queue', 'Expert Referrals', 'Evidence Viewer'].includes(item.label))).toEqual([])
     }
   })
 

@@ -13,9 +13,18 @@ export type AuditKind =
   | 'division_reviewed'
   | 'device_session_revoked'
   | 'session_recovery_requested'
+  | 'role_changed'
+  | 'account_status_changed'
+  | 'configuration_draft_saved'
+  | 'configuration_draft_discarded'
+  | 'configuration_published'
+  | 'configuration_rolled_back'
+  | 'configuration_publish_rejected'
 
 /** An audit record with the names it refers to already resolved. */
 export interface AuditEntry {
+  previousValue?: string
+  newValue?: string
   id: string
   at: string
   kind: AuditKind
@@ -26,6 +35,10 @@ export interface AuditEntry {
   reasonCode?: string
   scope?: string[]
   status?: RecordStatus
+  /** Configuration version the event produced or concerns. */
+  configurationVersion?: number
+  /** Short description of a configuration change ("2 changes: Business Rules"). */
+  summary?: string
 }
 
 const STATUS_LABEL: Record<RecordStatus, string> = { active: 'active', inactive: 'inactive' }
@@ -45,6 +58,17 @@ export function describeAudit(entry: AuditEntry): ActivityEvent {
       return { ...base, title: `User invited: ${entry.user?.fullName ?? ''}`, detail: entry.user ? ROLE_LABELS[entry.user.role] : '', link: userLink }
     case 'user_created':
       return { ...base, title: `User created: ${entry.user?.fullName ?? ''}`, detail: entry.user ? `${entry.user.id} · ${ROLE_LABELS[entry.user.role]}` : '', link: userLink }
+    case 'role_changed': {
+      const role = (value?: string) => (value && value in ROLE_LABELS ? ROLE_LABELS[value as UserRole] : 'Not recorded')
+      return { ...base, title: `Role changed for ${entry.user?.fullName ?? 'a user'}`, detail: `${role(entry.previousValue)} → ${role(entry.newValue)}`, link: userLink }
+    }
+    case 'account_status_changed':
+      return {
+        ...base,
+        title: `Account ${entry.status === 'active' ? 'enabled' : 'disabled'}: ${entry.user?.fullName ?? ''}`,
+        detail: entry.user ? `${entry.user.id} · ${ROLE_LABELS[entry.user.role]}` : '',
+        link: userLink,
+      }
     case 'user_updated':
       return { ...base, title: `User updated: ${entry.user?.fullName ?? ''}`, detail: entry.user ? `${entry.user.id} · ${ROLE_LABELS[entry.user.role]}` : '', link: userLink }
     case 'device_session_revoked':
@@ -80,5 +104,15 @@ export function describeAudit(entry: AuditEntry): ActivityEvent {
         detail: entry.status ? `Status ${STATUS_LABEL[entry.status]}` : '',
         link: entry.estate ? { kind: 'estate', id: entry.estate.id } : undefined,
       }
+    case 'configuration_draft_saved':
+      return { ...base, title: 'Configuration draft saved', detail: entry.summary ?? '' }
+    case 'configuration_draft_discarded':
+      return { ...base, title: 'Configuration draft discarded', detail: entry.summary ?? '' }
+    case 'configuration_published':
+      return { ...base, title: `Configuration version ${entry.configurationVersion ?? ''} published`.replace(/\s+/g, ' '), detail: entry.summary ?? '' }
+    case 'configuration_rolled_back':
+      return { ...base, title: `Configuration rolled back as version ${entry.configurationVersion ?? ''}`.replace(/\s+/g, ' '), detail: entry.summary ?? '' }
+    case 'configuration_publish_rejected':
+      return { ...base, title: 'Configuration publish rejected', detail: [entry.reasonCode, entry.summary].filter(Boolean).join(' · ') }
   }
 }

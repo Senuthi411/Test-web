@@ -35,14 +35,18 @@ export const SCREEN_GROUPS: readonly ScreenGroup[] = [
       { path: 'users/:userId', screenId: 'ID-04', title: 'User Detail', phase: 3 },
       { path: 'users/:userId/edit', screenId: 'ID-06', title: 'Edit User', phase: 3 },
       { path: 'users/:userId/scope', screenId: 'ID-08', title: 'User Scope Assignment', phase: 3 },
-      { path: 'roles', screenId: 'ID-07', title: 'Roles & Permissions', phase: 3 },
-      { path: 'roles/:role', screenId: 'ID-07', title: 'Role Detail', phase: 3 },
+      // ID-07 Roles & Permissions was removed; these old paths redirect to the Audit Logs.
+      { path: 'roles', screenId: 'ID-18', title: 'Audit Logs', phase: 3 },
+      { path: 'roles/:role', screenId: 'ID-18', title: 'Audit Logs', phase: 3 },
       { path: 'estates', screenId: 'ID-09', title: 'Estate Management', phase: 3 },
       { path: 'estates/:estateId', screenId: 'ID-10', title: 'Estate Detail', phase: 3 },
       { path: 'divisions', screenId: 'ID-11', title: 'Division Management', phase: 3 },
       { path: 'divisions/:divisionId', screenId: 'ID-12', title: 'Division Detail', phase: 3 },
       { path: 'device-sessions', screenId: 'ID-13', title: 'Device Sessions', phase: 3 },
       { path: 'device-sessions/:sessionId/recovery', screenId: 'ID-13', title: 'Controlled recovery', phase: 3 },
+      { path: 'security', screenId: 'ID-17', title: 'Security Center', phase: 3 },
+      { path: 'audit-logs', screenId: 'ID-18', title: 'Audit Logs', phase: 3 },
+      { path: 'settings', screenId: 'ID-19', title: 'System Settings', phase: 3 },
     ],
   },
   {
@@ -141,4 +145,18 @@ export const SHARED_SCREENS = {
   forbidden: { path: '/forbidden', screenId: 'ID-15', title: 'Access denied', phase: 3 },
   login: { path: '/login', screenId: 'AUTH-01', title: 'Sign in', phase: 3 },
   sessionExpired: { path: '/session-expired', screenId: 'ID-16', title: 'Session expired', phase: 3 },
+} as const
+
+/**
+ * Public authentication flow screens (no session). Each needs backend-issued state held
+ * in memory, so opening one directly shows a "start again" message.
+ */
+export const AUTH_FLOW_SCREENS = {
+  mfaVerify: { path: '/login/verify', screenId: 'AUTH-02', title: 'Verify Your Identity' },
+  mfaSetup: { path: '/login/mfa-setup', screenId: 'AUTH-03', title: 'Set Up Two-Factor Authentication' },
+  forgotPassword: { path: '/forgot-password', screenId: 'AUTH-04', title: 'Forgot Password?' },
+  recoveryCode: { path: '/forgot-password/verify', screenId: 'AUTH-05', title: 'Verify Your Email' },
+  resetPassword: { path: '/forgot-password/reset', screenId: 'AUTH-06', title: 'Create a New Password' },
+  resetComplete: { path: '/forgot-password/complete', screenId: 'AUTH-07', title: 'Password Updated Successfully' },
+  activate: { path: '/activate', screenId: 'AUTH-08', title: 'Activate Your Account' },
 } as const

@@ -1,188 +1,292 @@
-/* AUTH-01 Login (Figma 10:3, 3840×2160 at 2×). Hero 2/3, auth panel 1/3. */
+/* AUTH-01 login, following the approved reference: a tea-estate photograph with a dark green
+   overlay on the left, the brand and a short introduction, and a white login card on the
+   right. On phones the card comes first after the logo; decorative content is reduced. */
 .page {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(420px, 1fr);
+  --login-ink: #141d17;
+  --login-muted: #56615b;
+  --login-on-dark: #ffffff;
+  --login-on-dark-muted: rgb(255 255 255 / 0.86);
+  --login-lime: #b4ec3c;
+  --login-control-border: #d3dad5;
+  --login-accent: var(--tl-primary-500);
+  --login-button: #1d6b25;
+  --login-button-hover: #175a1e;
+
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
-  background: #fafbf8;
-}
-
-.hero {
-  position: relative;
   overflow: hidden;
-  color: var(--tl-text-on-dark);
+  background-color: #0f3518;
+  background-image:
+    linear-gradient(90deg, rgb(7 36 17 / 0.88) 0%, rgb(9 44 20 / 0.7) 32%, rgb(10 48 22 / 0.22) 56%, rgb(10 48 22 / 0) 72%),
+    url('../../../../../assets/brand/login-background.webp');
+  background-size: cover, cover;
+  background-position: center, 60% center;
+  color: var(--login-on-dark);
 }
 
-.heroImage {
-  position: absolute;
-  inset: 0;
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(400px, 500px);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'brand card'
+    'intro card';
+  column-gap: clamp(32px, 5vw, 96px);
+  row-gap: 24px;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.heroFade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgb(10 45 28 / 0.94) 0%, rgb(10 45 28 / 0.6) 55%, rgb(10 45 28 / 0.1) 100%);
-}
-
-.heroContent {
-  position: relative;
-  padding: clamp(48px, 15.7vh, 170px) clamp(32px, 6.5vw, 125px) 48px;
-}
-
-.heroLabel {
-  display: flex;
+  max-width: 1600px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: clamp(24px, 4vh, 48px) clamp(24px, 5vw, 88px);
   align-items: center;
-  gap: 16px;
 }
 
-.heroLine {
-  width: 68px;
-  height: 2px;
-  background: rgb(255 255 255 / 0.85);
+/* ---- Brand bar ---- */
+.brandBar {
+  grid-area: brand;
+  align-self: start;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
 }
 
-.heroPill {
-  padding: 10px 22px;
-  border-radius: 50px;
-  background: rgb(255 255 255 / 0.16);
-  font: 500 20px/1.2 var(--tl-font-family);
+.brandMark {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.wordmarkName {
+  font: 800 34px / 1 var(--tl-font-family);
+  letter-spacing: -0.015em;
+  color: var(--login-on-dark);
+}
+
+.wordmarkLeaf {
+  color: var(--login-lime);
+}
+
+.wordmarkSub {
+  margin-top: 5px;
+  font: 700 13px / 1 var(--tl-font-family);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--login-on-dark);
+}
+
+.tagline {
+  margin-left: 14px;
+  padding-left: 28px;
+  border-left: 2px solid rgb(255 255 255 / 0.55);
+  font: 600 15px / 1.3 var(--tl-font-family);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--login-on-dark-muted);
+}
+
+/* ---- Introduction ---- */
+.intro {
+  grid-area: intro;
+  align-self: center;
+  max-width: 560px;
+  padding-bottom: 6vh;
 }
 
 .headline {
-  display: flex;
-  flex-direction: column;
   margin: 0;
-  padding: 32px 0 28px;
+  padding-top: 26px;
+  font: 800 clamp(36px, 3.4vw, 60px) / 1.12 var(--tl-font-family);
+  letter-spacing: -0.02em;
+  color: var(--login-on-dark);
+  text-shadow: 0 2px 16px rgb(0 0 0 / 0.25);
 }
 
-.headlineLead {
-  font: 400 clamp(40px, 3.33vw, 64px) / 1.1 var(--tl-font-family);
+/* Short lime rule above the headline, as in the reference. */
+.headline::before {
+  content: '';
+  display: block;
+  width: 96px;
+  height: 6px;
+  margin-bottom: 26px;
+  border-radius: 3px;
+  background: var(--login-lime);
 }
 
-.headlineAccent {
-  font: 700 clamp(40px, 3.33vw, 64px) / 1.1 var(--tl-font-family);
-  color: #a8d86a;
+.highlight {
+  color: var(--login-lime);
 }
 
-.headlineRest {
-  font: 400 clamp(28px, 2.24vw, 43px) / 1.21 var(--tl-font-family);
-}
-
-.heroText {
-  margin: 0;
-  font: 400 clamp(17px, 1.2vw, 23px) / 1.48 var(--tl-font-family);
-  color: #f1f7ec;
+.lead {
+  max-width: 470px;
+  margin: 28px 0 0;
+  padding-top: 26px;
+  border-top: 3px solid rgb(255 255 255 / 0.85);
+  font: 400 clamp(16px, 1.25vw, 20px) / 1.5 var(--tl-font-family);
+  color: var(--login-on-dark-muted);
 }
 
 .features {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 32px;
-  margin: 0;
-  padding: 48px 0 0;
+  margin: 40px 0 0;
+  padding: 0;
   list-style: none;
 }
 
 .feature {
   display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.featureDivider {
-  width: 1px;
-  height: 55px;
-  margin-right: 16px;
-  background: rgb(255 255 255 / 0.25);
-}
-
-.featureIcon {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-  border: 1px solid rgb(255 255 255 / 0.35);
-  border-radius: 50%;
-  background: rgb(255 255 255 / 0.14);
-}
-
-.featureText {
-  font: 500 20px/1.25 var(--tl-font-family);
-}
-
-.panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-}
-
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  width: min(500px, 100%);
-}
-
-.brand {
-  display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 18px;
+  gap: 10px;
+  width: 150px;
+  padding: 0 12px;
+  font: 500 15px / 1.3 var(--tl-font-family);
+  color: var(--login-on-dark);
   text-align: center;
 }
 
-.logo {
-  width: 140px;
-  height: 140px;
-  object-fit: contain;
+.feature + .feature {
+  border-left: 1px solid rgb(255 255 255 / 0.35);
 }
 
-.wordmark {
-  font: 700 50px/1.1 var(--tl-font-family);
-  color: #1b4d2b;
+.featureIcon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 2px solid var(--login-lime);
+  border-radius: 14px;
+  background: rgb(10 50 22 / 0.55);
+  color: var(--login-lime);
 }
 
-.subWordmark {
-  font: 500 36px/1.2 var(--tl-font-family);
-  color: var(--tl-text-muted);
+/* Decorative mark between the introduction and the card (wide screens only). */
+.illustration {
+  display: none;
 }
 
-.tagline {
-  margin-top: 8px;
-  font: 500 13px/1.2 var(--tl-font-family);
-  letter-spacing: 2.86px;
-  color: var(--tl-text-muted);
+/* ---- Card ---- */
+.card {
+  grid-area: card;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  padding: 44px 44px 28px;
+  border: 1px solid rgb(255 255 255 / 0.7);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9f7 100%);
+  color: var(--login-ink);
+  box-shadow:
+    0 2px 6px rgb(6 30 14 / 0.12),
+    0 24px 60px rgb(6 30 14 / 0.28);
 }
 
 .heading {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  text-align: center;
 }
 
 .title {
   margin: 0;
-  font: 700 32px/1.2 var(--tl-font-family);
-  color: #1b4d2b;
+  font: 800 clamp(30px, 2.4vw, 38px) / 1.15 var(--tl-font-family);
+  letter-spacing: -0.02em;
+  color: var(--login-ink);
 }
 
 .subtitle {
   margin: 0;
-  font: 400 17px/1.4 var(--tl-font-family);
-  color: var(--tl-text-muted);
+  font: 500 15px / 1.45 var(--tl-font-family);
+  color: var(--login-muted);
+  text-wrap: balance;
 }
 
+/* ---- Form ----
+   `.form.form` outranks the shared auth field defaults (`.control[data-appearance='auth']`)
+   without changing the shared component. */
 .form {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.form label {
+  font: 700 14px / 1.3 var(--tl-font-family);
+  color: var(--login-ink);
+}
+
+.form.form [data-appearance='auth'] {
+  height: 50px;
+  padding: 0 18px;
+  border: 1px solid var(--login-control-border);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.05);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.form.form [data-appearance='auth'] input {
+  background: transparent;
+  font: 400 15px / 1.2 var(--tl-font-family);
+  color: var(--login-ink);
+}
+
+/* Browser autofill must not paint the inputs blue or yellow. */
+.form [data-appearance='auth'] input:-webkit-autofill,
+.form [data-appearance='auth'] input:-webkit-autofill:hover,
+.form [data-appearance='auth'] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  box-shadow: 0 0 0 1000px #fff inset;
+  -webkit-text-fill-color: var(--login-ink);
+  caret-color: var(--login-ink);
+  transition: background-color 600000s 0s;
+}
+
+.form [data-appearance='auth'] input:autofill {
+  box-shadow: 0 0 0 1000px #fff inset;
+}
+
+.form [data-appearance='auth']:hover {
+  border-color: #aab5ad;
+}
+
+.form [data-appearance='auth']:focus-within {
+  border-color: var(--login-accent);
+  box-shadow: 0 0 0 3px rgb(46 125 50 / 0.18);
+}
+
+.form [data-appearance='auth'][data-invalid='true'] {
+  border-color: var(--tl-danger-solid);
+  box-shadow: 0 0 0 1px var(--tl-danger-solid);
+}
+
+.form [data-appearance='auth'] > svg:first-child {
+  width: 22px;
+  height: 22px;
+  color: var(--login-accent);
+}
+
+.form [data-appearance='auth'] button {
+  color: var(--login-ink);
+}
+
+.form [data-appearance='auth'] button svg {
+  width: 22px;
+  height: 22px;
 }
 
 .options {
@@ -190,231 +294,334 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  font: 400 16px/1.3 var(--tl-font-family);
-  color: var(--tl-text-ink);
+  gap: 10px 16px;
 }
 
-.forgot {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: 600 16px/1.3 var(--tl-font-family);
-  color: var(--tl-primary-500);
-  cursor: pointer;
+.options label {
+  font: 600 14px / 1.3 var(--tl-font-family);
+  color: var(--login-ink);
 }
 
-.forgot:hover {
+.textButton {
+  padding: 2px 0;
+  font: 600 14px / 1.3 var(--tl-font-family);
+  color: var(--login-button);
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.forgot:focus-visible {
+.textButton:hover {
+  color: var(--login-button-hover);
+  text-decoration-thickness: 2px;
+}
+
+.textButton:focus-visible {
   outline: none;
   border-radius: 4px;
   box-shadow: var(--tl-focus-ring);
 }
 
-/* Sign In button: 140px → 70px tall, radius 28 → 14, 22px bold. */
+/* Dark-green pill with a restrained lime edge; white label and a small arrow. */
 .submit.submit {
-  height: 70px;
-  gap: 8px;
-  border-radius: 14px;
-  font: 700 22px/1 var(--tl-font-family);
+  width: 100%;
+  height: 54px;
+  margin-top: 6px;
+  gap: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #23802c 0%, var(--login-button) 100%);
+  box-shadow:
+    inset 0 -2px 0 rgb(180 236 60 / 0.45),
+    0 6px 16px rgb(20 90 30 / 0.28);
+  font: 700 18px / 1 var(--tl-font-family);
+  color: #fff;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.or {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font: 500 14px/1 var(--tl-font-family);
-  color: var(--tl-text-muted);
+.submit.submit:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1e7326 0%, var(--login-button-hover) 100%);
 }
 
-.or span {
-  flex: 1;
-  height: 1px;
-  background: #dde5dc;
+.submit.submit:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px var(--login-button);
 }
 
+.submit.submit:disabled,
+.submit.submit[aria-busy='true'] {
+  background: #4f8a55;
+  box-shadow: none;
+  cursor: progress;
+}
+
+/* ---- Secure access note ---- */
 .secure {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 95px;
-  padding: 14px;
-  border: 1px solid #d5e5c8;
-  border-radius: 12px;
-  background: #f1f7ec;
-  color: var(--tl-primary-500);
+  justify-content: center;
+  gap: 8px 20px;
+  margin: 4px 0 0;
+  padding: 14px 20px;
+  border-radius: 999px;
+  background: #ecf4ec;
+  font: 400 13px / 1.35 var(--tl-font-family);
+  color: var(--login-muted);
 }
 
 .secureTitle {
-  margin: 0 0 2px;
-  font: 600 18px/1.3 var(--tl-font-family);
-  color: var(--tl-forest-600);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  font: 700 15px / 1.2 var(--tl-font-family);
+  color: var(--login-ink);
+}
+
+.secureTitle svg {
+  flex: none;
+  color: var(--login-button);
 }
 
 .secureText {
-  margin: 0;
-  font: 400 14px/1.4 var(--tl-font-family);
-  color: var(--tl-text-muted);
+  padding-left: 20px;
+  border-left: 1px solid #b9c9bb;
+  text-wrap: balance;
 }
 
-.devAccounts {
-  padding: 12px 14px;
-  border: 1px dashed var(--tl-border-control);
-  border-radius: 12px;
-  background: var(--tl-bg-surface);
-  font: 400 13px/1.45 var(--tl-font-family);
-  color: var(--tl-text-muted);
+/* ---- Wide screens: show the decorative mark between the columns ---- */
+@media (min-width: 1360px) and (min-height: 700px) {
+  /* Shares the introduction's cell, aligned to its right edge and reaching into the gap. */
+  .illustration {
+    grid-area: intro;
+    display: block;
+    justify-self: end;
+    align-self: center;
+    width: clamp(180px, 13vw, 240px);
+    height: auto;
+    margin-bottom: 6vh;
+    transform: translateX(clamp(16px, 2vw, 48px));
+    filter: drop-shadow(0 0 22px rgb(150 240 90 / 0.35));
+    pointer-events: none;
+  }
+
+  .intro {
+    position: relative;
+    z-index: 1;
+  }
 }
 
-.devAccounts summary {
-  font: 600 14px/1.3 var(--tl-font-family);
-  color: var(--tl-text-ink);
-  cursor: pointer;
+/* Large and 4K displays: scale the whole composition instead of leaving it small. */
+@media (min-width: 2400px) and (min-height: 1400px) {
+  .shell {
+    zoom: 1.5;
+    min-height: calc(100dvh / 1.5);
+  }
 }
 
-.devAccounts p {
-  margin: 8px 0;
-}
-
-.devAccounts ul {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.devAccounts li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.devAccounts li > span {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.devAccounts strong {
-  font-weight: 600;
-  color: var(--tl-text-ink);
-}
-
-.devEmail {
-  overflow-wrap: anywhere;
-}
-
-.footer {
-  margin: 0;
-  font: 400 11px/1.3 var(--tl-font-family);
-  color: var(--tl-text-muted);
-  text-align: center;
-}
-
-.modalText {
-  margin: 0;
-  font: var(--tl-font-body);
-  color: var(--tl-text-ink);
-}
-
-/* Keep the full form within laptop viewports without constraining content height.
-   Errors, expanded development accounts and zoom can still grow the page naturally. */
-@media (min-width: 1024px) and (max-height: 1000px) {
-  .panel {
-    padding-block: 16px;
+/* Short laptop screens: tighten spacing so everything fits without scrolling. */
+@media (min-width: 1024px) and (max-height: 800px) {
+  .shell {
+    row-gap: 12px;
+    padding-block: 20px;
   }
 
   .card {
-    gap: clamp(8px, 1dvh, 16px);
-  }
-
-  .brand {
-    padding-bottom: 8px;
-  }
-
-  .logo {
-    width: clamp(64px, 10dvh, 100px);
-    height: clamp(64px, 10dvh, 100px);
-  }
-
-  .wordmark {
-    font-size: 40px;
-  }
-
-  .subWordmark {
-    font-size: 28px;
-  }
-
-  .tagline {
-    font-size: 11px;
-    letter-spacing: 2px;
-  }
-
-  .title {
-    font-size: 28px;
-  }
-
-  .subtitle {
-    font-size: 15px;
+    gap: 16px;
+    padding: 30px 36px 22px;
   }
 
   .form {
     gap: 12px;
   }
 
-  .submit.submit {
-    height: 56px;
+  .headline {
+    padding-top: 0;
+    font-size: clamp(32px, 3.2vw, 48px);
   }
 
-  .secure {
-    min-height: 76px;
-    padding: 12px;
-  }
-}
-
-@media (max-width: 1023px) {
-  .page {
-    grid-template-columns: minmax(0, 1fr);
+  .headline::before {
+    margin-bottom: 18px;
   }
 
-  .hero {
-    min-height: 360px;
-  }
-
-  .heroContent {
-    padding: 40px 24px;
+  .lead {
+    margin-top: 20px;
+    padding-top: 18px;
   }
 
   .features {
+    margin-top: 26px;
+  }
+}
+
+/* Laptops: the tagline would wrap under the logo beside the card column, so it is left out. */
+@media (min-width: 1024px) and (max-width: 1359px) {
+  .tagline {
     display: none;
   }
 }
 
-@media (max-width: 599px) {
-  .panel { padding: 24px 16px; }
-  .brand, .secure { min-width: 0; }
-  .devAccounts li { flex-wrap: wrap; }
-  .heroPill { max-width: 100%; }
-  .hero {
+/* Small laptops: narrower card column. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr) 400px;
+    column-gap: 32px;
+    padding-inline: 32px;
+  }
+
+  .feature {
+    width: 120px;
+    font-size: 14px;
+  }
+
+  .secure {
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .secureText {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* Tablets: one column, introduction above the card, both centred. */
+@media (max-width: 1023px) {
+  .page {
+    overflow: visible;
+    background-image:
+      linear-gradient(180deg, rgb(7 36 17 / 0.88) 0%, rgb(9 44 20 / 0.7) 45%, rgb(9 44 20 / 0.5) 100%),
+      url('../../../../../assets/brand/login-background-1000.webp');
+    background-attachment: scroll;
+  }
+
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      'brand'
+      'intro'
+      'card';
+    justify-items: center;
+    row-gap: 32px;
+    padding: 32px 32px 48px;
+  }
+
+  .brandBar {
+    justify-content: center;
+  }
+
+  .intro {
+    padding-bottom: 0;
+    text-align: center;
+  }
+
+  .headline::before {
+    margin-inline: auto;
+  }
+
+  .lead {
+    margin-inline: auto;
+  }
+
+  .features {
+    justify-content: center;
+  }
+
+  .card {
+    max-width: 520px;
+  }
+}
+
+/* Phones: the logo, a compact heading, then the form. Decorative content is hidden. */
+@media (max-width: 767px) {
+  .shell {
+    row-gap: 20px;
+    padding: 24px 16px 32px;
+  }
+
+  .brandMark {
+    width: 44px;
+    height: 44px;
+  }
+
+  .wordmarkName {
+    font-size: 28px;
+  }
+
+  .wordmarkSub {
+    font-size: 11px;
+  }
+
+  .tagline {
     display: none;
   }
 
-  .logo {
-    width: 96px;
-    height: 96px;
-  }
-
-  .wordmark {
-    font-size: 38px;
-  }
-
-  .subWordmark {
+  .headline {
+    padding-top: 0;
     font-size: 26px;
+  }
+
+  .headline::before,
+  .lead,
+  .features {
+    display: none;
+  }
+
+  .card {
+    gap: 18px;
+    padding: 28px 20px 20px;
+    border-radius: 22px;
+  }
+
+  .title {
+    font-size: 26px;
+  }
+
+  .form.form [data-appearance='auth'] {
+    height: 50px;
+  }
+
+  /* 16px text prevents iOS zoom on focus. */
+  .form.form [data-appearance='auth'] input {
+    font-size: 16px;
+  }
+
+  .secure {
+    flex-direction: column;
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .secureText {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+@media (max-width: 359px) {
+  .card {
+    padding-inline: 16px;
+  }
+
+  .wordmarkName {
+    font-size: 24px;
+  }
+
+  .options {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form.form [data-appearance='auth'],
+  .submit.submit {
+    transition: none;
   }
 }

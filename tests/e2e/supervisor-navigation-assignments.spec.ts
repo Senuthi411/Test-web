@@ -3,13 +3,13 @@ test.setTimeout(60_000)
 
 async function signIn(page: Page) {
   await page.goto('/login')
-  await page.getByRole('textbox', { name: 'Email or username' }).fill('malini.fernando')
+  await page.getByRole('textbox', { name: 'User ID' }).fill('USR-003')
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
 }
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' })
-const SUPERVISOR_ITEMS = ['Dashboard', 'Observation Review', 'Division Quarantine', 'Decision History', 'Fieldwork Assignments']
+const SUPERVISOR_ITEMS = ['Dashboard', 'Observation Review', 'Division Quarantine', 'Decision History', 'Fieldwork Assignments', 'My Profile']
 
 test('every Supervisor page shows the same five sidebar items, with the right one highlighted', async ({ page }) => {
   await signIn(page)

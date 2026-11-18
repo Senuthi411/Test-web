@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import {
   ActionMenu,
   Badge,
@@ -10,11 +10,12 @@ import {
   EmptyState,
   ErrorState,
   FilterSelect,
+  KpiCard,
   PageHeader,
   SearchInput,
   usePageBreadcrumbs,
 } from '@/shared/components'
-import { useDebouncedValue } from '@/shared/hooks'
+import { useDebouncedValue, useTableSort } from '@/shared/hooks'
 import type { EstateSummary } from '../../../domain/models'
 import { shortEstateName } from '../../../domain/scope'
 import { PersonCell, StatusBadge } from '../../components/common'
@@ -22,7 +23,6 @@ import { estatePath, useDemoWording, userPath } from '../../components/helpers'
 import { DivisionFormModal, EstateFormModal } from '../../components/OrganisationModals'
 import { useEstates } from '../../services/queries'
 import styles from '../../components/identity.module.css'
-import { useIdentityTableSort } from '../../components/useIdentityTableSort'
 
 /** ID-09 "Observations by estate" bar colours, in estate order. */
 const ESTATE_COLORS = ['#2e7d32', '#7cb342', '#4f9d69']
@@ -38,7 +38,13 @@ export function EstatesPage() {
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState('all')
   const [status, setStatus] = useState<StatusFilter>('active')
-  const [adding, setAdding] = useState(false)
+  const [params, setParams] = useSearchParams()
+  // `?create=1` (Dashboard › Add Estate) opens the form once.
+  const [adding, setAddingState] = useState(() => params.get('create') === '1')
+  const setAdding = (open: boolean) => {
+    setAddingState(open)
+    if (!open && params.has('create')) setParams({}, { replace: true })
+  }
   const [editing, setEditing] = useState<EstateSummary | null>(null)
   const [addingDivisionTo, setAddingDivisionTo] = useState<string | null>(null)
   const term = useDebouncedValue(search.trim().toLowerCase(), 200)
@@ -55,7 +61,7 @@ export function EstatesPage() {
   const divisionTotal = estates.reduce((sum, estate) => sum + estate.divisionCount, 0)
   const observationTotal = estates.reduce((sum, estate) => sum + estate.observationCount, 0)
   const activeCount = estates.filter((estate) => estate.status === 'active').length
-  const table = useIdentityTableSort(filtered, { estate: (row) => row.name, id: (row) => row.id, region: (row) => row.region, divisions: (row) => row.divisionCount, observations: (row) => row.observationCount, status: (row) => row.status })
+  const table = useTableSort(filtered, { estate: (row) => row.name, id: (row) => row.id, region: (row) => row.region, divisions: (row) => row.divisionCount, observations: (row) => row.observationCount, status: (row) => row.status })
 
   function reset() {
     setSearch('')
@@ -74,6 +80,16 @@ export function EstatesPage() {
           </Button>
         }
       />
+      {query.data && (
+        <div className={styles.kpiRow} aria-label="Estate statistics">
+          <KpiCard label="Total estates" value={estates.length} caption={`${regions.length} ${regions.length === 1 ? 'region' : 'regions'}`} icon="map" tone="info" />
+          <KpiCard label="Active estates" value={activeCount} caption="Open for scope assignment" icon="check" tone="success" />
+          <KpiCard label="Inactive estates" value={estates.length - activeCount} caption="Kept for history" icon="archive" tone="warning" />
+          <Link to="/admin/divisions" className={styles.kpiLink}>
+            <KpiCard label="Total divisions" value={divisionTotal} caption="Across all estates" icon="layers" tone="purple" />
+          </Link>
+        </div>
+      )}
       <Card>
         <div className={styles.filterBar}>
           <SearchInput label="Search estates" placeholder="Search estates" width={360} value={search} onChange={(event) => setSearch(event.target.value)} />

@@ -45,6 +45,11 @@ export function toIdentityUser(db: Db, user: FixtureUser): IdentityUser {
     lastSignInAt: user.role === 'FIELD_WORKER' ? latestSessionAt(db, user.id) : user.lastSignInAt,
     scopeAssignedAt: user.scopeAssignedAt,
     version: user.version,
+    phone: user.phone,
+    employeeId: user.employeeId,
+    preferredLanguage: user.preferredLanguage,
+    // NIC and date of birth are deliberately not part of IdentityUser (lists, dashboard, exports).
+    roleDetails: { ...user.roleDetails },
   }
 }
 
@@ -103,19 +108,6 @@ export function toDivisionSummary(db: Db, division: FixtureDivision): DivisionSu
   }
 }
 
-export function estateStats(db: Db, estateId: string) {
-  const divisions = divisionIdsOf(db, estateId)
-  const observations = db.observations.filter((observation) => divisions.has(observation.divisionId))
-  const observationIds = new Set(observations.map((observation) => observation.id))
-  return {
-    observations: observations.length,
-    pendingReview: observations.filter((observation) => PENDING_REVIEW.has(observation.reviewStatus)).length,
-    // A resubmitted observation is still in its correction loop until a Supervisor decides on the new revision.
-    correctionsRequested: observations.filter((observation) => observation.reviewStatus === 'correction_requested' || observation.reviewStatus === 'resubmitted').length,
-    expertConfirmedCases: db.cases.filter((item) => observationIds.has(item.observationId)).length,
-  }
-}
-
 /** Supervisors, experts and field workers working in the estate (ID-10 "Team"). */
 export function estateTeam(db: Db, estateId: string): TeamMember[] {
   const divisions = divisionIdsOf(db, estateId)
@@ -134,7 +126,8 @@ export function auditActivity(db: Db, events: readonly FixtureAuditEvent[]): Act
       const user = event.userId ? findUser(db, event.userId) : undefined
       const division = event.divisionId ? db.divisions.find((item) => item.id === event.divisionId) : undefined
       const estate = event.estateId ? db.estates.find((item) => item.id === event.estateId) : undefined
-      return describeAudit({
+      const actor = findUser(db, event.actorId)
+      const described = describeAudit({
         id: event.id,
         at: event.at,
         kind: event.kind,
@@ -145,7 +138,10 @@ export function auditActivity(db: Db, events: readonly FixtureAuditEvent[]): Act
         reasonCode: event.reasonCode,
         scope: event.scope,
         status: event.status,
+        previousValue: event.previousValue,
+        newValue: event.newValue,
       })
+      return actor ? { ...described, actor: person(actor) } : described
     })
 }
 

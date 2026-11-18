@@ -38,10 +38,9 @@ describe('unified demonstration dataset', () => {
       const pending = review.observations.filter((o) => o.division.id === division.id && (o.reviewStatus === 'submitted' || o.reviewStatus === 'in_review')).length
       expect(divisions.find((d) => d.id === division.id)?.pendingReviewCount).toBe(pending)
     }
+    // Estate detail no longer reports observation statistics; its divisions still mirror the review data.
     const estate = await container.identity.admin.getEstate('EST-002')
-    expect(estate.stats.observations).toBe(review.observations.length)
-    // A resubmitted observation is still in its correction loop until it is reviewed.
-    expect(estate.stats.correctionsRequested).toBe(review.observations.filter((o) => o.reviewStatus === 'correction_requested' || o.reviewStatus === 'resubmitted').length)
+    expect(estate.divisions.map((d) => d.id).sort()).toEqual([...new Set(review.observations.map((o) => o.division.id))].sort())
   })
 
   it('propagates review decisions to Capture and Identity without touching assignments or evidence', async () => {

@@ -10,14 +10,14 @@ const groups = [...manifest.matchAll(/base:\s*'([^']+)'[\s\S]*?roles:\s*\[([^\]]
 }))
 if (groups.length !== 6 || groups.some((group) => !group.screens.length)) throw new Error('Update responsive coverage for the changed route manifest format.')
 
-const accounts: Record<string, string> = { ADMINISTRATOR: 'anika.perera', SUPERVISOR: 'malini.fernando', DISEASE_EXPERT: 'tara.wijesinghe', REPORTING_USER: 'maya.dissanayake' }
+const accounts: Record<string, string> = { ADMINISTRATOR: 'USR-001', SUPERVISOR: 'USR-003', DISEASE_EXPERT: 'USR-005', REPORTING_USER: 'USR-013' }
 const samples: Record<string, string> = { userId: 'USR-005', role: 'supervisor', estateId: 'EST-001', divisionId: 'DIV-001', sessionId: 'DS-3012', observationId: 'OBS-014', correctionId: 'COR-005', quarantineId: 'QUA-002', assignmentId: 'ASG-001', caseId: 'CASE-018', diseaseId: 'DIS-001', referralId: 'REF-014' }
 function sample(path: string) { return path.replace(/:([A-Za-z]+)/g, (_, key: string) => samples[key]) }
-async function signIn(page: Page, account = 'anika.perera') {
+async function signIn(page: Page, account = 'USR-001') {
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
-  await page.getByRole('textbox', { name: 'Email or username' }).fill(account)
+  await page.getByRole('textbox', { name: 'User ID' }).fill(account)
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
   await expect(page.locator('h1')).toBeVisible()
 }
@@ -133,8 +133,15 @@ for (const width of [320, 375, 430]) {
     await expect(page.getByText('Full name is required')).toBeVisible()
     expect((await layout(page)).scroll).toBeLessThanOrEqual(width + 1)
     await page.goto('/admin/device-sessions?session=DS-3091')
-    await page.getByRole('button', { name: 'Revoke session', exact: true }).click()
-    const dialog = page.getByRole('dialog')
+    const details = page.getByRole('dialog', { name: 'Session DS-3091' })
+    await expect(details).toBeVisible()
+    // The drawer slides in; measure it once its entry animation has finished.
+    await details.evaluate((node) => Promise.all(node.getAnimations({ subtree: true }).map((animation) => animation.finished)))
+    const detailsBox = await details.boundingBox()
+    expect(detailsBox!.x).toBeGreaterThanOrEqual(0)
+    expect(detailsBox!.x + detailsBox!.width).toBeLessThanOrEqual(width + 1)
+    await details.getByRole('button', { name: 'Revoke session', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Revoke session DS-3091?' })
     await expect(dialog).toBeVisible()
     const dialogBox = await dialog.boundingBox()
     expect(dialogBox!.width).toBeLessThanOrEqual(width - 16)
@@ -143,6 +150,9 @@ for (const width of [320, 375, 430]) {
     await page.goto('/admin/users/new')
     await page.getByRole('textbox', { name: /Full name/i }).fill('Responsive Test Admin')
     await page.getByRole('textbox', { name: 'Email', exact: true }).fill('responsive.test@example.test')
+    await page.getByLabel('Phone number', { exact: false }).fill('0771234567')
+    await page.getByLabel('Employee / Staff ID', { exact: false }).fill('EMP-RESP')
+    await page.getByRole('combobox', { name: 'Preferred language', exact: true }).selectOption('en')
     await page.getByRole('combobox', { name: 'Role', exact: true }).selectOption('ADMINISTRATOR')
     await page.setViewportSize({ width, height: 480 })
     await page.getByRole('button', { name: 'Create user', exact: true }).click()
@@ -160,7 +170,7 @@ for (const width of [320, 375, 430]) {
 test('320px assignment editing, evidence controls and correction approval remain usable', async ({ page }) => {
   test.setTimeout(90_000)
   await page.setViewportSize({ width: 320, height: 700 })
-  await signIn(page, 'malini.fernando')
+  await signIn(page, 'USR-003')
   await page.getByRole('button', { name: 'Open navigation' }).click()
   await page.getByRole('dialog', { name: 'Navigation' }).getByRole('link', { name: 'Fieldwork Assignments' }).click()
   await page.getByRole('link', { name: 'Create assignment', exact: true }).click()

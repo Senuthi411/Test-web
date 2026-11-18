@@ -1,30 +1,38 @@
 import type { ReactNode } from 'react'
-import type { RouteObject } from 'react-router'
-import type { BreadcrumbItem } from '@/shared/components'
+import { Navigate, type RouteObject } from 'react-router'
 import { AppLayout } from '../layouts/AppLayout'
 import { RequireRole, RequireSession, RoleHomeRedirect } from './guards'
+import type { RouteHandle } from './routeHandle'
 import {
   AccessDeniedPage,
+  ActivateAccountPage,
   AdminDashboardPage,
+  AuditLogsPage,
   DeviceSessionsPage,
   DivisionDetailPage,
   DivisionsPage,
   EstateDetailPage,
   EstatesPage,
+  ForgotPasswordPage,
   LoginPage,
+  MfaEnrollmentPage,
+  MfaVerifyPage,
+  PasswordResetSuccessPage,
   ProfilePage,
-  RoleDetailPage,
-  RolesPage,
+  RecoveryCodePage,
+  ResetPasswordPage,
   ScreenLoading,
+  SecurityCenterPage,
   SessionExpiredPage,
   SessionRecoveryPage,
+  SystemSettingsPage,
   UserDetailPage,
   UserFormPage,
   UserScopePage,
   UsersPage,
 } from './identityScreens'
 import { NotFoundScreen, ScreenPending } from './PlaceholderScreens'
-import { SCREEN_GROUPS, SHARED_SCREENS } from './screens'
+import { AUTH_FLOW_SCREENS, SCREEN_GROUPS, SHARED_SCREENS } from './screens'
 import { CaptureEntryPage, ObservationPage, AssignmentsPage, AssignmentCreatePage, AssignmentDetailPage, AssignmentEditPage } from './captureScreens'
 import {
   CorrectionComparePage,
@@ -46,11 +54,6 @@ import {
   ReviewDashboardPage,
   ReviewQueuePage,
 } from './reviewScreens'
-
-/** Route metadata read by the top bar. Pages showing a record refine it with usePageBreadcrumbs. */
-export interface RouteHandle {
-  breadcrumbs: BreadcrumbItem[]
-}
 
 function joinPath(base: string, path: string) {
   return path ? `${base}/${path}` : base
@@ -98,14 +101,19 @@ const IMPLEMENTED: Record<string, ReactNode> = {
   '/admin/users/:userId': <UserDetailPage />,
   '/admin/users/:userId/edit': <UserFormPage mode="edit" />,
   '/admin/users/:userId/scope': <UserScopePage />,
-  '/admin/roles': <RolesPage />,
-  '/admin/roles/:role': <RoleDetailPage />,
+  // Roles & Permissions was removed: roles are assigned in User Management and access changes
+  // are recorded in the Audit Logs. Old links open the Audit Logs.
+  '/admin/roles': <Navigate to="/admin/audit-logs" replace />,
+  '/admin/roles/:role': <Navigate to="/admin/audit-logs" replace />,
   '/admin/estates': <EstatesPage />,
   '/admin/estates/:estateId': <EstateDetailPage />,
   '/admin/divisions': <DivisionsPage />,
   '/admin/divisions/:divisionId': <DivisionDetailPage />,
   '/admin/device-sessions': <DeviceSessionsPage />,
   '/admin/device-sessions/:sessionId/recovery': <SessionRecoveryPage />,
+  '/admin/security': <SecurityCenterPage />,
+  '/admin/audit-logs': <AuditLogsPage />,
+  '/admin/settings': <SystemSettingsPage />,
 }
 
 const roleGroupRoutes: RouteObject[] = SCREEN_GROUPS.map((group) => ({
@@ -127,9 +135,26 @@ const roleGroupRoutes: RouteObject[] = SCREEN_GROUPS.map((group) => ({
   }),
 }))
 
+/** Public MFA, recovery and activation screens. None of them creates a session by itself. */
+const AUTH_FLOW_PAGES: Record<keyof typeof AUTH_FLOW_SCREENS, ReactNode> = {
+  mfaVerify: <MfaVerifyPage />,
+  mfaSetup: <MfaEnrollmentPage />,
+  forgotPassword: <ForgotPasswordPage />,
+  recoveryCode: <RecoveryCodePage />,
+  resetPassword: <ResetPasswordPage />,
+  resetComplete: <PasswordResetSuccessPage />,
+  activate: <ActivateAccountPage />,
+}
+
+const authFlowRoutes: RouteObject[] = (Object.keys(AUTH_FLOW_SCREENS) as Array<keyof typeof AUTH_FLOW_SCREENS>).map((key) => ({
+  path: AUTH_FLOW_SCREENS[key].path,
+  element: <ScreenLoading>{AUTH_FLOW_PAGES[key]}</ScreenLoading>,
+}))
+
 export function createAppRoutes(): RouteObject[] {
   const { profile, forbidden, login, sessionExpired } = SHARED_SCREENS
   return [
+    ...authFlowRoutes,
     {
       path: login.path,
       element: (

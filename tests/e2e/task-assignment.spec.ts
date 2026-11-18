@@ -3,9 +3,9 @@ test.setTimeout(90_000)
 
 async function signIn(page: Page) {
   await page.goto('/login')
-  await page.getByRole('textbox', { name: 'Email or username' }).fill('malini.fernando')
+  await page.getByRole('textbox', { name: 'User ID' }).fill('USR-003')
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
 }
 

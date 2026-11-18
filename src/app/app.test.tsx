@@ -9,7 +9,7 @@ import { createContainer } from './composition/container'
 import type { AppConfig } from './composition/config'
 import { AppProviders } from './providers/AppProviders'
 import { createQueryClient, shouldRetry } from './providers/queryClient'
-import { ROLE_NAVIGATION } from './routing/navigation'
+import { navItemsOf, ROLE_NAVIGATION } from './routing/navigation'
 import { createAppRoutes } from './routing/routes'
 import { safeNextPath } from '@/shared/utilities/safeNextPath'
 
@@ -25,7 +25,6 @@ const USERS: Record<WebRole, Session['user']> = {
 function signInAs(role: WebRole, source: Session['source'] = 'fixtures') {
   createBrowserSessionPersistence().save(
     { user: USERS[role], accessToken: null, source, signedInAt: '2026-10-21T09:00:00+05:30' },
-    false,
   )
 }
 
@@ -89,7 +88,7 @@ describe('application shell', () => {
     await renderApp('/')
     const nav = await screen.findByRole('navigation', { name: 'Main' })
     const labels = within(nav).getAllByRole('link').map((link) => link.textContent?.trim())
-    expect(labels).toEqual(ROLE_NAVIGATION[role].items.map((item) => item.label))
+    expect(labels).toEqual(navItemsOf(ROLE_NAVIGATION[role]).map((item) => item.label))
     expect(within(screen.getByRole('complementary', { name: 'Sidebar' })).getByText(USERS[role].fullName)).toBeInTheDocument()
   })
 

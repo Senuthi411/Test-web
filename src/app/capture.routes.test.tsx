@@ -12,7 +12,7 @@ import { createAppRoutes } from './routing/routes'
 function renderCapture(path: string, highland = false) {
   const store = new FixtureStore({ latencyMs: 0 })
   const persistence = createBrowserSessionPersistence()
-  persistence.save({ user: { id: highland ? 'USR-002' : 'USR-003', fullName: highland ? 'Nimal Silva' : 'Malini Fernando', email: 'supervisor@example.test', role: 'SUPERVISOR', estateIds: [highland ? 'EST-001' : 'EST-002'], divisionIds: [] }, source: 'fixtures', accessToken: null, signedInAt: '2026-10-21T09:00:00+05:30' }, false)
+  persistence.save({ user: { id: highland ? 'USR-002' : 'USR-003', fullName: highland ? 'Nimal Silva' : 'Malini Fernando', email: 'supervisor@example.test', role: 'SUPERVISOR', estateIds: [highland ? 'EST-001' : 'EST-002'], divisionIds: [] }, source: 'fixtures', accessToken: null, signedInAt: '2026-10-21T09:00:00+05:30' })
   const adapters = createFixtureAdapterSet(() => persistence.load()?.user.id ?? null, store)
   const container = assembleContainer({ dataSource: 'fixtures', apiBaseUrl: '', apiTimeoutMs: 15000 }, adapters, fixtureClock, persistence)
   const router = createMemoryRouter(createAppRoutes(), { initialEntries: [path] })

@@ -1,24 +1,24 @@
 ﻿import { expect, test, type Page } from '@playwright/test'
 
-async function signIn(page: Page, username = 'anika.perera') {
+async function signIn(page: Page, username = 'USR-001') {
   await page.goto('/login')
-  await page.getByRole('textbox', { name: 'Email or username' }).fill(username)
+  await page.getByRole('textbox', { name: 'User ID' }).fill(username)
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
 }
 
 test('login validates input, rejects bad credentials and protects Identity routes', async ({ page }) => {
   await page.goto('/admin/users')
   await expect(page).toHaveURL(/\/login\?next=/)
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
-  await expect(page.getByText('Enter your email or username')).toBeVisible()
-  await page.getByRole('textbox', { name: 'Email or username' }).fill('anika.perera')
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
+  await expect(page.getByText('Enter your User ID')).toBeVisible()
+  await page.getByRole('textbox', { name: 'User ID' }).fill('USR-001')
   await page.getByLabel('Password', { exact: true }).fill('wrong')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
-  await expect(page.getByText('The email, username or password is incorrect.')).toBeVisible()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
+  await expect(page.getByText('The User ID or password is incorrect.')).toBeVisible()
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).toHaveURL(/\/admin\/users$/)
 })
 
@@ -30,12 +30,20 @@ test('creates and edits a user through the confirmation dialog and filters the l
   await expect(page.getByText('Full name is required')).toBeVisible()
   await page.getByLabel('Full name', { exact: false }).fill('Identity Test Admin')
   await page.getByRole('textbox', { name: 'Email', exact: true }).fill('identity.test@example.test')
+  await page.getByLabel('Phone number', { exact: false }).fill('0771234567')
+  await page.getByLabel('Employee / Staff ID', { exact: false }).fill('EMP-900')
+  await page.getByRole('combobox', { name: 'Preferred language', exact: true }).selectOption('ta')
+  await page.getByLabel('NIC', { exact: true }).fill('901234567V')
   await page.getByRole('combobox', { name: 'Role', exact: true }).selectOption('ADMINISTRATOR')
+  await expect(page.getByText('All estates', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Create user', exact: true }).click()
   const review = page.getByRole('dialog', { name: 'Review and create user' })
   await expect(review).toBeVisible()
+  await expect(review.getByText('90•••••••V')).toBeVisible()
   await review.getByRole('button', { name: 'Create user', exact: true }).click()
   await expect(page).toHaveURL(/\/admin\/users\/USR-017$/)
+  await expect(page.getByText('90•••••••V')).toBeVisible()
+  await expect(page.getByText('901234567V')).toHaveCount(0)
   await page.getByRole('link', { name: 'Edit user', exact: true }).click()
   await page.getByLabel('Full name', { exact: false }).fill('Identity Updated Admin')
   await page.getByRole('button', { name: 'Save changes' }).click()
@@ -97,11 +105,15 @@ test('creates an estate and division, then confirms disabling the division', asy
 
 test('revokes a device session and opens controlled recovery', async ({ page }) => {
   await signIn(page)
-  await page.goto('/admin/device-sessions?session=DS-3091')
-  await page.getByRole('button', { name: 'Revoke session', exact: true }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Revoke session', exact: true }).click()
+  await page.goto('/admin/device-sessions')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Actions for DS-3091' }).click()
+  await page.getByRole('menuitem', { name: 'View details' }).click()
+  const details = page.getByRole('dialog', { name: 'Session DS-3091' })
+  await details.getByRole('button', { name: 'Revoke session', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Revoke session DS-3091?' }).getByRole('button', { name: 'Revoke session', exact: true }).click()
   await expect(page.getByText('Session DS-3091 revoked', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Start recovery' }).click()
+  await details.getByRole('button', { name: 'Start recovery' }).click()
   await expect(page).toHaveURL(/DS-3091\/recovery$/)
   await expect(page.getByRole('heading', { name: 'Controlled recovery · DS-3091' })).toBeVisible()
   await expect(page.getByText('New validated device session', { exact: true })).toBeVisible()
@@ -123,23 +135,25 @@ test('profile updates, notifications and password changes remain functional unti
   await expect(page.getByText('Password updated. Use the new password the next time you sign in.')).toBeVisible()
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await expect(page).toHaveURL(/\/login$/)
-  await page.getByRole('textbox', { name: 'Email or username' }).fill('anika.perera')
+  await page.getByRole('textbox', { name: 'User ID' }).fill('USR-001')
   await page.getByLabel('Password', { exact: true }).fill('identity-new-password')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).toHaveURL(/\/admin$/)
 })
 
 for (const width of [1440, 390]) {
   test(`Identity screens render without page overflow at ${width}px`, async ({ page }) => {
-    test.setTimeout(60_000)
+    test.setTimeout(90_000)
     await page.setViewportSize({ width, height: 900 })
     await signIn(page)
     const paths = [
       '/admin', '/admin/users', '/admin/users/new', '/admin/users/USR-001',
-      '/admin/users/USR-005/edit', '/admin/users/USR-005/scope', '/admin/roles',
-      '/admin/roles/administrator', '/admin/estates', '/admin/estates/EST-001',
+      '/admin/users/USR-005/edit', '/admin/users/USR-005/scope', '/admin/estates', '/admin/estates/EST-001',
       '/admin/divisions', '/admin/divisions/DIV-001', '/admin/device-sessions',
-      '/admin/device-sessions/DS-3012/recovery', '/profile', '/forbidden',
+      '/admin/device-sessions/DS-3012/recovery', '/admin/security', '/admin/security?tab=authentication',
+      '/admin/security?tab=devices', '/admin/security?tab=events', '/admin/audit-logs', '/admin/settings',
+      '/admin/settings?tab=features', '/admin/settings?tab=rules', '/admin/settings?tab=workflows',
+      '/admin/settings?tab=maintenance', '/admin/settings?tab=history', '/profile', '/forbidden',
     ]
     for (const path of paths) {
       await page.goto(path)
@@ -151,14 +165,15 @@ for (const width of [1440, 390]) {
   })
 }
 
-test('role links, assigned users, user tabs and breadcrumbs connect Identity screens', async ({ page }) => {
+test('user tabs and breadcrumbs connect Identity screens; old role links open the Audit Logs', async ({ page }) => {
   await signIn(page)
   const nav = page.getByRole('navigation', { name: 'Main' })
-  await nav.getByRole('link', { name: 'Roles & Permissions' }).click()
-  await expect(page.getByRole('table', { name: 'Permission matrix', exact: true })).toBeVisible()
-  await page.getByRole('link', { name: /Administrator 1 user/ }).click()
-  await expect(page.getByRole('heading', { name: 'Administrator', exact: true })).toBeVisible()
-  await page.getByRole('table', { name: 'Users with the Administrator role' }).getByText('Anika Perera').click()
+  await expect(nav.getByRole('link', { name: /Roles|Permissions/ })).toHaveCount(0)
+  await page.goto('/admin/roles?tab=matrix')
+  await expect(page).toHaveURL(/\/admin\/audit-logs$/)
+  await expect(page.getByRole('heading', { name: 'Audit Logs', level: 1 })).toBeVisible()
+  await nav.getByRole('link', { name: 'Users' }).click()
+  await page.getByRole('table', { name: 'Users', exact: true }).getByText('Anika Perera').click()
   await expect(page).toHaveURL(/\/users\/USR-001$/)
   for (const name of ['Scope assignments', 'Device sessions', 'Activity', 'Overview']) {
     await page.getByRole('tab', { name, exact: true }).click()
@@ -205,6 +220,9 @@ test('user sorting applies before pagination and search resets to the first page
     await page.getByRole('link', { name: 'Create user', exact: true }).click()
     await page.getByRole('textbox', { name: 'Full name', exact: true }).fill(`Zed Admin ${index}`)
     await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`zed${index}@example.test`)
+    await page.getByLabel('Phone number', { exact: false }).fill('0771234567')
+    await page.getByLabel('Employee / Staff ID', { exact: false }).fill(`EMP-ZED-${index}`)
+    await page.getByRole('combobox', { name: 'Preferred language', exact: true }).selectOption('en')
     await page.getByRole('combobox', { name: 'Role', exact: true }).selectOption('ADMINISTRATOR')
     await page.getByRole('button', { name: 'Create user', exact: true }).click()
     await page.getByRole('dialog').getByRole('button', { name: 'Create user', exact: true }).click()
@@ -245,7 +263,7 @@ test('division and session filters, sort headers and reset controls work', async
 })
 
 test('non-administrators are denied Identity administration and can return from expired state', async ({ page }) => {
-  await signIn(page, 'malini.fernando')
+  await signIn(page, 'USR-003')
   await page.goto('/admin/users')
   await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible()
   await page.goto('/session-expired')

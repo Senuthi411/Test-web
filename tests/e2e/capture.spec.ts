@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 test.setTimeout(60_000)
 
-async function signIn(page: Page, user = 'malini.fernando') {
+async function signIn(page: Page, user = 'USR-003') {
   await page.goto('/login')
-  await page.getByRole('textbox', { name: 'Email or username' }).fill(user)
+  await page.getByRole('textbox', { name: 'User ID' }).fill(user)
   await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
-  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login/)
 }
 
@@ -119,7 +119,7 @@ test('Capture scope and role guards prevent data disclosure', async ({ page }) =
   await page.goto('/assignments/ASG-999/edit')
   await expect(page.getByRole('heading', { name: 'Assignment unavailable' })).toBeVisible()
   await page.evaluate(() => { sessionStorage.clear(); localStorage.clear() })
-  await signIn(page, 'anika.perera')
+  await signIn(page, 'USR-001')
   await page.goto('/assignments')
   await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible()
 })

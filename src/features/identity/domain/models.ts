@@ -1,4 +1,5 @@
 import type { DivisionId, EstateId, ObservationId, UserId, UserRole } from '@/shared/types'
+import type { PersonalDetailsView, PreferredLanguage, RoleDetails } from './userFields'
 
 /**
  * Identity domain models: what the Identity screens show, independent of where the data
@@ -39,6 +40,13 @@ export interface IdentityUser {
   scopeAssignedAt: string | null
   /** Optimistic-concurrency version; sent back on update. */
   version: number
+  /** Sri Lankan phone number, stored without spaces. */
+  phone: string
+  /** Employee / Staff ID, unique across users. */
+  employeeId: string
+  preferredLanguage: PreferredLanguage
+  /** Details of the user's role (multi-factor, reports-to, registration, supervisor …). */
+  roleDetails: RoleDetails
 }
 
 export type DeviceSessionStatus = 'active' | 'revoked' | 'signed_out'
@@ -51,7 +59,7 @@ export interface DeviceSession {
   status: DeviceSessionStatus
   revokedAt: string | null
   revokedReasonCode: string | null
-  /** The user's division scope (shown on the session panel). */
+  /** The user's division scope (shown in the session details drawer). */
   scopeDivisionIds: DivisionId[]
 }
 
@@ -62,7 +70,9 @@ export interface ActivityEvent {
   title: string
   detail: string
   /** Record the title links to, if any. */
-  link?: { kind: 'user' | 'session' | 'division' | 'estate'; id: string }
+  link?: { kind: 'user' | 'session' | 'division' | 'estate' | 'access_history'; id: string }
+  /** Who performed the action, when the source records it. */
+  actor?: PersonRef
 }
 
 export interface UserDetail {
@@ -72,6 +82,29 @@ export interface UserDetail {
   divisions: Array<DivisionRef & { status: RecordStatus }>
   deviceSessions: DeviceSession[]
   activity: ActivityEvent[]
+  /** People named in the role details, resolved for display. */
+  reportsTo: PersonRef | null
+  supervisor: PersonRef | null
+  /**
+   * NIC (masked) and date of birth. Present only when an Administrator reads the user;
+   * null for every other reader.
+   */
+  personal: PersonalDetailsView | null
+}
+
+/**
+ * Invitation status reported by the backend after Create User.
+ * - `sent`: the backend confirmed the invitation was delivered to its sender.
+ * - `pending`: the backend accepted the account and queued the invitation.
+ * - `not_sent`: no invitation was started (e.g. demonstration data never sends one).
+ * PENDING CONTRACT: the Identity API has not defined this field yet.
+ */
+export type InvitationStatus = 'sent' | 'pending' | 'not_sent'
+
+/** The result of Create User: the account as stored, with its Company User ID. */
+export interface CreatedUser {
+  user: IdentityUser
+  invitation: InvitationStatus
 }
 
 export interface EstateSummary {
@@ -105,12 +138,6 @@ export interface TeamMember extends PersonRef {
 
 export interface EstateDetail {
   estate: EstateSummary
-  stats: {
-    observations: number
-    pendingReview: number
-    correctionsRequested: number
-    expertConfirmedCases: number
-  }
   divisions: DivisionSummary[]
   team: TeamMember[]
   activity: ActivityEvent[]
@@ -142,10 +169,30 @@ export interface DivisionDetail {
   recentObservations: DivisionObservation[]
 }
 
+/**
+ * Why an account needs an Administrator's attention, each derived from a recorded fact:
+ * - `inactive`: the account is inactive.
+ * - `missing_scope`: a non-Administrator account has no estate or division.
+ * - `inactive_scope`: the account is assigned to an inactive estate or division.
+ * - `sessions_revoked`: every device session of the account has been revoked.
+ */
+export type AttentionReason = 'inactive' | 'missing_scope' | 'inactive_scope' | 'sessions_revoked'
+
 export interface AttentionRow {
   user: PersonRef & { role: UserRole; scopeIds: string[] }
   status: 'active' | 'inactive' | 'session_revoked'
+  /** Empty when no rule applies (e.g. an entry listed by the demonstration design only). */
+  reasons: AttentionReason[]
   lastDeviceSessionAt: string | null
+}
+
+/** A controlled device-session recovery that has been requested and is not complete. */
+export interface OpenRecovery {
+  id: string
+  sessionId: string
+  employee: PersonRef & { role: UserRole }
+  requestedBy: PersonRef
+  requestedAt: string
 }
 
 export interface AdminDashboard {
@@ -153,6 +200,8 @@ export interface AdminDashboard {
   totalUsers: number
   estates: EstateSummary[]
   divisionCount: number
+  activeDivisionCount: number
+  openRecoveries: OpenRecovery[]
   activeDeviceSessions: number
   revokedSessionsThisWeek: number
   usersByRole: Array<{ role: UserRole; count: number }>
@@ -189,4 +238,4 @@ export interface ExportResult {
   simulated: boolean
 }
 
-export type ExportKind = 'dashboard' | 'users' | 'divisions' | 'permission-matrix'
+export type ExportKind = 'dashboard' | 'users' | 'divisions'

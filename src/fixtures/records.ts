@@ -74,7 +74,29 @@ export interface FixtureUser {
   language: 'en'
   /** ID-14 "Notifications" toggles. */
   notificationPreferences: FixtureNotificationPreferences
+  /** Sri Lankan phone number without spaces (synthetic in the seed). */
+  phone: string
+  /** Employee / Staff ID, unique ignoring case (synthetic in the seed). */
+  employeeId: string
+  /** Create User "Preferred language": Sinhala, Tamil or English. */
+  preferredLanguage: 'si' | 'ta' | 'en'
+  /**
+   * Personal details, Administrator only. The NIC is stored upper-case and is only ever
+   * returned masked. Not seeded: the dataset holds no NICs or dates of birth.
+   */
+  nic: string | null
+  dateOfBirth: string | null
+  /** Details of the user's role; `role` always equals the user's role. */
+  roleDetails: FixtureRoleDetails
 }
+
+/** Role-specific account details (Create User role sections). */
+export type FixtureRoleDetails =
+  | { role: 'ADMINISTRATOR'; mfaRequired: boolean }
+  | { role: 'SUPERVISOR'; reportsToId: string | null; officePhone: string | null }
+  | { role: 'DISEASE_EXPERT'; qualifications: string | null; registrationNumber: string; institution: string | null }
+  | { role: 'FIELD_WORKER'; supervisorId: string | null; mobileNumber: string }
+  | { role: 'REPORTING_USER'; organisation: string | null }
 
 /** Development-only sign-in credentials (fixture mode). Seeded from `accounts.ts`. */
 export interface FixtureCredential {
@@ -155,6 +177,13 @@ export type FixtureAuditKind =
   | 'division_reviewed'
   | 'device_session_revoked'
   | 'session_recovery_requested'
+  | 'role_changed'
+  | 'account_status_changed'
+  | 'configuration_draft_saved'
+  | 'configuration_draft_discarded'
+  | 'configuration_published'
+  | 'configuration_rolled_back'
+  | 'configuration_publish_rejected'
 
 /** Administrative audit trail ("Recent administrative activity", ID-02 / ID-10). */
 export interface FixtureAuditEvent {
@@ -171,8 +200,39 @@ export interface FixtureAuditEvent {
   reasonCode?: string
   /** Scope after the change (scope_updated). */
   scope?: string[]
+  /**
+   * Value before the change, when it was recorded: scope ids (scope_updated), role
+   * (role_changed) or status (account_status_changed).
+   */
+  previousValue?: string
+  /** Role after the change (role_changed). Status changes use `status`. */
+  newValue?: string
   status?: RecordStatus
+  /** Configuration version the event produced or concerns (configuration_* kinds). */
+  configurationVersion?: number
+  /** Short description of a configuration change. */
+  summary?: string
+  /** Whether the attempted action succeeded. Absent means it succeeded. */
+  outcome?: 'success' | 'failure'
   provenance: FixtureProvenance
+}
+
+/** A stored configuration version (System Settings). The document is kept as plain data. */
+export interface FixtureConfigurationVersion {
+  version: number
+  document: Record<string, unknown>
+  createdAt: string
+  createdBy: string | null
+  kind: 'baseline' | 'publish' | 'rollback'
+  reason: string
+  restoredFrom?: number
+}
+
+export interface FixtureConfigurationDraft {
+  document: Record<string, unknown>
+  baseVersion: number
+  savedAt: string
+  savedBy: string | null
 }
 
 export type FixtureRecoveryStepStatus = 'done' | 'pending' | 'open' | 'not_issued' | 'waiting'
@@ -206,6 +266,12 @@ export interface FixtureDatabase {
   credentials: FixtureCredential[]
   cases: FixtureCase[]
   auditEvents: FixtureAuditEvent[]
+  /**
+   * System Settings versions, oldest first. Empty in the seed: the fixture adapter creates
+   * the baseline (version 1) from the domain defaults on first use. Never deleted.
+   */
+  configurationVersions: FixtureConfigurationVersion[]
+  configurationDraft: FixtureConfigurationDraft | null
   recoveryRequests: FixtureRecoveryRequest[]
   /**
    * The users listed under "Users requiring attention" on ID-02. The design does not state

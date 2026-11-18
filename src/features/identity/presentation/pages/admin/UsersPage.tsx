@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import {
   ActionMenu,
   Button,
@@ -14,8 +14,9 @@ import {
   SearchInput,
   usePageBreadcrumbs,
 } from '@/shared/components'
-import { useDebouncedValue } from '@/shared/hooks'
+import { useDebouncedValue, useTableSort } from '@/shared/hooks'
 import { ROLE_LABELS, USER_ROLES, type UserRole } from '@/shared/types'
+import { cx } from '@/shared/utilities/classNames'
 import { paginate } from '@/shared/utilities/pagination'
 import type { IdentityUser } from '../../../domain/models'
 import { shortEstateName } from '../../../domain/scope'
@@ -23,7 +24,6 @@ import { PersonCell, RoleBadge, StatusBadge } from '../../components/common'
 import { scopeLabel, useDemoWording, useExportAction, userPath } from '../../components/helpers'
 import { useDivisions, useEstates, useUsers } from '../../services/queries'
 import styles from '../../components/identity.module.css'
-import { useIdentityTableSort } from '../../components/useIdentityTableSort'
 
 const PAGE_SIZE = 15
 
@@ -43,9 +43,17 @@ export function UsersPage() {
   const navigate = useNavigate()
 
   const [search, setSearch] = useState('')
-  const [role, setRole] = useState<UserRole | 'all'>('all')
+  const [params] = useSearchParams()
+  // "?role=" and "?status=" open the list pre-filtered (Dashboard links).
+  const [role, setRole] = useState<UserRole | 'all'>(() => {
+    const requested = params.get('role')
+    return USER_ROLES.find((item) => item === requested) ?? 'all'
+  })
   const [estate, setEstate] = useState('all')
-  const [status, setStatus] = useState<StatusFilter>('active')
+  const [status, setStatus] = useState<StatusFilter>(() => {
+    const requested = params.get('status')
+    return requested === 'all' || requested === 'inactive' ? requested : 'active'
+  })
   const [page, setPage] = useState(1)
   const term = useDebouncedValue(search.trim().toLowerCase(), 200)
 
@@ -74,7 +82,7 @@ export function UsersPage() {
   }, [users.data, role, status, estate, term, estateOfDivision])
 
   const filtersActive = search !== '' || role !== 'all' || estate !== 'all' || status !== 'active'
-  const table = useIdentityTableSort(filtered, { user: (user) => user.fullName, id: (user) => user.id, role: (user) => ROLE_LABELS[user.role], email: (user) => user.email, status: (user) => user.status })
+  const table = useTableSort(filtered, { user: (user) => user.fullName, id: (user) => user.id, role: (user) => ROLE_LABELS[user.role], status: (user) => user.status })
   const pageRows = paginate(table.rows, page, PAGE_SIZE)
   const estateCount = estates.data?.length
   const divisionCount = divisions.data?.length
@@ -177,17 +185,17 @@ export function UsersPage() {
                 />
               }
               columns={[
-                { id: 'user', header: 'User', sortable: true, cell: (user) => <PersonCell name={user.fullName} /> },
-                { id: 'id', header: 'User ID', sortable: true, cell: (user) => <span className={styles.muted}>{user.id}</span> },
-                { id: 'role', header: 'Role', sortable: true, cell: (user) => <RoleBadge role={user.role} /> },
-                { id: 'email', header: 'Email', sortable: true, cell: (user) => user.email },
-                { id: 'scope', header: 'Scope', cell: (user) => <span className={styles.muted}>{scopeLabel(user)}</span> },
-                { id: 'status', header: 'Status', sortable: true, cell: (user) => <StatusBadge status={user.status} /> },
+                // Email is not listed; it is searchable here and shown on the user's details page.
+                { id: 'user', header: 'Employee', sortable: true, cell: (user) => <PersonCell name={user.fullName} to={userPath(user.id)} /> },
+                { id: 'id', header: 'User ID', sortable: true, width: '13%', cell: (user) => <span className={cx(styles.muted, styles.nowrap)}>{user.id}</span> },
+                { id: 'role', header: 'Role', sortable: true, width: '17%', cell: (user) => <RoleBadge role={user.role} /> },
+                { id: 'scope', header: 'Assigned Scope', width: '24%', cell: (user) => <span className={styles.muted}>{scopeLabel(user)}</span> },
+                { id: 'status', header: 'Status', sortable: true, width: '12%', cell: (user) => <StatusBadge status={user.status} /> },
                 {
                   id: 'actions',
                   header: 'Actions',
                   align: 'end',
-                  width: '56px',
+                  width: '80px',
                   cell: (user) => (
                     <ActionMenu
                       label={`Actions for ${user.fullName}`}

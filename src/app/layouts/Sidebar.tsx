@@ -1,11 +1,11 @@
+import { useState, type FocusEvent, type MouseEvent } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import logoMark from '@/assets/brand/logo-mark.png'
 import type { SessionUser } from '@/features/identity'
-import { Avatar } from '@/shared/components'
 import { Icon } from '@/shared/design-system'
-import { ROLE_LABELS } from '@/shared/types'
 import { cx } from '@/shared/utilities/classNames'
 import type { NavItem, RoleNavigation } from '../routing/navigation'
+import { SidebarAccountMenu } from './SidebarAccountMenu'
 import styles from './Sidebar.module.css'
 
 export interface SidebarProps {
@@ -26,70 +26,116 @@ function belongsTo(item: NavItem, pathname: string): boolean {
   return (item.activePaths ?? []).some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 
+interface Tooltip {
+  label: string
+  top: number
+  left: number
+}
+
+/**
+ * Application sidebar: brand, role navigation (one continuous list), and the signed-in
+ * employee's account menu. Expanded (260 px) or icon-only (72 px) with tooltips; inside the
+ * mobile drawer it is always expanded.
+ */
 export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo, mobile = false, onNavigate }: SidebarProps) {
-  const home = navigation.items[0]?.to ?? '/'
+  const home = navigation.groups[0]?.items[0]?.to ?? '/'
   const { pathname } = useLocation()
+  // One tooltip for the icon-only form. It is fixed-positioned so the scrolling nav never clips it.
+  const [tooltip, setTooltip] = useState<Tooltip | null>(null)
+
+  function showTooltip(label: string) {
+    return (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>) => {
+      if (!collapsed) return
+      const box = event.currentTarget.getBoundingClientRect()
+      setTooltip({ label, top: box.top + box.height / 2, left: box.right + 12 })
+    }
+  }
+  const hideTooltip = () => setTooltip(null)
+
   return (
     <aside className={cx(styles.sidebar, collapsed && styles.collapsed, mobile && styles.mobile)} aria-label="Sidebar">
-      <Link to={home} className={styles.brand} aria-label="TeaLeaf Field Scout home" onClick={onNavigate}>
-        <img src={logoMark} alt="" className={styles.logo} />
-        {!collapsed && (
-          <span className={styles.wordmark}>
-            <span className={styles.wordmarkName}>TeaLeaf</span>
-            <span className={styles.wordmarkSub}>Field Scout</span>
-          </span>
+      <div className={styles.header}>
+        <Link to={home} className={styles.brand} aria-label="TeaLeaf Field Scout home" onClick={onNavigate}>
+          <img src={logoMark} alt="" width={44} height={44} className={styles.logo} />
+          {!collapsed && (
+            <span className={styles.wordmark}>
+              <span className={styles.wordmarkName}>
+                Tea<span className={styles.wordmarkLeaf}>Leaf</span>
+              </span>
+              <span className={styles.wordmarkSub}>Field Scout</span>
+            </span>
+          )}
+        </Link>
+        {canToggle && (
+          <button
+            type="button"
+            className={styles.toggle}
+            onClick={() => {
+              hideTooltip()
+              onToggle()
+            }}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
+            onMouseEnter={showTooltip('Expand sidebar')}
+            onMouseLeave={hideTooltip}
+            onFocus={showTooltip('Expand sidebar')}
+            onBlur={hideTooltip}
+          >
+            <span className={cx(styles.toggleIcon, collapsed && styles.toggleIconFlipped)}>
+              <Icon name="chevronsLeft" size={20} />
+            </span>
+          </button>
         )}
-      </Link>
+      </div>
 
-      {canToggle && (
-        <button
-          type="button"
-          className={styles.toggle}
-          onClick={onToggle}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-expanded={!collapsed}
-        >
-          <span className={cx(collapsed && styles.toggleIconFlipped)}>
-            <Icon name="left" size={12} />
-          </span>
-        </button>
-      )}
-
-      <nav className={styles.nav} aria-label="Main">
-        <p className={styles.section} aria-hidden="true">
-          {navigation.section}
-        </p>
-        <ul className={styles.list}>
-          {navigation.items.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                onClick={onNavigate}
-                end={item.end}
-                className={({ isActive }) => cx(styles.link, (isActive || belongsTo(item, pathname)) && styles.active)}
-                aria-label={collapsed ? item.label : undefined}
-                title={collapsed ? item.label : undefined}
-              >
-                <Icon name={item.icon} size={18} />
-                {!collapsed && item.label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
+      <nav className={styles.nav} aria-label="Main" onScroll={hideTooltip}>
+        {navigation.groups.map((group) => {
+          // Groups have no visible heading; the label names the list for screen readers.
+          return (
+            <div key={group.label} className={styles.group}>
+              <ul className={styles.list} aria-label={group.label}>
+                {group.items.map((item) => (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      end={item.end}
+                      onClick={() => {
+                        hideTooltip()
+                        onNavigate?.()
+                      }}
+                      className={({ isActive }) => cx(styles.link, (isActive || belongsTo(item, pathname)) && styles.active)}
+                      aria-label={collapsed ? item.label : undefined}
+                      onMouseEnter={showTooltip(item.label)}
+                      onMouseLeave={hideTooltip}
+                      onFocus={showTooltip(item.label)}
+                      onBlur={hideTooltip}
+                    >
+                      <Icon name={item.icon} size={22} />
+                      {!collapsed && <span className={styles.linkLabel}>{item.label}</span>}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
       </nav>
 
       <div className={styles.footer}>
-        <div className={styles.userCard} title={collapsed ? `${user.fullName}, ${ROLE_LABELS[user.role]}` : undefined}>
-          <Avatar name={user.fullName} size={32} />
-          {!collapsed && (
-            <span className={styles.userText}>
-              <span className={styles.userName}>{user.fullName}</span>
-              <span className={styles.userRole}>{ROLE_LABELS[user.role]}</span>
-            </span>
-          )}
-        </div>
-        {demo && !collapsed && <p className={styles.demoNote}>Demonstration data · UI design only</p>}
+        <SidebarAccountMenu user={user} collapsed={collapsed} onNavigate={onNavigate} />
+        {demo && !collapsed && (
+          <p className={styles.demoNote}>
+            <Icon name="info" size={16} />
+            Demonstration data · UI design only
+          </p>
+        )}
       </div>
+
+      {collapsed && tooltip && (
+        <span className={styles.tooltip} style={{ top: tooltip.top, left: tooltip.left }} aria-hidden="true">
+          {tooltip.label}
+        </span>
+      )}
     </aside>
   )
 }

@@ -13,6 +13,7 @@ export function createHttpIdentityAdminAdapter(http: HttpClient): IdentityAdminP
   const pending = (operation: string) => async () => contractPending(`identity.${operation}`)
   return {
     getDashboard: pending('dashboard.get'),
+    listSecurityAlerts: pending('securityAlerts.list'),
     listUsers: pending('users.list'),
     getUser: pending('users.get'),
     createUser: pending('users.create'),

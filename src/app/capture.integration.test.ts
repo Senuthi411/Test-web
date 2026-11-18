@@ -5,7 +5,9 @@ import { createContainer } from './composition/container'
 it('wires Capture to the existing Identity sign-in, estate scope and sign-out', async () => {
   const container = await createContainer({ dataSource: 'fixtures', apiBaseUrl: '', apiTimeoutMs: 15_000 })
   await expect(container.capture.getObservation('OBS-005')).rejects.toMatchObject({ kind: 'unauthorized' })
-  const session = await container.auth.signIn({ identifier: 'malini.fernando', password: FIXTURE_DEV_PASSWORD, remember: false })
+  const result = await container.auth.signIn({ userId: 'USR-003', password: FIXTURE_DEV_PASSWORD }, { rememberUserId: false })
+  if (result.status !== 'signed_in') throw new Error('expected a session')
+  const session = result.session
   await expect(container.capture.getObservation('OBS-005')).resolves.toMatchObject({ estate: { id: 'EST-002' } })
   await expect(container.capture.getObservation('OBS-001')).rejects.toMatchObject({ kind: 'not_found' })
   await container.auth.signOut(session)

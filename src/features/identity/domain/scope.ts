@@ -12,9 +12,17 @@ import type { DivisionId, EstateId, UserRole } from '@/shared/types'
  */
 export type ScopeLevel = 'all_estates' | 'estate' | 'division'
 
+/**
+ * OPEN TEAM DECISION: whether Reporting users are scoped by estate or by division.
+ * Estate-level matches the current designs (ID-03/ID-04 "EST-001, EST-002"). Changing this
+ * one value to 'division' switches the forms, validation and stored scope for the role.
+ */
+export const REPORTING_USER_SCOPE_LEVEL: Extract<ScopeLevel, 'estate' | 'division'> = 'estate'
+
 export function scopeLevelFor(role: UserRole): ScopeLevel {
   if (role === 'ADMINISTRATOR') return 'all_estates'
   if (role === 'FIELD_WORKER') return 'division'
+  if (role === 'REPORTING_USER') return REPORTING_USER_SCOPE_LEVEL
   return 'estate'
 }
 

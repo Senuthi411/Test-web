@@ -1,0 +1,336 @@
+/* MFA, password recovery and activation: the login page's centred white card on a neutral
+   light-gray page (see LoginPage.module.css). Brand colour is limited to the logo, the
+   primary button and links. */
+.page {
+  --auth-bg: #f5f6f8;
+  --auth-ink: #17201b;
+  --auth-muted: #5d6762;
+  --auth-border: #e3e6ea;
+  --auth-control-border: #cfd5db;
+  --auth-subtle: #f4f5f7;
+  --auth-accent: var(--tl-primary-500);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 40px 16px;
+  background: var(--auth-bg);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 440px;
+  padding: 40px 40px 32px;
+  border: 1px solid var(--auth-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(16 24 40 / 0.04),
+    0 12px 32px rgb(16 24 40 / 0.08);
+}
+
+/* ---- Logo ---- */
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.logo {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.name {
+  font: 800 26px / 1 var(--tl-font-family);
+  letter-spacing: -0.01em;
+  color: var(--auth-ink);
+}
+
+.leaf {
+  color: var(--auth-accent);
+}
+
+.scout {
+  margin-top: 4px;
+  font: 600 11px / 1 var(--tl-font-family);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--auth-muted);
+}
+
+/* ---- Heading ---- */
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font: 700 26px / 1.2 var(--tl-font-family);
+  letter-spacing: -0.015em;
+  color: var(--auth-ink);
+  text-wrap: balance;
+}
+
+.description {
+  margin: 0;
+  font: 400 15px / 1.5 var(--tl-font-family);
+  color: var(--auth-muted);
+  text-wrap: pretty;
+}
+
+/* ---- Form ----
+   `.card.card` outranks the shared auth field defaults (`.control[data-appearance='auth']`)
+   without changing the shared component. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.card label {
+  font: 600 14px / 1.3 var(--tl-font-family);
+  color: var(--auth-ink);
+}
+
+.card.card [data-appearance='auth'] {
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--auth-control-border);
+  border-radius: 10px;
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.card.card [data-appearance='auth'] input {
+  background: transparent;
+  font: 400 15px / 1.2 var(--tl-font-family);
+  color: var(--auth-ink);
+}
+
+.card [data-appearance='auth']:hover {
+  border-color: #b4bcc4;
+}
+
+.card.card [data-appearance='auth']:focus-within {
+  border-color: var(--auth-accent);
+  box-shadow: 0 0 0 3px rgb(46 125 50 / 0.15);
+}
+
+.card.card [data-appearance='auth'][data-invalid='true'] {
+  border-color: var(--tl-danger-solid);
+  box-shadow: 0 0 0 1px var(--tl-danger-solid);
+}
+
+.card [data-appearance='auth'] > svg:first-child {
+  width: 20px;
+  height: 20px;
+  color: var(--auth-muted);
+}
+
+.card [data-appearance='auth'] button {
+  color: var(--auth-muted);
+}
+
+.codeField input {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+.codeField input::placeholder {
+  letter-spacing: 0.5em;
+}
+
+.primary.primary {
+  width: 100%;
+  height: 48px;
+  border-radius: 10px;
+  font: 600 16px / 1 var(--tl-font-family);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  font: 400 14px / 1.4 var(--tl-font-family);
+  color: var(--auth-muted);
+}
+
+.textLink,
+.textButton {
+  align-self: center;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  font: 600 14px / 1.3 var(--tl-font-family);
+  color: var(--auth-accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.textLink:hover,
+.textButton:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.textButton:disabled {
+  color: var(--tl-text-disabled);
+  cursor: not-allowed;
+}
+
+.textLink:focus-visible,
+.textButton:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: var(--tl-focus-ring);
+}
+
+/* ---- Supporting content ---- */
+.support {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--auth-border);
+  border-radius: 10px;
+  background: var(--auth-subtle);
+  font: 400 13px / 1.45 var(--tl-font-family);
+  color: var(--auth-muted);
+  text-align: center;
+}
+
+.requirements {
+  margin: 0;
+  padding-left: 20px;
+  font: 400 14px / 1.5 var(--tl-font-family);
+  color: var(--auth-muted);
+}
+
+.qr {
+  display: block;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+  border: 1px solid var(--auth-border);
+  border-radius: 12px;
+  background: #fff;
+  image-rendering: pixelated;
+}
+
+.setupKey {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--auth-border);
+  border-radius: 10px;
+  background: var(--auth-subtle);
+  font: 600 15px / 1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--auth-ink);
+}
+
+.steps {
+  margin: 0;
+  padding-left: 20px;
+  font: 400 14px / 1.55 var(--tl-font-family);
+  color: var(--auth-ink);
+}
+
+.codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 600 15px / 1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: center;
+}
+
+.codes li {
+  padding: 8px;
+  border: 1px solid var(--auth-border);
+  border-radius: 8px;
+  background: var(--auth-subtle);
+}
+
+.successIcon {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--tl-mint-100);
+  color: var(--auth-accent);
+}
+
+/* Large and 4K displays: scale the card instead of leaving it tiny. */
+@media (min-width: 2400px) and (min-height: 1400px) {
+  .card {
+    zoom: 1.4;
+  }
+}
+
+/* Phones: the card fills the width with a 16px gutter; inputs keep 16px text (no zoom on iOS). */
+@media (max-width: 767px) {
+  .page {
+    align-items: flex-start;
+    padding: 32px 16px;
+  }
+
+  .card {
+    gap: 18px;
+    padding: 28px 20px 24px;
+    border-radius: 14px;
+  }
+
+  .title {
+    font-size: 23px;
+  }
+
+  .card.card [data-appearance='auth'] {
+    height: 48px;
+  }
+
+  .card.card [data-appearance='auth'] input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 359px) {
+  .card {
+    padding-inline: 16px;
+  }
+
+  .name {
+    font-size: 22px;
+  }
+
+  .codes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

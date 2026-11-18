@@ -38,8 +38,8 @@ plus correction approval. They do not bypass the guarded submitted-task edit URL
 | ADMINISTRATOR | `/admin/users/USR-005` | Existing fixture screen/state checked |
 | ADMINISTRATOR | `/admin/users/USR-005/edit` | Existing fixture screen/state checked |
 | ADMINISTRATOR | `/admin/users/USR-005/scope` | Existing fixture screen/state checked |
-| ADMINISTRATOR | `/admin/roles` | Existing fixture screen/state checked |
-| ADMINISTRATOR | `/admin/roles/supervisor` | Existing fixture screen/state checked |
+| ADMINISTRATOR | `/admin/roles` | Removed; redirects to `/admin/audit-logs` |
+| ADMINISTRATOR | `/admin/roles/supervisor` | Removed; redirects to `/admin/audit-logs` |
 | ADMINISTRATOR | `/admin/estates` | Existing fixture screen/state checked |
 | ADMINISTRATOR | `/admin/estates/EST-001` | Existing fixture screen/state checked |
 | ADMINISTRATOR | `/admin/divisions` | Existing fixture screen/state checked |
