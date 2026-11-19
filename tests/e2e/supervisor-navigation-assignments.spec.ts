@@ -27,17 +27,25 @@ test('every Supervisor page shows the same five sidebar items, with the right on
   }
 })
 
-test('Correction Queue, Expert Referrals and Evidence Viewer stay reachable from the review workflow', async ({ page }) => {
+test('Correction Queue and Expert Referrals open only by their routes; the Evidence Viewer stays reachable from the review', async ({ page }) => {
   await signIn(page)
+  // Observation Review no longer carries buttons for the Correction Queue or Expert Referrals.
   await nav(page).getByRole('link', { name: 'Observation Review' }).click()
-  await page.getByRole('link', { name: 'Correction Queue', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Correction Queue', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Expert Referrals', exact: true })).toHaveCount(0)
+  // Their routes remain reachable, and the sidebar keeps Observation Review highlighted.
+  await page.goto('/review/corrections')
   await expect(page.getByRole('heading', { name: 'Correction Queue' })).toBeVisible()
-  await nav(page).getByRole('link', { name: 'Observation Review' }).click()
-  await page.getByRole('link', { name: 'Expert Referrals', exact: true }).click()
+  await expect(nav(page).getByRole('link', { name: 'Observation Review' })).toHaveClass(/active/)
+  await page.goto('/review/referrals')
   await expect(page.getByRole('heading', { name: 'Expert Referral Status' })).toBeVisible()
+  await expect(nav(page).getByRole('link', { name: 'Observation Review' })).toHaveClass(/active/)
+  // The Evidence Viewer opens from the observation and its Back returns to the same observation.
   await page.goto('/review/observations/OBS-014')
   await page.getByRole('link', { name: 'Open evidence viewer' }).click()
   await expect(page.getByRole('heading', { name: 'Observation Evidence Viewer' })).toBeVisible()
+  await page.getByRole('link', { name: 'Back to observation review' }).click()
+  await expect(page.getByRole('heading', { name: 'Observation Review · OBS-014' })).toBeVisible()
 })
 
 test('a Draft can be edited and cancelled; changes survive a refresh', async ({ page }) => {

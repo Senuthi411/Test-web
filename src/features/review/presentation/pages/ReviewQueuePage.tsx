@@ -197,10 +197,10 @@ function Queue({ observations, archived, estateIds, divisions }: { observations:
                   align: 'end' as const,
                   cell: (row: ReviewObservation) => (
                     <span className={styles.rowActions}>
-                      <ButtonLink variant="secondary" to={reviewPaths.versions(row.id)} aria-label={`Compare ${row.id}`}>
+                      <ButtonLink variant="secondary" to={reviewPaths.versions(row.id)} aria-label={`Compare ${row.id}`} onClick={(event) => event.stopPropagation()}>
                         Compare
                       </ButtonLink>
-                      <ButtonLink to={reviewPaths.observation(row.id)} aria-label={`Review ${row.id}`}>
+                      <ButtonLink to={reviewPaths.observation(row.id)} aria-label={`Review ${row.id}`} onClick={(event) => event.stopPropagation()}>
                         Review
                       </ButtonLink>
                     </span>

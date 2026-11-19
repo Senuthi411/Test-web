@@ -16,12 +16,17 @@ test('review decisions, correction lifecycle and history stay consistent across 
   await expect(page).toHaveURL(/\/review$/)
   await expect(page.getByRole('heading', { name: 'Supervisor Dashboard' })).toBeVisible()
 
-  // REV-02 → REV-03 → REV-06: request a correction for OBS-033.
+  // REV-02 → REV-03 → REV-06: flag OBS-033 (In Review), then request a correction (Flagged only).
   await nav(page).getByRole('link', { name: 'Observation Review' }).click()
-  await page.getByRole('tab', { name: /In review/ }).click()
+  await page.getByRole('tab', { name: /In Review/ }).click()
   await page.getByRole('link', { name: 'OBS-033', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Observation Review · OBS-033' })).toBeVisible()
-  await page.getByRole('link', { name: 'Request correction' }).click()
+  await expect(page.getByRole('link', { name: 'Request Correction' })).toHaveCount(0) // not offered until Flagged
+  await page.getByRole('link', { name: 'Flag Observation' }).click()
+  await page.getByRole('textbox', { name: /Explanation/ }).fill('The leaf is out of focus.')
+  await page.getByRole('button', { name: 'Flag observation' }).click()
+  await expect(page.getByText('Review status', { exact: true }).locator('..')).toContainText('Flagged')
+  await page.getByRole('link', { name: 'Request Correction' }).click()
   await page.getByRole('checkbox', { name: 'Retake a clearer image' }).check()
   await page.getByRole('textbox', { name: /Message to field worker/ }).fill('Please retake a clearer image.')
   await page.getByRole('button', { name: 'Send correction request' }).click()
@@ -43,18 +48,25 @@ test('review decisions, correction lifecycle and history stay consistent across 
   await expect(page.getByRole('heading', { name: 'Correction COR-005' })).toBeVisible()
   await expect(page.getByText('OBS-005 · East Hills (DIV-005) · Applied')).toBeVisible()
 
-  // REV-17 records both decisions; Capture assignments are unchanged.
+  // REV-17: the decisions are recorded on the observation's decision log; History lists only ended processes.
+  await page.goto('/review/observations/OBS-033')
+  const log = page.getByRole('table', { name: 'Decisions on this observation' })
+  await expect(log).toContainText('Flagged')
+  await expect(log).toContainText('Correction')
   await nav(page).getByRole('link', { name: 'Decision History' }).click()
-  await expect(page.getByRole('tab', { name: /All\s*13/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'COR-033' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Review and Decision History' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Observation History' })).toBeVisible()
   await nav(page).getByRole('link', { name: 'Fieldwork Assignments' }).click()
-  await expect(page.getByRole('row', { name: /ASG-001/ })).toContainText('Submitted')
+  await expect(page.getByRole('row', { name: /ASG-001/ })).toContainText('Done')
 
   // Cross-module evidence link.
   await nav(page).getByRole('link', { name: 'Observation Review' }).click()
   await page.getByRole('link', { name: 'OBS-014', exact: true }).click()
   await page.getByRole('link', { name: 'Open evidence viewer' }).click()
-  await expect(page).toHaveURL(/\/observations\/OBS-014\/evidence$/)
+  await expect(page).toHaveURL(/\/observations\/OBS-014\/evidence\?from=review$/)
+  // Back returns to the same observation's review page.
+  await page.getByRole('link', { name: 'Back to observation review' }).click()
+  await expect(page.getByRole('heading', { name: 'Observation Review · OBS-014' })).toBeVisible()
 })
 
 test('referral and keyboard-only verification', async ({ page }) => {
@@ -78,29 +90,37 @@ test('referral and keyboard-only verification', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Request correction' })).toHaveCount(0)
 })
 
-test('opening a Submitted observation claims it, and status persists across refresh', async ({ page }) => {
+test('Start Review moves a Submitted observation to In Review, and status persists across refresh', async ({ page }) => {
   await signIn(page)
   await page.goto('/review/queue?status=submitted')
   await page.getByRole('link', { name: 'OBS-013', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Observation Review · OBS-013' })).toBeVisible()
-  await expect(page.getByText('Review status', { exact: true }).locator('..')).toContainText('In review')
-  for (const name of ['Verify observation', 'Flag observation', 'Request correction', 'Refer to expert']) {
-    await expect(page.getByRole('link', { name })).toBeVisible()
+  // Opening does not claim it: only Start Review is offered, and it needs a confirmation.
+  await expect(page.getByText('Review status', { exact: true }).locator('..')).toContainText('Submitted')
+  for (const name of ['Verify Observation', 'Flag Observation', 'Request Correction', 'Refer to Expert']) {
+    await expect(page.getByRole('link', { name })).toHaveCount(0)
   }
+  await page.getByRole('button', { name: 'Start Review' }).click()
+  await page.getByRole('button', { name: 'Confirm Review' }).click()
+  await expect(page.getByText('Review status', { exact: true }).locator('..')).toContainText('In Review')
+  // In Review offers Verify and Flag only; Request Correction and Refer need Flagged / Verified.
+  for (const name of ['Verify Observation', 'Flag Observation']) await expect(page.getByRole('link', { name })).toBeVisible()
+  for (const name of ['Request Correction', 'Refer to Expert']) await expect(page.getByRole('link', { name })).toHaveCount(0)
   await page.reload()
-  await expect(page.getByText('Review status', { exact: true }).locator('..')).toContainText('In review')
+  await expect(page.getByText('Review status', { exact: true }).locator('..')).toContainText('In Review')
   await page.goto('/review/queue')
-  await expect(page.locator('tr', { has: page.getByRole('link', { name: 'OBS-013', exact: true }) })).toContainText('In review')
+  await expect(page.locator('tr', { has: page.getByRole('link', { name: 'OBS-013', exact: true }) })).toContainText('In Review')
 })
 
 test('referral creates a pending case link, never a case', async ({ page }) => {
   await signIn(page)
-  await page.goto('/review/observations/OBS-014/refer')
+  // Referral is only offered once an observation is Verified (OBS-015).
+  await page.goto('/review/observations/OBS-015/refer')
   await page.getByRole('textbox', { name: /Referral note/ }).fill('Expert confirmation needed')
   await page.getByRole('button', { name: 'Send referral' }).click()
-  await expect(page.getByText('Referral REF-014 sent', { exact: true })).toBeVisible()
-  await expect(page.getByRole('row', { name: /REF-014/ })).toContainText('Pending case link')
-  await expect(page.getByRole('row', { name: /REF-014/ })).toContainText('Not yet created')
+  await expect(page.getByText('Referral REF-015 sent', { exact: true })).toBeVisible()
+  await expect(page.getByRole('row', { name: /REF-015/ })).toContainText('Pending case link')
+  await expect(page.getByRole('row', { name: /REF-015/ })).toContainText('Not yet created')
 })
 
 test('Review is denied to administrators', async ({ page }) => {
@@ -113,9 +133,11 @@ test('Review data is limited to the supervisor estate scope', async ({ page }) =
   await signIn(page, 'USR-002')
   await page.goto('/review/corrections/COR-005')
   await expect(page.getByText('Correction unavailable')).toBeVisible()
+  // Division Quarantine lists only the divisions of the supervisor's own estate.
   await page.goto('/review/quarantine')
-  await expect(page.getByRole('link', { name: 'QUA-001' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'QUA-002' })).toHaveCount(0)
+  await expect(page.getByText('North Ridge (DIV-001)')).toBeVisible()
+  await expect(page.getByText('East Hills (DIV-005)')).toHaveCount(0)
+  await expect(page.getByText('West Terrace (DIV-006)')).toHaveCount(0)
 })
 
 const VIEWPORTS = [

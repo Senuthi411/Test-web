@@ -902,3 +902,19 @@ describe('Dashboard Observation Review button', () => {
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Observation Review' })).not.toBeInTheDocument())
   })
 })
+
+describe('Resubmitted queue row actions', () => {
+  it('opens the version comparison from Compare, the details from Review and from the rest of the row', async () => {
+    const { router, user } = renderReview('/review/queue?status=resubmitted')
+    await user.click(await screen.findByRole('link', { name: /^Compare OBS-005/ }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/review/observations/OBS-005/compare'))
+    expect(router.state.location.pathname).toBe('/review/observations/OBS-005/compare')
+    await act(() => router.navigate('/review/queue?status=resubmitted'))
+    await user.click(await screen.findByRole('link', { name: /^Review OBS-005/ }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/review/observations/OBS-005'))
+    await act(() => router.navigate('/review/queue?status=resubmitted'))
+    const row = (await screen.findByRole('link', { name: /^Compare OBS-005/ })).closest('tr') as HTMLElement
+    await user.click(within(row).getAllByRole('cell')[1])
+    await waitFor(() => expect(router.state.location.pathname).toBe('/review/observations/OBS-005'))
+  })
+})
