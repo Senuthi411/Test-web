@@ -239,7 +239,7 @@ describe('audit log', () => {
   it('maps the shared fixture audit records, newest first, with actor, target and recorded values only', () => {
     const store = new FixtureStore({ latencyMs: 0 })
     const entries = store.read((db) => toAuditLogEntries(db))
-    expect(entries.map((entry) => entry.id)).toEqual(store.read((db) => [...db.auditEvents].sort((a, b) => b.at.localeCompare(a.at)).map((event) => event.id)))
+    expect(entries.map((entry) => entry.id)).toEqual(store.read((db) => [...db.auditEvents].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).map((event) => event.id)))
     const revoked = entries.find((entry) => entry.action === 'device_session_revoked')!
     expect(revoked).toMatchObject({
       actor: { id: 'USR-001', fullName: 'Anika Perera' },

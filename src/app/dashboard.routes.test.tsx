@@ -94,6 +94,17 @@ const grantPort = (grants: AccessGrant[]): AccessGrantPort => ({
 const section = (name: string) => screen.findByRole('region', { name }, { timeout: 10_000 })
 
 describe('Administrator Dashboard · demonstration data', { timeout: 30_000 }, () => {
+  it('counts the same attention rows after a revoked-session issue moves to pending recovery', async () => {
+    renderDashboard('/admin', { prepare: (store) => store.write((db) => {
+      const session = db.deviceSessions.find((session) => session.status === 'revoked')!
+      db.recoveryRequests.push({ id: 'REC-P1', sessionId: session.id, requestedBy: 'USR-001', requestedAt: '2026-10-21T10:00:00+05:30', steps: ['done', 'pending', 'open', 'not_issued', 'waiting'] })
+    }) })
+    const table = await screen.findByRole('table', { name: 'Users requiring attention' }, { timeout: 10_000 })
+    const count = within(table).getAllByRole('row').length - 1
+    expect(within(await section('Accounts requiring attention')).getByText(String(count))).toBeInTheDocument()
+    expect(await screen.findByText('Controlled recovery was requested for DS-3012 and is not complete.')).toBeInTheDocument()
+  })
+
   it('keeps the KPI cards, with counts and links from the dashboard source', async () => {
     renderDashboard()
     const active = await section('Active users')

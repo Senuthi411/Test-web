@@ -1,11 +1,14 @@
 import { AppError } from '@/shared/api'
+import { divisionCreationError } from '../domain/organisationRules'
+import { requireAdministrator } from './fixtureAuthorization'
+import { LAST_ACTIVE_ADMINISTRATOR, LAST_ACTIVE_ADMINISTRATOR_MESSAGE, removesLastActiveAdministrator } from '../domain/administratorSafety'
 import type { FixtureAuditEvent, FixtureDatabase, FixtureRoleDetails, FixtureStore, FixtureUser } from '@/fixtures'
 import type { UserId, UserRole } from '@/shared/types'
 import type { Clock } from '@/shared/utilities/clock'
 import { formatIsoDate } from '@/shared/utilities/format'
 import type { AdminDashboard, AttentionRow, DivisionDetail, OpenRecovery, RecoveryRequest, UserDetail } from '../domain/models'
 import { attentionReasons, type SecurityAlertFeed } from '../domain/adminDashboard'
-import { normaliseScope, sameScope, scopeIdsOf, scopeLevelFor, type ScopeSelection, type ScopeTopology } from '../domain/scope'
+import { normaliseScope, sameScope, scopeIdsOf, scopeLevelFor, scopeReasonError, validateScope, type ScopeSelection, type ScopeTopology } from '../domain/scope'
 import { maskNic, sameEmployeeId, USER_FIELD_MESSAGES, type RoleDetails } from '../domain/userFields'
 import type { IdentityAdminPort, UserInput } from '../application/ports'
 import {
@@ -52,6 +55,8 @@ function topologyOf(db: Db): ScopeTopology {
 function resolveScope(db: Db, role: UserRole, selection: ScopeSelection): ScopeSelection {
   const level = scopeLevelFor(role)
   const scope = normaliseScope(level, selection, topologyOf(db))
+  const scopeError = validateScope(level, scope)
+  if (scopeError) throw invalid(level === 'division' ? 'divisionIds' : 'estateIds', scopeError)
   if (scope.estateIds.some((id) => !db.estates.some((estate) => estate.id === id))) {
     throw invalid(level === 'estate' ? 'estateIds' : 'estateId', 'Select an existing estate')
   }
@@ -98,6 +103,14 @@ function resolveRoleDetails(db: Db, details: RoleDetails, scope: ScopeSelection,
  * audit event, so the dashboard and activity timelines reflect them.
  */
 export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: FixtureIdentityOptions): IdentityAdminPort {
+  // Authorization runs after simulated latency and immediately before each operation,
+  // so a caller deactivated while waiting cannot read or write using stale identity.
+  const run = <T>(operation: () => T, signal?: AbortSignal): Promise<T> =>
+    store.run(() => {
+      store.read((db) => requireAdministrator(db, options))
+      return operation()
+    }, signal)
+
   const { clock } = options
   const nowIso = () => clock.now().toISOString()
   const today = () => formatIsoDate(clock.now().toISOString())
@@ -225,7 +238,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
 
   return {
     getDashboard(signal) {
-      return store.run(
+      return run(
         () =>
           store.read((db): AdminDashboard => {
             const now = clock.now().getTime()
@@ -255,7 +268,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
       // The demonstration dataset records device sessions only: no sign-in attempts,
       // lockouts, session flags or MFA enrollment. A revoked session is listed until a
       // controlled recovery is requested for it.
-      return store.run(
+      return run(
         () =>
           store.read((db): SecurityAlertFeed => ({
             reportedKinds: ['device_session_revoked'],
@@ -281,15 +294,15 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     listUsers(signal) {
-      return store.run(() => store.read((db) => db.users.map((user) => toIdentityUser(db, user))), signal)
+      return run(() => store.read((db) => db.users.map((user) => toIdentityUser(db, user))), signal)
     },
 
     getUser(userId, signal) {
-      return store.run(() => store.read((db) => userDetail(db, userId)), signal)
+      return run(() => store.read((db) => userDetail(db, userId)), signal)
     },
 
     createUser(input) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
           assertUniqueEmail(db, input.email)
           assertUniqueStaffDetails(db, input)
@@ -325,16 +338,24 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     updateUser(userId, input) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
           const user = db.users.find((item) => item.id === userId)
           if (!user) throw notFound('This user')
+          if (removesLastActiveAdministrator(db.users, user, input)) {
+            throw new AppError('validation', LAST_ACTIVE_ADMINISTRATOR_MESSAGE, { code: LAST_ACTIVE_ADMINISTRATOR })
+          }
           if (user.version !== input.expectedVersion) throw conflict('This user was changed by another administrator. Your changes were not saved.')
           assertUniqueEmail(db, input.email, userId)
           assertUniqueStaffDetails(db, input, userId)
           const scope = resolveScope(db, input.role, input.scope)
           const roleDetails = resolveRoleDetails(db, input.roleDetails, scope, userId)
-          const scopeChanged = !sameScope(scope, { estateIds: user.estateIds, divisionIds: user.divisionIds })
+          const previousScope = normaliseScope(scopeLevelFor(user.role), user, topologyOf(db))
+          const scopeChanged = !sameScope(scope, previousScope)
+          if (scopeChanged) {
+            const reasonError = scopeReasonError(input.reason)
+            if (reasonError) throw invalid('reason', reasonError)
+          }
           const before = { role: user.role, status: user.status, scope: scopeIdsOf(user) }
           Object.assign(user, {
             fullName: input.fullName,
@@ -358,7 +379,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
           audit(db, { kind: 'user_updated', userId, estateIds })
           // Authorization changes made through Edit User are recorded on their own as well.
           if (before.role !== input.role) audit(db, { kind: 'role_changed', userId, previousValue: before.role, newValue: input.role, estateIds })
-          if (scopeChanged) audit(db, { kind: 'scope_updated', userId, scope: scopeIdsOf(scope), previousValue: before.scope.join(', '), estateIds })
+          if (scopeChanged) audit(db, { kind: 'scope_updated', userId, scope: scopeIdsOf(scope), previousValue: before.scope.join(', '), reasonCode: input.reason?.trim(), estateIds })
           if (before.status !== input.status) audit(db, { kind: 'account_status_changed', userId, previousValue: before.status, status: input.status, estateIds })
           return toIdentityUser(db, user)
         }),
@@ -366,8 +387,10 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     updateUserScope(userId, input) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
+          const reasonError = scopeReasonError(input.reason)
+          if (reasonError) throw invalid('reason', reasonError)
           const user = db.users.find((item) => item.id === userId)
           if (!user) throw notFound('This user')
           if (user.version !== input.expectedVersion) {
@@ -384,7 +407,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
             userId,
             scope: scopeIdsOf(scope),
             previousValue: previousScope,
-            reasonCode: input.reason,
+            reasonCode: input.reason.trim(),
             estateIds: estatesOfScope(db, scope),
           })
           return toIdentityUser(db, user)
@@ -393,11 +416,11 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     listEstates(signal) {
-      return store.run(() => store.read((db) => db.estates.map((estate) => toEstateSummary(db, estate))), signal)
+      return run(() => store.read((db) => db.estates.map((estate) => toEstateSummary(db, estate))), signal)
     },
 
     getEstate(estateId, signal) {
-      return store.run(
+      return run(
         () =>
           store.read((db) => {
             const estate = db.estates.find((item) => item.id === estateId)
@@ -414,7 +437,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     createEstate(input) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
           if (db.estates.some((estate) => estate.name.toLowerCase() === input.name.toLowerCase())) {
             throw invalid('name', 'An estate with this name already exists')
@@ -428,7 +451,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     updateEstate(estateId, input) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
           const estate = db.estates.find((item) => item.id === estateId)
           if (!estate) throw notFound('This estate')
@@ -443,11 +466,11 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     listDivisions(signal) {
-      return store.run(() => store.read((db) => db.divisions.map((division) => toDivisionSummary(db, division))), signal)
+      return run(() => store.read((db) => db.divisions.map((division) => toDivisionSummary(db, division))), signal)
     },
 
     getDivision(divisionId, signal) {
-      return store.run(
+      return run(
         () =>
           store.read((db): DivisionDetail => {
             const division = db.divisions.find((item) => item.id === divisionId)
@@ -479,9 +502,11 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     createDivision(input) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
-          if (!db.estates.some((estate) => estate.id === input.estateId)) throw invalid('estateId', 'Select an existing estate')
+          const parent = db.estates.find((estate) => estate.id === input.estateId)
+          const parentError = divisionCreationError(parent?.status)
+          if (parentError) throw invalid('estateId', parentError)
           if (db.divisions.some((division) => division.estateId === input.estateId && division.name.toLowerCase() === input.name.toLowerCase())) {
             throw invalid('name', 'This estate already has a division with this name')
           }
@@ -494,14 +519,15 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     updateDivision(divisionId, input) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
           const division = db.divisions.find((item) => item.id === divisionId)
           if (!division) throw notFound('This division')
           if (db.divisions.some((item) => item.id !== divisionId && item.estateId === division.estateId && item.name.toLowerCase() === input.name.toLowerCase())) {
             throw invalid('name', 'This estate already has a division with this name')
           }
-          Object.assign(division, input)
+          // A division's parent is immutable; do not copy extra runtime properties.
+          Object.assign(division, { name: input.name, status: input.status })
           audit(db, { kind: 'division_updated', divisionId, status: division.status, estateIds: [division.estateId] })
           return toDivisionSummary(db, division)
         }),
@@ -509,11 +535,11 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     listDeviceSessions(signal) {
-      return store.run(() => store.read((db) => db.deviceSessions.map((session) => toDeviceSession(db, session))), signal)
+      return run(() => store.read((db) => db.deviceSessions.map((session) => toDeviceSession(db, session))), signal)
     },
 
     revokeDeviceSession(sessionId) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
           const session = db.deviceSessions.find((item) => item.id === sessionId)
           if (!session) throw notFound('This device session')
@@ -535,7 +561,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     getRecoveryRequest(sessionId, signal) {
-      return store.run(
+      return run(
         () =>
           store.read((db) => {
             if (!db.deviceSessions.some((item) => item.id === sessionId)) throw notFound('This device session')
@@ -546,7 +572,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
     },
 
     requestSessionRecovery(sessionId) {
-      return store.run(() =>
+      return run(() =>
         store.write((db) => {
           const session = db.deviceSessions.find((item) => item.id === sessionId)
           if (!session) throw notFound('This device session')
@@ -574,7 +600,7 @@ export function createFixtureIdentityAdminAdapter(store: FixtureStore, options: 
 
     exportData() {
       // Fixture mode never produces a file; the screen says so.
-      return store.run(() => ({ simulated: true }))
+      return run(() => ({ simulated: true }))
     },
   }
 }

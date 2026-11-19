@@ -142,6 +142,7 @@ describe('identity access history', () => {
     const { admin, history } = setup()
     const { user } = await admin.getUser('USR-013')
     await admin.updateUser('USR-013', {
+      reason: 'Administrative scope change',
       fullName: user.fullName,
       email: user.email,
       role: 'ADMINISTRATOR',

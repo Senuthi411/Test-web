@@ -24,7 +24,7 @@ export function createIdentityFixtureAdapters(store: FixtureStore, options: Fixt
   return {
     auth: createFixtureAuthAdapter(store),
     admin: createFixtureIdentityAdminAdapter(store, options),
-    account: createFixtureAccountAdapter(store),
+    account: createFixtureAccountAdapter(store, options),
     recovery: createPendingPasswordRecoveryAdapter(),
     activation: createPendingAccountActivationAdapter(),
     accessGrants: createFixtureAccessGrantAdapter(store, options),

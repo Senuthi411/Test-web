@@ -90,6 +90,11 @@ export function sameScope(a: ScopeSelection, b: ScopeSelection): boolean {
   return key(a) === key(b)
 }
 
+/** Existing ID-08 rule, also used when Edit User changes the stored scope. */
+export function scopeReasonError(reason: string | undefined): string | undefined {
+  return reason?.trim() ? undefined : 'A reason is required for a privileged scope change'
+}
+
 /**
  * Plain-language summary of a scope change for the ID-08 confirmation, e.g.
  * "Add EST-003 Mist Valley to estate-level scope".

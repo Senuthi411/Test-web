@@ -22,6 +22,8 @@ export interface AuthUseCases {
   signOut(session: Session): Promise<void>
   /** Returns a stored session issued by the current data source, if any. */
   restore(): Session | null
+  /** Available only for sources with a current-record notification mechanism (fixtures). */
+  subscribeSession?(listener: () => void): () => void
   /** Forgets the local session without contacting the backend (expiry, password reset). */
   discard(): void
   /** Stores updated session details (e.g. the user's new name) without signing in again. */
@@ -80,8 +82,17 @@ export function createAuthUseCases(
         if (stored) persistence.clear()
         return null
       }
+      if (dataSource === 'fixtures' && auth.reconcileSession) {
+        const current = auth.reconcileSession(stored)
+        if (!current) persistence.clear()
+        else persistence.update(current)
+        return current
+      }
       return stored
     },
+    subscribeSession: dataSource === 'fixtures' && auth.subscribeSession
+      ? (listener) => auth.subscribeSession!(listener)
+      : undefined,
     discard() {
       persistence.clear()
     },

@@ -121,7 +121,7 @@ function OverviewTab() {
                 <KpiCard label="Inactive accounts" value={inactive} caption={`of ${all.length} accounts`} icon="users" tone="info" />
               </Link>
               <Link to="/admin/security?tab=authentication" className={styles.kpiLink}>
-                <KpiCard label="Administrators requiring MFA" value={administrators.length} caption="Enrollment status not reported" icon="lock" tone="purple" />
+                <KpiCard label="Administrators covered by MFA policy" value={administrators.length} caption="Enrollment status not reported" icon="lock" tone="purple" />
               </Link>
               <Link to="/admin/security?tab=devices" className={styles.kpiLink}>
                 <KpiCard label="Open recovery requests" value={recoveries} caption="Controlled device-session recovery" icon="refresh" tone="warning" />

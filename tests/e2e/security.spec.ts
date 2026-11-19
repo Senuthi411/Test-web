@@ -28,7 +28,9 @@ test('Security Center opens from the sidebar and the Dashboard, and every tab is
   await expect(page.getByRole('heading', { name: 'Security Center', level: 1 })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Security Center' })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByRole('tab')).toHaveText([...TABS])
-  await expect(page.getByRole('region', { name: 'Administrators requiring MFA' })).toBeVisible()
+  const mfaPolicy = page.getByRole('region', { name: 'Administrators covered by MFA policy' })
+  await expect(mfaPolicy).toBeVisible()
+  await expect(mfaPolicy).toContainText('Enrollment status not reported')
 
   await page.getByRole('tab', { name: 'Authentication Policies' }).click()
   await expect(page).toHaveURL(/\?tab=authentication$/)

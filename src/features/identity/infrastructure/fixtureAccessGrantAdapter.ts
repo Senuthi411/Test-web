@@ -1,3 +1,4 @@
+import { newestFirst } from '../domain/chronology'
 import { AppError } from '@/shared/api'
 import type { FixtureAuditEvent, FixtureStore, FixtureUser } from '@/fixtures'
 import { ROLE_LABELS, type UserId, type UserRole } from '@/shared/types'
@@ -206,7 +207,7 @@ export function createFixtureAccessGrantAdapter(store: FixtureStore, options: Fi
             ]
           }),
         )
-        return [...history, ...permanent].sort((a, b) => b.at.localeCompare(a.at))
+        return [...history, ...permanent].sort(newestFirst)
       }, signal)
     },
   }
