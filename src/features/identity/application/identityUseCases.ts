@@ -3,6 +3,7 @@ import { USER_ROLES } from '@/shared/types'
 import { systemClock, type Clock } from '@/shared/utilities/clock'
 import { formatIsoDate } from '@/shared/utilities/format'
 import { scopeLevelFor, validateScope } from '../domain/scope'
+import { divisionCreationError } from '../domain/organisationRules'
 import { commonFieldErrors, roleDetailsErrors, validateDivisionDraft, validateEstateDraft, validatePasswordChange, type FieldErrors } from '../domain/rules'
 import { isPreferredLanguage, normaliseNic, normalisePhone, type RoleDetails } from '../domain/userFields'
 import type { AccountPort, IdentityAdminPort, UserInput } from './ports'
@@ -111,6 +112,8 @@ export function createIdentityAdminUseCases(port: IdentityAdminPort, clock: Cloc
     },
     async createDivision(input) {
       rejectIfInvalid(validateDivisionDraft(input))
+      const { estate } = await port.getEstate(input.estateId)
+      rejectIfInvalid({ estateId: divisionCreationError(estate.status) })
       return port.createDivision({ ...input, name: input.name.trim() })
     },
     async updateDivision(divisionId, input) {

@@ -18,6 +18,23 @@ const REJECTED = 'The User ID or password is incorrect.'
  */
 export function createFixtureAuthAdapter(store: FixtureStore): AuthPort {
   return {
+    reconcileSession(session) {
+      if (session.source !== 'fixtures') return null
+      const user = store.read((db) => db.users.find((candidate) => candidate.id === session.user.id))
+      if (!user || user.status !== 'active' || !isWebRole(user.role)) return null
+      // A role change requires sign-in again. Never promote a restored session when a
+      // fixture reload resets the repository to its seed role, either.
+      if (user.role !== session.user.role) return null
+      return {
+        ...session,
+        accessToken: null,
+        user: {
+          id: user.id, fullName: user.fullName, email: user.email, role: user.role,
+          estateIds: user.estateIds, divisionIds: user.divisionIds,
+        },
+      }
+    },
+    subscribeSession: (listener) => store.subscribe(listener),
     signIn(credentials, signal) {
       return store.run(() => {
         const userId = credentials.userId.trim().toLowerCase()

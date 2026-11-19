@@ -1,3 +1,4 @@
+import { newestFirst } from './chronology'
 import type { AuditKind } from './activity'
 import type { PersonRef } from './models'
 
@@ -139,7 +140,7 @@ export function filterAuditLog(entries: readonly AuditLogEntry[], filters: Audit
       }
       return true
     })
-    .sort((a, b) => b.at.localeCompare(a.at))
+    .sort(newestFirst)
 }
 
 /** Distinct actors in the log, by name, for the actor filter. */

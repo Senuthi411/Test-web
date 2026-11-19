@@ -36,6 +36,10 @@ import type { ConfigurationDocument, ConfigurationDraft, ConfigurationState, Con
 
 /** Authenticates a web user. Implemented by the fixture and HTTP adapters. */
 export interface AuthPort {
+  /** Fixture-only current-record reconciliation; never a guessed server refresh protocol. */
+  reconcileSession?(session: Session): Session | null
+  /** Fixture store notifications, including changes made outside the current screen. */
+  subscribeSession?(listener: () => void): () => void
   /**
    * Resolves with a session, or with an MFA challenge when the backend requires a second
    * step. Rejects with an AppError: rejected credentials use kind `validation` and code
@@ -143,6 +147,12 @@ export interface VersionedInput {
   expectedVersion: number
 }
 
+/** Frontend edit command; no HTTP payload contract is defined by this type. */
+export type UserUpdateInput = UserInput & VersionedInput & {
+  /** Existing scope-change reason; required only if the normalized scope changes. */
+  reason?: string
+}
+
 export interface ScopeChangeInput extends VersionedInput {
   scope: ScopeSelection
   /** Required: privileged scope changes are audited (ID-08 "Reason (required)"). */
@@ -174,7 +184,7 @@ export interface IdentityAdminPort {
   getUser(userId: UserId, signal?: AbortSignal): Promise<UserDetail>
   /** Creates the account; the backend reports whether the invitation was started. */
   createUser(input: UserInput): Promise<CreatedUser>
-  updateUser(userId: UserId, input: UserInput & VersionedInput): Promise<IdentityUser>
+  updateUser(userId: UserId, input: UserUpdateInput): Promise<IdentityUser>
   updateUserScope(userId: UserId, input: ScopeChangeInput): Promise<IdentityUser>
   listEstates(signal?: AbortSignal): Promise<EstateSummary[]>
   getEstate(estateId: EstateId, signal?: AbortSignal): Promise<EstateDetail>

@@ -14,6 +14,7 @@ import {
   PageHeader,
   SelectField,
   TextField,
+  TextAreaField,
   usePageBreadcrumbs,
 } from '@/shared/components'
 import { Icon } from '@/shared/design-system'
@@ -34,7 +35,7 @@ import {
   type UserDraft,
   type UserDraftField,
 } from '../../../domain/rules'
-import { REPORTING_USER_SCOPE_LEVEL, scopeLevelFor } from '../../../domain/scope'
+import { REPORTING_USER_SCOPE_LEVEL, scopeLevelFor, normaliseScope, sameScope, scopeReasonError } from '../../../domain/scope'
 import { maskNic, PREFERRED_LANGUAGES, preferredLanguageLabel, type PreferredLanguage } from '../../../domain/userFields'
 import type { UserInput } from '../../../application/ports'
 import { QueryBoundary } from '../../components/common'
@@ -220,6 +221,8 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
   const [infoOpen, setInfoOpen] = useState(true)
   const [review, setReview] = useState<UserDraft | null>(null)
   const [failure, setFailure] = useState<unknown>(null)
+  const [scopeReason, setScopeReason] = useState('')
+  const [reasonError, setReasonError] = useState<string | undefined>()
   const [pendingRole, setPendingRole] = useState<{ role: UserRole | ''; lost: Array<{ label: string }> } | null>(null)
 
   /** Edit only: the current scope cannot be shown in this form and the scope level is unchanged. */
@@ -260,6 +263,11 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
   const estateId = useWatch({ control, name: 'estateId' })
   const level = role ? scopeLevelFor(role) : null
   const scopeKept = keepsCurrentScope(role)
+  const [estateIds, divisionIds] = useWatch({ control, name: ['estateIds', 'divisionIds'] })
+  const scopeNeedsReason = Boolean(user && role && !sameScope(
+    normaliseScope(scopeLevelFor(role), scopeKept ? user : { estateIds, divisionIds }, { estates, divisions }),
+    normaliseScope(scopeLevelFor(user.role), user, { estates, divisions }),
+  ))
 
   const activeSupervisors = useMemo(() => users.filter((item) => item.role === 'SUPERVISOR' && item.status === 'active'), [users])
   const fieldWorkerEstates = useMemo(() => {
@@ -324,6 +332,8 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
   }
 
   function applyServerErrors(error: unknown) {
+    const reason = fieldErrorsOf(error).reason
+    if (reason) { setReasonError(reason); return }
     const mapped: string[] = []
     for (const [path, message] of Object.entries(fieldErrorsOf(error))) {
       // Estate-level scope errors refer to the estate list in this form.
@@ -341,8 +351,11 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
     setFailure(null)
     const input = toInput(values)
     if (user) {
+      const reasonError = scopeNeedsReason ? scopeReasonError(scopeReason) : undefined
+      setReasonError(reasonError)
+      if (reasonError) return
       updateUser.mutate(
-        { ...input, expectedVersion: user.version },
+        { ...input, expectedVersion: user.version, ...(scopeNeedsReason ? { reason: scopeReason.trim() } : {}) },
         {
           onSuccess: (saved) => navigate(userPath(saved.id), { state: { userSaved: 'updated' } satisfies UserSavedState }),
           onError: applyServerErrors,
@@ -633,6 +646,10 @@ function UserForm({ user: loadedUser, estates, divisions, users, onReload }: Use
               fieldWorkerEstateId={fieldWorkerEstates.size > 0 ? [...fieldWorkerEstates][0] ?? '' : ''}
             />
 
+            {scopeNeedsReason && (
+              <TextAreaField label="Reason for scope change" required value={scopeReason} error={reasonError}
+                onChange={(event) => { setScopeReason(event.target.value); setReasonError(undefined) }} />
+            )}
             {!user && <p className={styles.caption}>{invitationNote}</p>}
           </form>
         </Card>

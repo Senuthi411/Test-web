@@ -68,8 +68,8 @@ describe('Security Center', { timeout: 30_000 }, () => {
     const recoveries = (await adapters.identity.admin.getDashboard()).openRecoveries.length
     expect(await screen.findByRole('region', { name: 'Inactive accounts' }, { timeout: 10_000 })).toBeInTheDocument()
     expect(kpiValue('Inactive accounts')).toContain(String(facts.inactive))
-    expect(kpiValue('Administrators requiring MFA')).toContain(String(facts.administrators))
-    expect(kpiValue('Administrators requiring MFA')).toContain('Enrollment status not reported')
+    expect(kpiValue('Administrators covered by MFA policy')).toContain(String(facts.administrators))
+    expect(kpiValue('Administrators covered by MFA policy')).toContain('Enrollment status not reported')
     expect(kpiValue('Open recovery requests')).toContain(String(recoveries))
     expect(kpiValue('Active device sessions')).toContain(String(facts.active))
     const alerts = screen.getByRole('region', { name: 'Security & access alerts' })

@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router'
 import { BarList, Button, ButtonLink, Card, DataTable, KpiCard, PageHeader, Skeleton, usePageBreadcrumbs } from '@/shared/components'
 import { ROLE_LABELS, type UserRole } from '@/shared/types'
 import { RULE_TEMPLATES, enabledRuleCount } from '../../../domain/configuration'
+import { pendingAdministrativeActions, withoutPendingDuplicates } from '../../../domain/adminDashboard'
 import type { AdminDashboard, EstateSummary } from '../../../domain/models'
 import { shortEstateName } from '../../../domain/scope'
 import { StatusBadge } from '../../components/common'
@@ -52,6 +53,7 @@ function KpiRow({ data }: { data: AdminDashboard }) {
   const inactiveDivisions = data.divisionCount - data.activeDivisionCount
   const alertCount = alerts.data ? alerts.data.alerts.length : null
   const enabledRules = configuration.data ? enabledRuleCount(configuration.data.current.document) : null
+  const attentionCount = withoutPendingDuplicates(data.attention, pendingAdministrativeActions(data.openRecoveries)).length
   return (
     <div className={styles.kpiRow}>
       <Link to="/admin/users?status=all" className={styles.kpiLink}>
@@ -93,15 +95,20 @@ function KpiRow({ data }: { data: AdminDashboard }) {
           tone="warning"
         />
       </Link>
-      <a href="#attention" className={styles.kpiLink}>
+      <Link to={{ pathname: '/admin', hash: '#attention' }} className={styles.kpiLink} onClick={(event) => {
+        event.preventDefault()
+        const target = document.getElementById('attention')
+        target?.scrollIntoView({ block: 'start' })
+        target?.focus({ preventScroll: true })
+      }}>
         <KpiCard
           label="Accounts requiring attention"
-          value={data.attention.length}
-          caption={data.attention.length === 0 ? 'Nothing waiting' : 'See the list below'}
+          value={attentionCount}
+          caption={attentionCount === 0 ? 'Nothing waiting' : 'Listed accounts · see reasons below'}
           icon="alert"
           tone="warning"
         />
-      </a>
+      </Link>
       <Link to="/admin/security" className={styles.kpiLink}>
         <KpiCard
           label="Security alerts"
@@ -238,7 +245,7 @@ export function AdminDashboardPage() {
         <ConfigurationSummaryCard />
       </div>
 
-      <div id="attention">
+      <div id="attention" tabIndex={-1} style={{ scrollMarginTop: 'var(--tl-topbar-height)' }}>
         <AttentionCard />
       </div>
     </div>

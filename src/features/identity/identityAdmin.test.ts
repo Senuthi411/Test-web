@@ -339,6 +339,7 @@ describe('fixture identity administration', () => {
     const before = await admin.getUser('USR-012')
     expect(before.user.role).not.toBe('SUPERVISOR')
     const updated = await admin.updateUser('USR-012', {
+      reason: 'Supervisor scope assignment',
       fullName: before.user.fullName,
       email: before.user.email,
       role: 'SUPERVISOR',
@@ -383,7 +384,7 @@ describe('fixture identity administration', () => {
     expect(JSON.stringify(store.read((db) => db.auditEvents))).not.toContain('199012345678')
 
     const supervisorView = createIdentityFixtureAdapters(store, { clock: fixedClock(FIXTURE_REFERENCE_DATE), actorId: () => 'USR-003' })
-    expect((await supervisorView.admin.getUser(created.user.id)).personal).toBeNull()
+    await expect(supervisorView.admin.getUser(created.user.id)).rejects.toMatchObject({ kind: 'forbidden' })
   })
 
   it('records "User created" in the activity timeline without personal details', async () => {

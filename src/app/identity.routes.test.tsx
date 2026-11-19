@@ -687,11 +687,12 @@ describe('identity administration screens', () => {
     expect(document.body.textContent).not.toContain('199012345678')
   })
 
-  it('hides NIC and date of birth when the data layer is not reading as an Administrator', async () => {
+  it('denies the complete user record when the data-layer actor is not an Administrator', async () => {
     signInAs('ADMINISTRATOR')
     renderFixtureApp('/admin/users/USR-003', () => 'USR-003')
-    expect(await screen.findByRole('heading', { name: 'Malini Fernando', level: 1 })).toBeInTheDocument()
-    expect(screen.getByText('EMP-003')).toBeInTheDocument()
+    expect(await screen.findByText('Only an active Administrator can perform this operation.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Malini Fernando', level: 1 })).not.toBeInTheDocument()
+    expect(screen.queryByText('EMP-003')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Personal details' })).not.toBeInTheDocument()
     expect(screen.queryByText('NIC')).not.toBeInTheDocument()
   })

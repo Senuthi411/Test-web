@@ -1,3 +1,4 @@
+import { newestFirst } from '../domain/chronology'
 /**
  * Maps fixture records into Identity domain models. Every derived value (counts, team,
  * supervisor, last sign-in, activity) is computed here from the shared fixture store,
@@ -28,7 +29,7 @@ export function findUser(db: Db, id: UserId): FixtureUser | undefined {
 
 function latestSessionAt(db: Db, userId: UserId): string | null {
   const times = db.deviceSessions.filter((session) => session.userId === userId).map((session) => session.lastSeenAt)
-  return times.sort().at(-1) ?? null
+  return times.sort((a, b) => newestFirst({ at: a }, { at: b }))[0] ?? null
 }
 
 export function toIdentityUser(db: Db, user: FixtureUser): IdentityUser {
@@ -121,7 +122,7 @@ export function estateTeam(db: Db, estateId: string): TeamMember[] {
 
 export function auditActivity(db: Db, events: readonly FixtureAuditEvent[]): ActivityEvent[] {
   return [...events]
-    .sort((a, b) => b.at.localeCompare(a.at))
+    .sort(newestFirst)
     .map((event) => {
       const user = event.userId ? findUser(db, event.userId) : undefined
       const division = event.divisionId ? db.divisions.find((item) => item.id === event.divisionId) : undefined
@@ -172,7 +173,7 @@ export function userActivity(db: Db, user: FixtureUser): ActivityEvent[] {
       })
     : []
   const audits = auditActivity(db, db.auditEvents.filter((event) => event.userId === user.id && event.kind !== 'device_session_revoked'))
-  return [...sessions, ...scopes, ...audits].sort((a, b) => b.at.localeCompare(a.at))
+  return [...sessions, ...scopes, ...audits].sort(newestFirst)
 }
 
 /** ID-02 "Users by role", in the order of the design (largest group first). */

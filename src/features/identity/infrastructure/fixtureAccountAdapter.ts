@@ -4,13 +4,20 @@ import type { UserId } from '@/shared/types'
 import type { AccountPort } from '../application/ports'
 import type { Profile } from '../domain/models'
 import { toIdentityUser } from './fixtureRecords'
+import { requireAccountOwner, type FixtureActor } from './fixtureAuthorization'
 
 function missing(): AppError {
   return new AppError('not_found', 'Your account could not be found.')
 }
 
 /** The signed-in user's own account in fixture mode. Changes stay in this browser tab. */
-export function createFixtureAccountAdapter(store: FixtureStore): AccountPort {
+export function createFixtureAccountAdapter(store: FixtureStore, actor: FixtureActor): AccountPort {
+  const run = <T>(userId: UserId, operation: () => T, signal?: AbortSignal): Promise<T> =>
+    store.run(() => {
+      store.read((db) => requireAccountOwner(db, actor, userId))
+      return operation()
+    }, signal)
+
   const toProfile = (user: FixtureUser, db: Parameters<Parameters<FixtureStore['read']>[0]>[0]): Profile => ({
     user: toIdentityUser(db, user),
     language: user.language,
@@ -18,7 +25,7 @@ export function createFixtureAccountAdapter(store: FixtureStore): AccountPort {
   })
 
   const mutate = <T>(userId: UserId, change: (user: FixtureUser) => T) =>
-    store.run(() =>
+    run(userId, () =>
       store.write((db) => {
         const user = db.users.find((item) => item.id === userId)
         if (!user) throw missing()
@@ -28,7 +35,7 @@ export function createFixtureAccountAdapter(store: FixtureStore): AccountPort {
 
   return {
     getProfile(userId, signal) {
-      return store.run(
+      return run(userId,
         () =>
           store.read((db) => {
             const user = db.users.find((item) => item.id === userId)
@@ -40,7 +47,7 @@ export function createFixtureAccountAdapter(store: FixtureStore): AccountPort {
     },
 
     updateProfile(userId, input) {
-      return store.run(() =>
+      return run(userId, () =>
         store.write((db) => {
           const user = db.users.find((item) => item.id === userId)
           if (!user) throw missing()
@@ -53,7 +60,7 @@ export function createFixtureAccountAdapter(store: FixtureStore): AccountPort {
     },
 
     changePassword(userId, input) {
-      return store.run(() =>
+      return run(userId, () =>
         store.write((db) => {
           const credential = db.credentials.find((item) => item.userId === userId)
           if (!credential) throw new AppError('forbidden', 'This account has no web password to change.')

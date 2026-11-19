@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DivisionId, EstateId, UserId } from '@/shared/types'
-import type { DivisionInput, EstateInput, ScopeChangeInput, UserInput, VersionedInput } from '../../application/ports'
+import type { DivisionInput, EstateInput, ScopeChangeInput, UserInput, UserUpdateInput } from '../../application/ports'
 import type { ExportKind, NotificationPreferenceKey, Profile } from '../../domain/models'
 import type { ConfigurationDocument } from '../../domain/configuration'
 import { useIdentityServices } from './identityServices'
@@ -96,7 +96,7 @@ export function useCreateUser() {
 
 export function useUpdateUser(userId: UserId) {
   const { admin } = useIdentityServices()
-  return useIdentityMutation((input: UserInput & VersionedInput) => admin.updateUser(userId, input))
+  return useIdentityMutation((input: UserUpdateInput) => admin.updateUser(userId, input))
 }
 
 export function useUpdateUserScope(userId: UserId) {

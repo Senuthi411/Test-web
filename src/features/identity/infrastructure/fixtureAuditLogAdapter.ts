@@ -1,3 +1,4 @@
+import { newestFirst } from '../domain/chronology'
 import { AppError } from '@/shared/api'
 import type { FixtureAuditEvent, FixtureDatabase, FixtureStore } from '@/fixtures'
 import type { UserId } from '@/shared/types'
@@ -48,7 +49,7 @@ function values(event: FixtureAuditEvent): Pick<AuditLogEntry, 'previousValue' |
 /** Maps the shared fixture audit records to audit-log entries (exported for tests). */
 export function toAuditLogEntries(db: Readonly<FixtureDatabase>): AuditLogEntry[] {
   return [...db.auditEvents]
-    .sort((a, b) => b.at.localeCompare(a.at))
+    .sort(newestFirst)
     .map((event) => {
       const user = event.userId ? findUser(db, event.userId) : undefined
       const division = event.divisionId ? db.divisions.find((item) => item.id === event.divisionId) : undefined
