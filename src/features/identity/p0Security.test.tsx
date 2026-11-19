@@ -71,7 +71,7 @@ describe('SEC-01 fixture administration authorization', () => {
 
   it('allows an active Administrator to read and update another account', async () => {
     const s = setup()
-    expect(await s.admin.listUsers()).toHaveLength(13)
+    expect(await s.admin.listUsers()).toHaveLength(16)
     expect((await s.admin.updateUser('USR-002', { ...s.input('USR-002'), fullName: 'Updated supervisor' })).fullName).toBe('Updated supervisor')
   })
 })

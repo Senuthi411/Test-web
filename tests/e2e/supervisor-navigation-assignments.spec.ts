@@ -70,23 +70,20 @@ test('a Draft can be edited and cancelled; changes survive a refresh', async ({ 
   await expect(page.getByRole('link', { name: /^Edit/ })).toHaveCount(0)
 })
 
-test('an Assigned task can be edited until the Field Worker accepts it, then edit and cancel are locked', async ({ page }) => {
+test('Assigned tasks cannot be edited; cancellation locks when the worker accepts', async ({ page }) => {
   await signIn(page)
-  await page.goto('/assignments/ASG-002')
-  await expect(page.getByText('Not yet accepted', { exact: true })).toBeVisible()
-  await page.getByRole('link', { name: 'Edit / reassign' }).click()
-  await page.getByRole('textbox', { name: 'Instructions', exact: true }).fill('Re-photograph the flagged area at noon.')
-  await page.getByRole('textbox', { name: 'Reason for change (required)' }).fill('Better light at noon')
-  await page.getByRole('button', { name: 'Save changes' }).click()
-  await expect(page.getByText('Assignment updated', { exact: true })).toBeVisible()
-  await expect(page.getByText('Re-photograph the flagged area at noon.')).toBeVisible()
-
-  await page.getByRole('button', { name: 'Simulate: Field Worker accepts task' }).click()
-  await expect(page.getByText('This assignment can no longer be modified because the Field Worker has accepted it.')).toBeVisible()
+  await page.goto('/assignments/new')
+  await page.getByRole('button', { name: 'Review & assign', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Review assignment' }).getByRole('button', { name: 'Confirm and assign', exact: true }).click()
+  await expect(page).toHaveURL(/\/assignments\/ASG-008$/)
   await expect(page.getByRole('link', { name: /^Edit/ })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Cancel assignment' })).toHaveCount(0)
-  // Alternative entry point: the edit URL is refused too.
-  await page.goto('/assignments/ASG-002/edit')
+  await expect(page.getByRole('button', { name: 'Cancel assignment', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Simulate: Field Worker accepts task' }).click()
+  await expect(page.getByRole('button', { name: 'Cancel assignment', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /^Edit/ })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Cancel assignment', exact: true })).toHaveCount(0)
+  await page.goto('/assignments/ASG-008/edit')
   await expect(page.getByRole('heading', { name: 'Editing unavailable' })).toBeVisible()
 })
 
