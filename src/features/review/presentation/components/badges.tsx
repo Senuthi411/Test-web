@@ -17,10 +17,12 @@ import {
 /** REV-02 status chip colours. */
 const REVIEW_TONE: Record<ReviewStatus, BadgeTone> = {
   submitted: 'info',
+  resubmitted: 'teal',
   in_review: 'purple',
   flagged: 'danger',
   correction_requested: 'warning',
   referred: 'lime',
+  decision: 'neutral',
   verified: 'success',
 }
 
@@ -49,6 +51,13 @@ const OUTCOME_TONE: Record<DecisionOutcome, BadgeTone> = {
   revision_applied: 'success',
   referred: 'lime',
   released: 'info',
+  process_ended: 'neutral',
+  quarantined: 'danger',
+  quarantine_assignment: 'warning',
+  quarantine_released: 'success',
+  review_started: 'info',
+  resubmitted: 'teal',
+  expert_decision: 'lime',
 }
 
 export function OutcomeBadge({ outcome }: { outcome: DecisionOutcome }) {

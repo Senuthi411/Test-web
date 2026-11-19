@@ -6,7 +6,9 @@ its own copy. A Review decision is immediately visible to Capture and to the Ide
 statistics, because they all project the same `observations` records.
 
 The data is synthetic. Every name, ID and e-mail address (`example.test`) comes from the
-approved designs. Changes live only in tab memory and are lost on reload. The UI shows
+approved designs. Changes live only in tab memory and are lost on reload, except Review
+state (statuses, claims, decisions, corrections, referrals), which the running app keeps in
+sessionStorage so it survives a refresh of the same tab. The UI shows
 "Demo data" and "Demonstration data · UI design only" on every screen.
 
 ## 1. Identifiers and relationships
@@ -54,6 +56,9 @@ Approved transitions:
 | `in_review` | flag | `flagged` |
 | `in_review` | request correction | `correction_requested` (correction `requested`) |
 | `in_review` | refer | `referred` (referral `pending_case_link`) |
+| `submitted` | Supervisor opens the observation (claim) | `in_review` |
+| `flagged` | request correction | `correction_requested` (correction `requested`) |
+| `verified` | refer | `referred` (referral `pending_case_link`) |
 | correction `resubmitted` | approve | correction `approved`; observation unchanged |
 | correction `requested` / `resubmitted` | reject | correction `rejected`; observation unchanged |
 | correction `approved` | RevisionApplied (system event; fixture-only simulation) | correction `applied`; observation `in_review` |
@@ -142,7 +147,7 @@ HTTP adapters will map gateway responses.
 | 1 | Licensed tea-leaf photographs (file, licence, author, source URL) | Synthetic illustration, labelled |
 | 2 | Evidence records (image, GPS, receipt) for 46 of 48 observations | Shown as unavailable; nothing inferred |
 | 3 | Symptoms and field notes for observations other than OBS-014 (and OBS-005's note) | "Not provided in the demonstration fixtures" |
-| 4 | Claim-for-review transition (`submitted` → `in_review`) | Submitted records are read-only in Review |
+| 4 | Claim-for-review screen | Opening a Submitted observation claims it (`submitted` → `in_review`) |
 | 5 | REV-16 quarantine decision, its reasons, ingest-receipt arrival and retry | REV-16 route explains the block; "Refresh status" only refetches |
 | 6 | Field-worker resubmission event (mobile) | New corrections stay `requested`; COR-005 is the seeded resubmitted example |
 | 7 | Flag, concern and rejection reason catalogues | Only the values visible in Figma are offered |
@@ -151,4 +156,4 @@ HTTP adapters will map gateway responses.
 | 10 | ASG-07 replacement-worker outcome | Saving a different worker returns `contract_pending` |
 | 11 | Notification delivery ("Notify field worker") | The flag is stored with the decision only |
 | 12 | EST-003 review statuses and EST-001 decision history | Fixture-assigned or derived, tagged with `provenance` |
-| 13 | Persistence across reloads | None by design (in-memory demonstration) |
+| 13 | Persistence across reloads | Review state only, in sessionStorage (same tab); other fixture data is in memory |

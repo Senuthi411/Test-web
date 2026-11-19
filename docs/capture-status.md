@@ -3,7 +3,9 @@
 **Current authoritative report:** [phase4-completion-report.md](phase4-completion-report.md).
 
 The approved local PDFs have been inspected. CAP-W01-W08 and ASG-01-15 have
-implemented approved fixture screens/states, including all six read-only summaries.
+implemented approved fixture screens/states, including all six summaries. Draft and
+not-yet-accepted Assigned tasks (e.g. ASG-004, ASG-002) can be edited or cancelled; all
+others are locked (see phase4-completion-report.md).
 ASG-07 supports task edits and scope eligibility; an actual replacement-worker
 transition remains specification-blocked. Production contracts remain pending.
 No additional Figma MCP calls, Identity UI changes or other module work were made.

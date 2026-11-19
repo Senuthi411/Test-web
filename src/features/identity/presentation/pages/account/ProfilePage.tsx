@@ -9,8 +9,6 @@ import {
   DescriptionList,
   PageHeader,
   PasswordField,
-  SelectField,
-  TextField,
   Toggle,
   usePageBreadcrumbs,
   useToast,
@@ -20,7 +18,7 @@ import type { NotificationPreferenceKey, Profile } from '../../../domain/models'
 import { MIN_PASSWORD_LENGTH, validatePasswordChange, type PasswordChangeDraft } from '../../../domain/rules'
 import { QueryBoundary, RoleBadge } from '../../components/common'
 import { errorMessage, fieldErrorsOf, scopeLabel, useRelativeTime } from '../../components/helpers'
-import { useChangePassword, useProfile, useSetNotificationPreference, useUpdateProfile } from '../../services/queries'
+import { useChangePassword, useProfile, useSetNotificationPreference } from '../../services/queries'
 import { useCurrentSession, useSession } from '../../session/sessionContext'
 import styles from '../../components/identity.module.css'
 import profileStyles from './ProfilePage.module.css'
@@ -100,64 +98,20 @@ function ProfileView({ profile, securityRequest }: { profile: Profile; securityR
   )
 }
 
-interface PersonalValues {
-  fullName: string
-  language: Profile['language']
-}
-
+/** Personal information is shown for reference only; it cannot be changed from the Profile page. */
 function PersonalInformation({ profile }: { profile: Profile }) {
   const { user } = profile
-  const toast = useToast()
-  const { updateUser } = useSession()
-  const update = useUpdateProfile(user.id)
-  const [failure, setFailure] = useState<unknown>(null)
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isDirty },
-  } = useForm<PersonalValues>({
-    defaultValues: { fullName: user.fullName, language: profile.language },
-  })
-
-  const onSubmit = handleSubmit((values) => {
-    setFailure(null)
-    update.mutate(values, {
-      onSuccess: (saved) => {
-        reset({ fullName: saved.user.fullName, language: saved.language })
-        updateUser({ fullName: saved.user.fullName })
-        toast.show({ tone: 'success', title: 'Personal details saved' })
-      },
-      onError: setFailure,
-    })
-  })
-
   return (
     <Card title="Personal information">
-      <form className={styles.form} onSubmit={onSubmit} noValidate>
-        {failure !== null && (
-          <Banner tone="error" title="Your details were not saved">
-            {errorMessage(failure)}
-          </Banner>
-        )}
-        <div className={styles.formGrid}>
-          <TextField
-            label="Full name"
-            required
-            autoComplete="name"
-            error={errors.fullName?.message}
-            {...register('fullName', { validate: (value) => (value.trim() ? true : 'Full name is required') })}
-          />
-          <TextField label="Email" value={user.email} readOnly hint="Your administrator manages your email address." className={profileStyles.readOnly} />
-          <TextField label="Role" value={ROLE_LABELS[user.role]} readOnly className={profileStyles.readOnly} />
-          <SelectField label="Language" options={[{ value: 'en', label: 'English' }]} {...register('language')} />
-        </div>
-        <div className={styles.formActions}>
-          <Button type="submit" disabled={!isDirty} loading={update.isPending} loadingLabel="Saving…">
-            Save details
-          </Button>
-        </div>
-      </form>
+      <DescriptionList
+        items={[
+          { label: 'Full name', value: user.fullName },
+          { label: 'Email', value: user.email },
+          { label: 'Role', value: ROLE_LABELS[user.role] },
+          { label: 'Language', value: profile.language === 'en' ? 'English' : profile.language },
+        ]}
+      />
+      <p className={styles.muted}>Your administrator manages your personal information.</p>
     </Card>
   )
 }

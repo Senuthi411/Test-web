@@ -29,7 +29,8 @@ describe('unified demonstration dataset', () => {
     const capture = await container.capture.getWorkspace()
     expect(review.observations.map((o) => o.id)).toEqual(capture.observations.map((o) => o.id))
     for (const observation of review.observations) {
-      expect(capture.observations.find((o) => o.id === observation.id)?.reviewStatus).toBe(observation.reviewStatus)
+      // Review shows Decision for a referred observation whose expert decision is in; the stored status stays referred.
+      expect(capture.observations.find((o) => o.id === observation.id)?.reviewStatus).toBe(observation.reviewStatus === 'decision' ? 'referred' : observation.reviewStatus)
     }
     as('USR-001')
     const divisions = await container.identity.admin.listDivisions()
@@ -53,7 +54,8 @@ describe('unified demonstration dataset', () => {
     await container.review.port.approveCorrection('COR-005', { comparedRevisions: true, originalUnchanged: true, note: '' }, meta())
     await container.review.port.simulateRevisionApplied('COR-005', 2)
     await container.review.port.rejectCorrection('COR-041', { reason: 'Evidence still unclear', message: 'Still unclear', notifyFieldWorker: true }, meta())
-    await container.review.port.refer('OBS-033', { expertId: 'USR-005', note: 'Confirm' }, meta())
+    await container.review.port.verify('OBS-033', { note: '' }, meta())
+    await container.review.port.refer('OBS-033', { expertId: 'USR-005', note: 'Confirm' }, meta(2))
 
     expect((await container.capture.getObservation('OBS-014')).reviewStatus).toBe('verified')
     expect((await container.capture.getObservation('OBS-005')).reviewStatus).toBe('in_review')

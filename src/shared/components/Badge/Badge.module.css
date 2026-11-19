@@ -42,6 +42,10 @@
   background: var(--tl-danger-bg);
   color: var(--tl-danger-text);
 }
+.teal {
+  background: var(--tl-teal-bg);
+  color: var(--tl-teal-text);
+}
 .lime {
   background: var(--tl-lime-soft);
   color: var(--tl-lime-text);

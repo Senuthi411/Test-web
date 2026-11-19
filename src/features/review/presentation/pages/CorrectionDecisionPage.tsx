@@ -7,7 +7,7 @@ import type { Correction } from '../../domain/models'
 import { approveErrors, canApproveCorrection, canRejectCorrection, rejectErrors, type FieldErrors } from '../../domain/rules'
 import { CorrectionStatusBadge } from '../components/badges'
 import { errorText, formatDate, isConflict, reviewPaths } from '../components/format'
-import { FieldError, Fields, NextSteps } from '../components/parts'
+import { FieldError, Fields } from '../components/parts'
 import { useReviewActions, useReviewWorkspace } from '../services/queries'
 import { CorrectionBoundary } from './CorrectionDetailPage'
 import styles from '../components/review.module.css'
@@ -123,21 +123,8 @@ function Form({ kind, correction: c }: { kind: CorrectionDecisionKind; correctio
       ) : null}
       <div className={styles.decisionGrid}>
         {kind === 'approve' ? (
-          <Card title="What happens next">
-            <NextSteps
-              label="What happens next"
-              steps={[
-                { title: 'Approved', detail: 'You confirm this decision' },
-                { title: 'Revision application', detail: `System applies revision ${c.requestedRevision}` },
-                { title: 'RevisionApplied event', detail: 'Correction status becomes Applied' },
-                { title: 'Review returns to in_review', detail: 'Only after RevisionApplied' },
-              ]}
-            />
-            <div className={styles.evidenceMeta}>
-              <Banner tone="warning">
-                Approval is not application. After you approve, the correction is marked Approved and the review stays in correction_requested until RevisionApplied is received.
-              </Banner>
-            </div>
+          <Card title="Approval">
+            <Banner tone="warning">The correction is marked Approved; the revision is applied when RevisionApplied is received.</Banner>
           </Card>
         ) : (
           <Card title="Correction summary">
@@ -151,7 +138,6 @@ function Form({ kind, correction: c }: { kind: CorrectionDecisionKind; correctio
             />
             <h3 className={styles.subheading}>Reason</h3>
             <p className={styles.reason}>{c.message}</p>
-            <p className={styles.caption}>Rejecting leaves the original observation and evidence unchanged.</p>
           </Card>
         )}
         <div className={styles.stack}>

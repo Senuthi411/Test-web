@@ -1,5 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router'
-import { Banner, Button, Card, DataTable, EmptyState, PageHeader, Tabs, usePageBreadcrumbs } from '@/shared/components'
+import { Button, Card, DataTable, EmptyState, PageHeader, Tabs, usePageBreadcrumbs } from '@/shared/components'
 import { CORRECTION_STATUSES, CORRECTION_STATUS_LABEL, type Correction, type CorrectionStatus } from '../../domain/models'
 import { countBy, isOpenCorrection } from '../../domain/rules'
 import { CorrectionStatusBadge, QueryBoundary } from '../components/badges'
@@ -50,7 +50,6 @@ export function CorrectionQueuePage() {
           <div className={styles.page}>
             <PageHeader
               title="Correction Queue"
-              subtitle={`Correction requests in your scope (${workspace.estates.map((estate) => estate.id).join(', ')})`}
               actions={
                 <Button variant="secondary" icon="download" onClick={exportAction.run} loading={exportAction.pending}>
                   Export
@@ -86,9 +85,6 @@ export function CorrectionQueuePage() {
                     </li>
                   ))}
                 </ol>
-                <div className={styles.evidenceMeta}>
-                  <Banner tone="warning">Approved is not Applied. Only the RevisionApplied event returns the review to in_review.</Banner>
-                </div>
               </Card>
             </div>
           </div>

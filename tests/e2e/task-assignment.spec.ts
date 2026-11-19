@@ -1,0 +1,55 @@
+import { expect, test, type Page } from '@playwright/test'
+test.setTimeout(90_000)
+
+async function signIn(page: Page) {
+  await page.goto('/login')
+  await page.getByRole('textbox', { name: 'User ID' }).fill('USR-003')
+  await page.getByLabel('Password', { exact: true }).fill('tealeaf-dev-only')
+  await page.getByRole('button', { name: 'Log In', exact: true }).click()
+  await expect(page).not.toHaveURL(/\/login/)
+}
+
+test('a template task is assigned to several Field Workers of one division, each with a separate assignment', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/assignments/new')
+  await page.getByRole('combobox', { name: 'Task template' }).selectOption('TPL-DRAIN')
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Drainage Maintenance')
+  await expect(page.getByRole('textbox', { name: 'Checklist item 1' })).toHaveValue('Clear blocked drains')
+  const workers = page.getByRole('group', { name: 'Field Workers in DIV-005' })
+  await expect(workers.getByRole('checkbox')).toHaveCount(4)
+  await expect(page.getByRole('checkbox', { name: /Ravindu Kumara/ })).toHaveCount(0)
+  await workers.getByRole('checkbox', { name: /Kasun Perera/ }).check()
+  await workers.getByRole('checkbox', { name: /Nethmi Silva/ }).check()
+  await expect(page.getByText('3 selected')).toBeVisible()
+  await page.getByRole('button', { name: 'Remove Nethmi Silva' }).click()
+  await expect(page.getByText('2 selected')).toBeVisible()
+  // Configure requirements: add a checklist item and make the GPS optional.
+  await page.getByRole('button', { name: 'Add checklist item' }).click()
+  await page.getByRole('textbox', { name: 'Checklist item 4' }).fill('Photograph the outlet')
+  await page.getByRole('group', { name: 'GPS location' }).getByRole('radio', { name: 'Optional' }).check()
+  await page.getByRole('button', { name: 'Assign task', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Review assignment' })
+  await expect(dialog).toContainText('Hiruni Nadeesha, Kasun Perera')
+  await expect(dialog).toContainText('Photograph the outlet')
+  await dialog.getByRole('button', { name: 'Confirm and assign to 2 workers' }).click()
+  await expect(page).toHaveURL(/\/assignments\/ASG-008$/)
+  await expect(page.getByRole('link', { name: 'ASG-009 · Kasun Perera' })).toBeVisible()
+  await expect(page.getByText('Drainage Maintenance', { exact: true }).first()).toBeVisible()
+  // Each worker has their own assignment, filterable by division and worker; it survives a refresh.
+  await page.goto('/assignments')
+  await page.reload()
+  await page.getByRole('combobox', { name: /^Field worker:/ }).click()
+  await page.getByRole('option', { name: 'Kasun Perera' }).click()
+  await expect(page.getByRole('table', { name: 'Fieldwork assignments' }).locator('tbody tr')).toHaveCount(1)
+  await expect(page.getByRole('table', { name: 'Fieldwork assignments' })).toContainText('ASG-009')
+})
+
+test('changing the division drops selected workers who do not belong to it', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/assignments/new')
+  await page.getByRole('checkbox', { name: /Tharindu Jayasuriya/ }).check()
+  await page.getByRole('radio', { name: 'DIV-006 · West Terrace' }).check()
+  await expect(page.getByText(/Hiruni Nadeesha is not in DIV-006/)).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Selected Field Workers' })).toHaveText(/Tharindu Jayasuriya/)
+  await expect(page.getByText('1 selected')).toBeVisible()
+})

@@ -35,6 +35,11 @@ export interface FixtureDivision {
   name: string
   estateId: string
   status: RecordStatus
+  /**
+   * Operational status. Absent means Normal Operations. Restricted Operations is set only by an active
+   * division quarantine and is restored from the persisted quarantine records.
+   */
+  operationalStatus?: 'normal' | 'restricted'
 }
 
 export interface FixtureNotificationPreferences {
@@ -113,6 +118,8 @@ export interface FixtureDisease {
 /** Review status values as labelled in the Review Queue tabs (REV-02). */
 export type FixtureReviewStatus =
   | 'submitted'
+  /** A corrected revision reached the server and waits for review (Review Queue "Resubmitted"). */
+  | 'resubmitted'
   | 'in_review'
   | 'flagged'
   | 'correction_requested'
@@ -243,6 +250,12 @@ export interface FixtureRecoveryRequest {
 /** The complete in-memory dataset. Later phases extend this with review, case and analytics records. */
 export interface FixtureDatabase {
   captureEvidence: FixtureCaptureEvidence[]
+  /**
+   * Submitted revisions of observations, never changed once stored. Revision 1 (the
+   * original submission) is derived from the observation and its evidence until a
+   * correction is resubmitted, when it is stored alongside the new revision.
+   */
+  observationRevisions: FixtureObservationRevision[]
   assignments: FixtureAssignment[]
   estates: FixtureEstate[]
   divisions: FixtureDivision[]
@@ -274,6 +287,8 @@ export interface FixtureDatabase {
   reviewObservationDetails: FixtureReviewObservationDetail[]
   /** Flagged observations listed under REV-01 "Needs your attention" (data, not a derived rule). */
   reviewFollowUpObservationIds: string[]
+  /** Divisions under Restricted Operations (absent until the first one is applied). */
+  divisionQuarantines?: FixtureDivisionQuarantine[]
 }
 
 /** Approved Phase 4 examples; absent evidence means the detailed fixture is unavailable. */
@@ -299,6 +314,32 @@ export interface FixtureCaptureEvidence {
   revisionSubmittedAt?: string
 }
 
+/** The values a Field Worker submitted in one revision of an observation. */
+export interface FixtureRevisionValues {
+  divisionId: string
+  suspectedDiseaseId: string
+  latitude: number | null
+  longitude: number | null
+  gpsAccuracyM: number
+  /** Photograph submitted with this revision; null when none is specified. */
+  imageId: string | null
+  symptoms: string[]
+  note: string | null
+}
+
+/** One submitted revision of a logical observation (OBSR-005-2 = OBS-005 revision 2). */
+export interface FixtureObservationRevision {
+  id: string
+  observationId: string
+  number: number
+  submittedAt: string
+  submittedBy: string
+  /** The correction request this revision answers; null for the original submission. */
+  correctionId: string | null
+  values: FixtureRevisionValues
+  provenance: FixtureProvenance
+}
+
 export interface FixtureImageSource {
   kind: 'synthetic_illustration' | 'licensed_photo'
   attribution: string
@@ -321,6 +362,54 @@ export interface FixtureAssignment {
   observationIds: string[]
   version: number
   activity: string[]
+  /** When the Field Worker accepted the task in the mobile app (simulated); null until then. */
+  acceptedAt: string | null
+  /** Task template the assignment was created from; null for custom tasks and older records. */
+  templateId?: string | null
+  /** Completion requirements configured by the Supervisor; absent on older records. */
+  requirements?: FixtureTaskRequirements | null
+  /** Shared by the per-worker assignments created together for one task. */
+  groupId?: string | null
+  /** Inspection (requests an observation) or Task (work with completion evidence); older records are inspections. */
+  type?: 'inspection' | 'task'
+  /** When the worker's submission was acknowledged (status submitted, shown as Done). */
+  submittedAt?: string | null
+  submission?: FixtureTaskSubmission | null
+  /** When the Supervisor completed the assignment; Assignment History is calculated from it. */
+  completedAt?: string | null
+  /** Set on a Quarantine Assignment: the active division quarantine it works under. */
+  quarantine?: FixtureQuarantineAssignment | null
+}
+
+/** Quarantine-specific part of a Quarantine Assignment. Linked fields are copied from the quarantine record by the data layer. */
+export interface FixtureQuarantineAssignment {
+  quarantineId: string
+  caseId: string | null
+  observationId: string
+  diseaseId: string | null
+  diseaseName: string | null
+  objective: string
+  inspectionFocus: string
+  monitoringWindow: string
+  /** Supervisor authorisation, recorded when the assignment is assigned. */
+  authorisedBy: string | null
+  authorisedAt: string | null
+}
+
+export interface FixtureTaskRequirements {
+  fields: Array<{ label: string; required: boolean }>
+  photos: { level: 'required' | 'optional' | 'not_required'; minimum: number }
+  completionNotes: 'required' | 'optional' | 'not_required'
+}
+
+/** A Field Worker's Task submission (simulated mobile-app data). */
+export interface FixtureTaskSubmission {
+  submittedAt: string
+  outcome: string
+  responses: Array<{ label: string; value: string }>
+  photoIds: string[]
+  completionNotes: string | null
+  gps: { latitude: number; longitude: number; accuracyM: number } | null
 }
 
 // ── Review (Phase 5) ─────────────────────────────────────────────────────────
@@ -333,13 +422,18 @@ export interface FixtureReviewRecord {
   version: number
   claimedBy: string | null
   claimedAt: string | null
+  /** Each time a Supervisor started reviewing a resubmitted revision (Resubmitted → In review). */
+  reviewStarts?: Array<{ revisionNumber: number; at: string; by: string }>
+  /** Set by End Process: the observation's decision process is complete and it moves to Observation History. */
+  processEndedAt?: string | null
+  processEndedBy?: string | null
   provenance: FixtureProvenance
 }
 
 export interface FixtureReviewDecision {
   id: string
-  type: 'verification' | 'flag' | 'correction' | 'referral' | 'quarantine'
-  outcome: 'verified' | 'flagged' | 'correction_requested' | 'correction_approved' | 'correction_rejected' | 'revision_applied' | 'referred' | 'released'
+  type: 'verification' | 'flag' | 'correction' | 'referral' | 'quarantine' | 'review'
+  outcome: 'verified' | 'flagged' | 'correction_requested' | 'correction_approved' | 'correction_rejected' | 'revision_applied' | 'referred' | 'released' | 'process_ended' | 'quarantined' | 'quarantine_assignment' | 'quarantine_released' | 'review_started' | 'resubmitted' | 'expert_decision'
   recordId: string
   targetId: string
   estateId: string
@@ -347,6 +441,9 @@ export interface FixtureReviewDecision {
   decidedAt: string
   note: string | null
   idempotencyKey: string | null
+  /** The observation revision the decision was made on; absent on seeded decisions, which all predate any resubmission (revision 1). */
+  revisionId?: string | null
+  revisionNumber?: number | null
   details?: Record<string, string | boolean | string[]>
   provenance: FixtureProvenance
 }
@@ -381,8 +478,58 @@ export interface FixtureReferral {
   caseId: string | null
   caseCreatedAt: string | null
   caseStatus: 'awaiting_diagnosis' | 'diagnosed' | null
-  diagnosis: { id: string; diseaseId: string; at: string; statement: string } | null
+  diagnosis: { id: string; diseaseId: string; at: string; statement: string; details?: FixtureDiagnosisDetails } | null
   provenance: FixtureProvenance
+}
+
+/** Full expert diagnosis, recorded by the Supervisor on the expert's behalf. Seeded diagnoses have no details. */
+export interface FixtureDiagnosisDetails {
+  severity: 'Low' | 'Moderate' | 'High' | 'Critical'
+  symptomsConfirmed: string
+  clinicalFindings: string
+  reasoning: string
+  recommendedAction: string
+  followUpDescription: string
+  monitoringWindow: string
+  inspectionFocus: string
+  /** Active Disease Catalog version pinned when the diagnosis was recorded. */
+  catalogVersion: number
+  caseStatus: 'Diagnosed' | 'Closed'
+  closedAt: string | null
+  recordedBy: string
+}
+
+/** A division placed under the Restricted Operations policy from an expert diagnosis. */
+export interface FixtureDivisionQuarantine {
+  id: string
+  divisionId: string
+  estateId: string
+  observationId: string
+  caseId: string | null
+  policy: 'restricted_operations'
+  quarantinedBy: string
+  quarantinedAt: string
+  /** Snapshot of the expert diagnosis the Supervisor acted on. */
+  diagnosisId?: string | null
+  diseaseId?: string | null
+  severity?: string | null
+  reason?: string
+  /** Active until the Supervisor releases the division; a released quarantine is kept with its history. */
+  status?: 'active' | 'released'
+  releasedAt?: string | null
+  releasedBy?: string | null
+  releaseReason?: string | null
+  /** Quarantine Assignments created under this quarantine. */
+  assignmentIds?: string[]
+  history?: FixtureQuarantineEvent[]
+}
+
+export interface FixtureQuarantineEvent {
+  id: string
+  event: string
+  at: string
+  by: string
+  note: string | null
 }
 
 export interface FixtureQuarantineItem {

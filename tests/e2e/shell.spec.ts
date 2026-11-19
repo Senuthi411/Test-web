@@ -32,13 +32,13 @@ test('a supervisor sees the review shell in fixture mode', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveURL(/\/review$/)
   const nav = page.getByRole('navigation', { name: 'Main' })
-  await expect(nav.getByRole('link', { name: 'Review Queue' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Observation Review' })).toBeVisible()
   await expect(page.getByText('Demo data', { exact: true })).toBeVisible()
   await expect(page.getByText('Demonstration data · UI design only')).toBeVisible()
 
-  await nav.getByRole('link', { name: 'Review Queue' }).click()
+  await nav.getByRole('link', { name: 'Observation Review' }).click()
   await expect(page).toHaveURL(/\/review\/queue$/)
-  await expect(page.getByRole('heading', { name: 'Observation Review Queue' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Observation Review' })).toBeVisible()
 
   await page.goto('/analytics')
   await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible()

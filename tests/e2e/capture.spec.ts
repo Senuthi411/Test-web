@@ -11,7 +11,8 @@ async function signIn(page: Page, user = 'USR-003') {
 
 test('evidence navigation, transforms, expansion, original download and unavailable retry', async ({ page }) => {
   await signIn(page)
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Evidence Viewer' }).click()
+  // Evidence Viewer has no sidebar item; its route still opens directly and from review details.
+  await page.goto('/observations')
   await expect(page).toHaveURL(/OBS-005\/evidence$/)
   await expect(page.getByRole('heading', { name: 'Observation Evidence Viewer' })).toBeVisible()
   await expect(page.getByRole('status', { name: 'Loading evidence…' })).toHaveCount(0)
@@ -22,7 +23,7 @@ test('evidence navigation, transforms, expansion, original download and unavaila
   await expect(page.getByRole('dialog', { name: 'Expanded evidence image' })).toBeVisible()
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: /Revision 2/ }).click()
-  await expect(page.getByText('Original evidence unchanged. Only the notes field differs.')).toBeVisible()
+  await expect(page.getByText('Original evidence unchanged. Field notes updated.')).toBeVisible()
   await page.getByRole('link', { name: 'Open original', exact: true }).click()
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download original', exact: true }).first().click()
@@ -49,7 +50,7 @@ test('Capture metadata, GPS, history, comparison and overview stay read-only and
   await page.goto('/observations/OBS-005/revisions')
   await expect(page.getByRole('table', { name: 'Revisions', exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Compare revisions' }).click()
-  await expect(page.getByRole('table', { name: 'Revision field differences' })).toContainText('Updated synthetic symptom description')
+  await expect(page.getByRole('table', { name: /Field differences between version 1 and version 2/ })).toContainText('Updated synthetic symptom description')
   await page.getByRole('link', { name: 'Back to history' }).click()
   await expect(page.getByRole('heading', { name: 'Observation Revision History' })).toBeVisible()
 })
@@ -82,9 +83,11 @@ test('assignments filter, validate eligibility, create, simulate, accept and res
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('')
   await page.getByRole('button', { name: 'Assign task', exact: true }).click()
   await expect(page.getByText('Enter a title', { exact: true })).toBeVisible()
-  await expect(page.getByRole('radio', { name: /Ravindu Kumara/ })).toBeDisabled()
+  // Workers outside the division are not offered.
+  await expect(page.getByRole('checkbox', { name: /Ravindu Kumara/ })).toHaveCount(0)
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Inspect supported East Hills fixture')
   await page.getByRole('button', { name: 'Assign task', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Review assignment' }).getByRole('button', { name: /^Confirm and assign/ }).click()
   await expect(page).toHaveURL(/\/assignments\/ASG-008$/)
   await page.getByRole('button', { name: 'Simulate: Field Worker starts task' }).click()
   await expect(page.getByRole('button', { name: 'Simulate: mobile submission received' })).toBeVisible()
@@ -121,16 +124,17 @@ test('Capture scope and role guards prevent data disclosure', async ({ page }) =
   await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible()
 })
 
-test('all six approved summary destinations open from the list and remain read-only', async ({ page }) => {
+test('all six approved summary destinations open from the list; only Draft and unaccepted Assigned can be changed', async ({ page }) => {
   await signIn(page)
   await page.goto('/assignments')
   for (let n = 2; n <= 7; n++) {
     const id = `ASG-00${n}`
     await page.getByRole('table', { name: 'Fieldwork assignments', exact: true }).getByText(id, { exact: true }).click()
     await expect(page).toHaveURL(new RegExp(`/assignments/${id}$`))
-    await expect(page.getByText('Summary record. Full lifecycle history, progress and evidence are modelled only for ASG-001 in this prototype.')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Edit / reassign' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /Simulate:/ })).toHaveCount(0)
+    // ASG-002 is Assigned and not yet accepted; ASG-004 is a Draft. The rest are progressed or final.
+    await expect(page.getByRole('link', { name: /^Edit/ })).toHaveCount(id === 'ASG-002' || id === 'ASG-004' ? 1 : 0)
+    await expect(page.getByRole('button', { name: /^Cancel (draft|assignment)$/ })).toHaveCount(id === 'ASG-002' || id === 'ASG-004' ? 1 : 0)
+    await expect(page.getByRole('button', { name: /Simulate:/ })).toHaveCount(id === 'ASG-002' ? 1 : 0)
     await page.getByRole('link', { name: 'Back to list', exact: true }).click()
   }
   await page.goto('/assignments/ASG-003/edit')
@@ -141,9 +145,10 @@ test('edit reason, eligible workers, discard, cancellation validation and keep a
   await signIn(page)
   await page.goto('/assignments/new')
   await page.getByRole('button', { name: 'Assign task', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Review assignment' }).getByRole('button', { name: /^Confirm and assign/ }).click()
   await page.getByRole('link', { name: 'Edit / reassign', exact: true }).click()
   await expect(page.getByRole('radio', { name: /Ravindu Kumara/ })).toBeDisabled()
-  await expect(page.getByText(/Reassignment unavailable: no other Field Worker/)).toBeVisible()
+  await expect(page.getByText(/Reassignment outcome is not specified/)).toBeVisible()
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Discarded title')
   await page.getByRole('link', { name: 'Discard', exact: true }).click()
   await expect(page.locator('h1')).not.toContainText('Discarded title')
@@ -193,6 +198,7 @@ for (const [width, height] of [[1920, 1080], [1440, 900], [1366, 768], [1280, 72
     const checkWidth = async () => expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
     await page.goto('/assignments/new')
     await page.getByRole('button', { name: 'Assign task', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Review assignment' }).getByRole('button', { name: /^Confirm and assign/ }).click()
     await expect(page.getByRole('link', { name: 'Edit / reassign', exact: true })).toBeVisible() // ASG-03
     await checkWidth()
     await page.getByRole('link', { name: 'Edit / reassign', exact: true }).click() // ASG-07
@@ -213,6 +219,7 @@ for (const [width, height] of [[1920, 1080], [1440, 900], [1366, 768], [1280, 72
     await page.getByRole('link', { name: 'Back to list', exact: true }).click()
     await page.getByRole('link', { name: 'Create assignment', exact: true }).click()
     await page.getByRole('button', { name: 'Assign task', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Review assignment' }).getByRole('button', { name: /^Confirm and assign/ }).click()
     await page.getByRole('button', { name: 'Cancel assignment', exact: true }).click() // ASG-08
     const dialog = page.getByRole('dialog', { name: /Cancel ASG-/ })
     await expect(dialog).toBeVisible()

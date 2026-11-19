@@ -1,20 +1,29 @@
 /**
  * Review domain models. Statuses and labels are taken verbatim from the approved Review
  * screens (REV-01–REV-17, local export of Figma file "Review"). No status outside these
- * lists is introduced.
+ * lists is introduced, except Resubmitted: the label of a corrected revision that reached
+ * the server (REV-07 correction status), shown in the Review Queue so corrected observations
+ * are distinguishable from first-time submissions.
  */
+import type { ObservationRevision } from '@/features/capture'
 
 /** Observation review status (REV-02 tabs). */
-export type ReviewStatus = 'submitted' | 'in_review' | 'flagged' | 'correction_requested' | 'referred' | 'verified'
+/**
+ * `decision` is not stored: it is shown for a Referred observation whose expert referral has
+ * a diagnosis (the expert decision is available for the Supervisor to finalise).
+ */
+export type ReviewStatus = 'submitted' | 'resubmitted' | 'in_review' | 'flagged' | 'correction_requested' | 'referred' | 'decision' | 'verified'
 
-export const REVIEW_STATUSES: readonly ReviewStatus[] = ['submitted', 'in_review', 'flagged', 'correction_requested', 'referred', 'verified']
+export const REVIEW_STATUSES: readonly ReviewStatus[] = ['submitted', 'resubmitted', 'in_review', 'flagged', 'correction_requested', 'referred', 'decision', 'verified']
 
 export const REVIEW_STATUS_LABEL: Record<ReviewStatus, string> = {
   submitted: 'Submitted',
-  in_review: 'In review',
+  resubmitted: 'Resubmitted',
+  in_review: 'In Review',
   flagged: 'Flagged',
-  correction_requested: 'Correction requested',
+  correction_requested: 'Correction Requested',
   referred: 'Referred',
+  decision: 'Decision',
   verified: 'Verified',
 }
 
@@ -36,7 +45,7 @@ export const CORRECTION_ITEMS = ['Retake a clearer image', 'Confirm symptom deta
 export type CorrectionItem = (typeof CORRECTION_ITEMS)[number]
 
 /** REV-17 decision types (tabs). */
-export type DecisionType = 'verification' | 'flag' | 'correction' | 'referral' | 'quarantine'
+export type DecisionType = 'verification' | 'flag' | 'correction' | 'referral' | 'quarantine' | 'review'
 
 export const DECISION_TYPE_LABEL: Record<DecisionType, string> = {
   verification: 'Verification',
@@ -44,6 +53,7 @@ export const DECISION_TYPE_LABEL: Record<DecisionType, string> = {
   correction: 'Correction',
   referral: 'Referral',
   quarantine: 'Quarantine',
+  review: 'Review',
 }
 
 /** REV-17 "Decision" column values. Approval and RevisionApplied follow REV-10/REV-06 wording. */
@@ -56,6 +66,13 @@ export type DecisionOutcome =
   | 'revision_applied'
   | 'referred'
   | 'released'
+  | 'process_ended'
+  | 'quarantined'
+  | 'quarantine_assignment'
+  | 'quarantine_released'
+  | 'review_started'
+  | 'resubmitted'
+  | 'expert_decision'
 
 export const DECISION_OUTCOME_LABEL: Record<DecisionOutcome, string> = {
   verified: 'Verified',
@@ -66,6 +83,23 @@ export const DECISION_OUTCOME_LABEL: Record<DecisionOutcome, string> = {
   revision_applied: 'RevisionApplied',
   referred: 'Referred',
   released: 'Released',
+  process_ended: 'Process ended',
+  quarantined: 'Quarantined',
+  quarantine_assignment: 'Quarantine assignment',
+  quarantine_released: 'Quarantine released',
+  review_started: 'Review started',
+  resubmitted: 'Resubmitted',
+  expert_decision: 'Expert decision received',
+}
+
+/** Where a workflow action leads: a review status, or the existing Observation History (End Process). */
+export const WORKFLOW_TARGET_LABEL = { ...REVIEW_STATUS_LABEL, history: 'History' } as const
+export type WorkflowTargetKey = keyof typeof WORKFLOW_TARGET_LABEL
+
+/** The status change a decision-log entry recorded, and who did it (role). */
+export interface DecisionTransition {
+  from: WorkflowTargetKey
+  to: WorkflowTargetKey
 }
 
 /** REV-13 link status and case status. */
@@ -98,6 +132,118 @@ export interface ReviewObservation {
   reviewStatus: ReviewStatus
   gpsAccuracyM: number
   catalogVersion: number
+  /** Number of the latest submitted revision (1 = original submission). */
+  revisionNumber: number
+  /** Fieldwork assignment the observation was submitted for; null for an independent observation. */
+  assignmentId: string | null
+  /** Time of the final decision (Verified or Flagged); null while the review is not finished. */
+  finalisedAt: string | null
+  /** When the observation moved from the Review Queue to Observation History (24 h after finalisedAt, or when End Process was used). */
+  archivedAt: string | null
+  /** When the Supervisor ended the decision process (End Process); null otherwise. The review status is not changed by it. */
+  processEndedAt: string | null
+}
+
+export const SEVERITY_LEVELS = ['Low', 'Moderate', 'High', 'Critical'] as const
+export type SeverityLevel = (typeof SEVERITY_LEVELS)[number]
+
+/** The expert's full diagnosis for an observation's case (sections A–H of the diagnosis record). */
+export interface ExpertDiagnosis {
+  /** A. Case and reference details (linked automatically). */
+  caseId: string | null
+  referralId: string
+  observationId: string
+  estate: { id: string; name: string }
+  division: { id: string; name: string }
+  expert: string
+  diagnosedAt: string
+  /** B. Decision status. */
+  caseStatus: 'Diagnosed' | 'Closed'
+  closedAt: string | null
+  /** C. Confirmed disease from the Active Disease Catalog, with the catalog version pinned at diagnosis. */
+  disease: { id: string; name: string }
+  catalogVersion: number | null
+  /** D–H. */
+  symptomsConfirmed: string
+  severity: SeverityLevel | null
+  clinicalFindings: string
+  reasoning: string
+  recommendedAction: string
+  followUpDescription: string
+  monitoringWindow: string
+  inspectionFocus: string
+}
+
+export type DivisionOperationalStatus = 'normal' | 'restricted'
+export const OPERATIONAL_STATUS_LABEL: Record<DivisionOperationalStatus, string> = { normal: 'Normal Operations', restricted: 'Restricted Operations' }
+
+/**
+ * A division quarantine: the division is under Restricted Operations (normal field activities are
+ * restricted; only Supervisor-authorised assignments are allowed). The disease and severity are the
+ * expert's findings at the time the Supervisor quarantined the division.
+ */
+export interface DivisionQuarantine {
+  id: string
+  estate: { id: string; name: string }
+  division: { id: string; name: string }
+  observationId: string
+  caseId: string | null
+  referralId: string | null
+  disease: { id: string; name: string } | null
+  severity: string | null
+  reason: string
+  policy: 'Restricted Operations'
+  status: 'Active' | 'Released'
+  /** Set once the Supervisor has released the division from this quarantine. */
+  release: { at: string; by: string; reason: string } | null
+  /** The division's current operational status (from the division record). */
+  operationalStatus: DivisionOperationalStatus
+  initiatedBy: string
+  initiatedAt: string
+  /** Quarantine Assignments created under this quarantine, with their current status. */
+  assignments: Array<{ id: string; title: string; status: string; fieldWorker: string | null }>
+  history: Array<{ id: string; event: string; at: string; by: string; note: string | null }>
+  /** The expert diagnosis the quarantine acts on. */
+  diagnosis: ExpertDiagnosis | null
+}
+
+/** An Active Disease Catalog entry offered when recording a diagnosis. */
+export interface CatalogDisease {
+  id: string
+  name: string
+  catalogVersion: number
+}
+
+/** The expert's diagnosis received through the referral (status Decision). */
+export interface ExpertDecision {
+  referralId: string
+  caseId: string | null
+  expert: string
+  disease: string
+  statement: string
+  decidedAt: string
+}
+
+/** A revision as the Supervisor reviews it: the Capture revision plus its review outcome. */
+export interface ReviewRevision extends ObservationRevision {
+  /** Review status of the latest revision; for earlier revisions, the last decision recorded on them. */
+  statusLabel: string
+  decisions: Array<{ id: string; outcome: DecisionOutcome; decidedAt: string; decidedBy: string; note: string | null; transition: DecisionTransition | null; actorRole: string | null }>
+}
+
+/** A correction request as shown beside the revision that answers it. */
+export interface RevisionRequest {
+  correctionId: string
+  /** The revision the correction was requested on. */
+  onRevision: number
+  requestedRevision: number
+  requestedBy: string
+  requestedAt: string
+  items: string[]
+  message: string
+  status: CorrectionStatus
+  /** Correction record version (for the fixture-only resubmission). */
+  version: number
 }
 
 export interface ReviewEvidence {
@@ -135,7 +281,20 @@ export interface ObservationReview {
   /** Open correction for this observation, if any. */
   correctionId: string | null
   referralId: string | null
+  /** The expert referral for this observation (case linked once the case exists). */
+  referral: { id: string; caseId: string | null; expert: string } | null
   experts: ExpertOption[]
+  /** Every submitted revision, oldest first. The last one is the revision under review. */
+  revisions: ReviewRevision[]
+  /** Correction requests, each linked to the revision it was requested on. */
+  requests: RevisionRequest[]
+  expertDecision: ExpertDecision | null
+  /** The recorded expert diagnosis (all sections); null until one is recorded. */
+  expertDiagnosis: ExpertDiagnosis | null
+  /** Active Disease Catalog entries, for the diagnosis form. */
+  catalog: CatalogDisease[]
+  /** Set when this observation's division is under Restricted Operations. */
+  divisionQuarantine: DivisionQuarantine | null
 }
 
 export interface ExpertOption extends PersonRef {
@@ -180,7 +339,7 @@ export interface Referral {
   caseId: string | null
   caseCreatedAt: string | null
   caseStatus: ReferralCaseStatus | null
-  diagnosis: { id: string; disease: { id: string; name: string }; at: string; statement: string } | null
+  diagnosis: { id: string; disease: { id: string; name: string }; at: string; statement: string; severity: string | null } | null
 }
 
 export interface QuarantineItem {
@@ -205,12 +364,22 @@ export interface ReviewDecision {
   decidedBy: PersonRef
   decidedAt: string
   note: string | null
+  /** Observation revision the decision applies to; null for quarantine decisions. */
+  revision: { id: string; number: number } | null
+  /** Division of the observation or quarantine item. */
+  divisionId: string | null
+  /** Previous and new status of the action, when it changed one. */
+  transition: DecisionTransition | null
+  /** Role of the actor ("SUPERVISOR", or a simulated worker/expert event in fixture mode). */
+  actorRole: string | null
 }
 
 export interface ReviewWorkspace {
   actor: PersonRef
   estates: Array<{ id: string; name: string }>
-  divisions: Array<{ id: string; name: string; estateId: string }>
+  divisions: Array<{ id: string; name: string; estateId: string; operationalStatus: DivisionOperationalStatus }>
+  /** Division quarantines (Restricted Operations) in the Supervisor's estates. */
+  divisionQuarantines: DivisionQuarantine[]
   observations: ReviewObservation[]
   corrections: Correction[]
   referrals: Referral[]
@@ -228,9 +397,40 @@ export interface DecisionMeta {
   idempotencyKey: string
 }
 
+/** Sections C–H of the diagnosis form; the catalog version and case links are added by the data layer. */
+export interface ExpertDiagnosisInput {
+  diseaseId: string
+  symptomsConfirmed: string
+  severity: string
+  clinicalFindings: string
+  reasoning: string
+  recommendedAction: string
+  followUpDescription: string
+  monitoringWindow: string
+  inspectionFocus: string
+  /** Close Case: records the diagnosis as Closed with its closing time; otherwise the case stays Diagnosed. */
+  closeCase: boolean
+}
+
+export interface EndProcessInput {
+  /** Why the process is ended (kept in the decision log). */
+  reason: string
+}
+
+export interface ReleaseDivisionInput {
+  /** Why the division is released from quarantine (required). */
+  reason: string
+}
+
+export interface QuarantineDivisionInput {
+  /** Why the division is quarantined; defaults to the expert's findings in the form. */
+  reason: string
+}
+
 export interface VerifyInput {
-  checklist: boolean[]
   note: string
+  /** No longer required or validated (verification has no mandatory checklist). */
+  checklist?: boolean[]
 }
 
 export interface FlagInput {

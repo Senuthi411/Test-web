@@ -108,12 +108,12 @@ describe('Administrator Dashboard · demonstration data', { timeout: 30_000 }, (
   it('keeps the KPI cards, with counts and links from the dashboard source', async () => {
     renderDashboard()
     const active = await section('Active users')
-    expect(within(active).getByText('13')).toBeInTheDocument()
+    expect(within(active).getByText('16')).toBeInTheDocument()
     expect(within(await section('Total divisions')).getByText('All divisions active')).toBeInTheDocument()
     expect(within(await section('Active device sessions')).getByText('1 session revoked this week')).toBeInTheDocument()
     expect(active.closest('a')).toHaveAttribute('href', '/admin/users')
     // Eight KPIs, each derived from a recorded source.
-    expect(within(await section('Total users')).getByText('13')).toBeInTheDocument()
+    expect(within(await section('Total users')).getByText('16')).toBeInTheDocument()
     expect(within(await section('Active estates')).getByText('3')).toBeInTheDocument()
     // The attention KPI counts the rows of the "Users requiring attention" list.
     const attentionRows = within(await screen.findByRole('table', { name: 'Users requiring attention' }, { timeout: 10_000 })).getAllByRole('row').length - 1
@@ -152,7 +152,7 @@ describe('Administrator Dashboard · demonstration data', { timeout: 30_000 }, (
     const { router } = renderDashboard()
     const summary = await section('Account status distribution')
     const statuses = await within(summary).findByRole('list', { name: 'Accounts by status' })
-    expect(within(statuses).getByText('13')).toBeInTheDocument()
+    expect(within(statuses).getByText('16')).toBeInTheDocument()
     expect(within(statuses).getByText('Not reported')).toBeInTheDocument()
     await user.click(within(summary).getByRole('link', { name: 'View inactive users' }))
     expect(router.state.location.search).toBe('?status=inactive')
@@ -240,7 +240,7 @@ describe('Administrator Dashboard · API mode', { timeout: 30_000 }, () => {
     expect(await screen.findByText(/does not report security events yet/)).toBeInTheDocument()
     expect(screen.getAllByText('Not available yet').length).toBeGreaterThanOrEqual(7)
     expect(screen.queryByRole('region', { name: 'Active users' })).not.toBeInTheDocument()
-    expect(screen.queryByText('13')).not.toBeInTheDocument()
+    expect(screen.queryByText('16')).not.toBeInTheDocument()
     expect(screen.queryByText('DS-3012', { exact: false })).not.toBeInTheDocument()
     expect(screen.queryByText(/Demonstration/)).not.toBeInTheDocument()
     expect(screen.queryByText('No security alerts')).not.toBeInTheDocument()

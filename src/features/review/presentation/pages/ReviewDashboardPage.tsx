@@ -13,11 +13,13 @@ import styles from '../components/review.module.css'
 /** REV-01 "Review status distribution" order and bar colours. */
 const DISTRIBUTION: Array<[ReviewStatus, string]> = [
   ['submitted', '#4a86d1'],
+  ['resubmitted', '#2c9a8e'],
   ['in_review', '#7e57c2'],
   ['verified', '#2e7d32'],
   ['flagged', '#e04f4f'],
   ['correction_requested', '#e2a62f'],
   ['referred', '#7cb342'],
+  ['decision', '#6b7a72'],
 ]
 const DIVISION_COLORS = ['#2e7d32', '#7cb342', '#4f9d69']
 
@@ -49,7 +51,7 @@ export function ReviewDashboardPage() {
                     Fieldwork Assignments
                   </ButtonLink>
                   <ButtonLink icon="inbox" to={reviewPaths.queue}>
-                    Open review queue
+                    Observation Review
                   </ButtonLink>
                 </>
               }
@@ -104,12 +106,12 @@ export function ReviewDashboardPage() {
                   label="Pending by division"
                   items={workspace.divisions.map((division, index) => ({
                     id: division.id,
-                    label: `${division.name} (${division.id})`,
+                    label: `${division.name} (${division.id})${division.operationalStatus === 'restricted' ? ' · Restricted' : ''}`,
                     value: observations.filter((item) => item.division.id === division.id && isPending(item.reviewStatus)).length,
                     color: DIVISION_COLORS[index % DIVISION_COLORS.length],
                   }))}
                 />
-                <p className={styles.caption}>Pending = submitted or in review.</p>
+                
               </Card>
             </div>
 

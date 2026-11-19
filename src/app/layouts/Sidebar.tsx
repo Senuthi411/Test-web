@@ -1,10 +1,10 @@
 import { useState, type FocusEvent, type MouseEvent } from 'react'
-import { Link, NavLink } from 'react-router'
+import { Link, NavLink, useLocation } from 'react-router'
 import logoMark from '@/assets/brand/logo-mark.png'
 import type { SessionUser } from '@/features/identity'
 import { Icon } from '@/shared/design-system'
 import { cx } from '@/shared/utilities/classNames'
-import type { RoleNavigation } from '../routing/navigation'
+import type { NavItem, RoleNavigation } from '../routing/navigation'
 import { SidebarAccountMenu } from './SidebarAccountMenu'
 import styles from './Sidebar.module.css'
 
@@ -21,6 +21,11 @@ export interface SidebarProps {
   onNavigate?: () => void
 }
 
+/** True when `pathname` is one of the item's related workflow screens (see NavItem.activePaths). */
+function belongsTo(item: NavItem, pathname: string): boolean {
+  return (item.activePaths ?? []).some((path) => pathname === path || pathname.startsWith(`${path}/`))
+}
+
 interface Tooltip {
   label: string
   top: number
@@ -34,6 +39,7 @@ interface Tooltip {
  */
 export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo, mobile = false, onNavigate }: SidebarProps) {
   const home = navigation.groups[0]?.items[0]?.to ?? '/'
+  const { pathname } = useLocation()
   // One tooltip for the icon-only form. It is fixed-positioned so the scrolling nav never clips it.
   const [tooltip, setTooltip] = useState<Tooltip | null>(null)
 
@@ -97,7 +103,7 @@ export function Sidebar({ navigation, user, collapsed, canToggle, onToggle, demo
                         hideTooltip()
                         onNavigate?.()
                       }}
-                      className={({ isActive }) => cx(styles.link, isActive && styles.active)}
+                      className={({ isActive }) => cx(styles.link, (isActive || belongsTo(item, pathname)) && styles.active)}
                       aria-label={collapsed ? item.label : undefined}
                       onMouseEnter={showTooltip(item.label)}
                       onMouseLeave={hideTooltip}

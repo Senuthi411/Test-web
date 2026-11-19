@@ -36,12 +36,14 @@ const S: FixtureReviewStatus = 'submitted'
 const R: FixtureReviewStatus = 'in_review'
 const F: FixtureReviewStatus = 'flagged'
 const C: FixtureReviewStatus = 'correction_requested'
+/** OBS-005: COR-005's corrected revision OBSR-005-2 has been resubmitted (REV-07/REV-08). */
+const RS: FixtureReviewStatus = 'resubmitted'
 const X: FixtureReviewStatus = 'referred'
 const V: FixtureReviewStatus = 'verified'
 
 /** Index 0 = OBS-001. */
 const REVIEW_STATUS: readonly FixtureReviewStatus[] = [
-  S, R, V, F, C, X, S, S, S, // 001–009
+  S, R, V, F, RS, X, S, S, S, // 001–009
   S, X, F, S, R, V, S, V, X, // 010–018
   S, V, R, S, X, F, R, V, V, // 019–027
   F, R, X, S, V, R, S, C, V, // 028–036

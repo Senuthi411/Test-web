@@ -10,6 +10,11 @@ export interface NavItem {
    * routes, e.g. Users on `/admin/users/new` and `/admin/users/:userId`.
    */
   end?: boolean
+  /**
+   * Other path prefixes that belong to this item's workflow and keep it highlighted, for
+   * screens that have no sidebar entry of their own (e.g. the Correction Queue under Observation Review).
+   */
+  activePaths?: readonly string[]
 }
 
 export interface NavGroup {
@@ -64,20 +69,14 @@ export const ROLE_NAVIGATION: Record<WebRole, RoleNavigation> = {
       {
         label: 'Review',
         items: [
-          { label: 'Review Queue', to: '/review/queue', icon: 'inbox' },
-          { label: 'Correction Queue', to: '/review/corrections', icon: 'edit' },
-          { label: 'Expert Referrals', to: '/review/referrals', icon: 'send' },
-          { label: 'Quarantine Queue', to: '/review/quarantine', icon: 'archive' },
+          // Corrections, expert referrals and observation evidence are opened from the review workflow
+          // (Observation Review, Dashboard KPIs), so they stay under it instead of having their own items.
+          { label: 'Observation Review', to: '/review/queue', icon: 'inbox', activePaths: ['/review/observations', '/review/corrections', '/review/referrals', '/observations'] },
+          { label: 'Division Quarantine', to: '/review/quarantine', icon: 'archive' },
           { label: 'Decision History', to: '/review/history', icon: 'history' },
         ],
       },
-      {
-        label: 'Fieldwork',
-        items: [
-          { label: 'Evidence Viewer', to: '/observations', icon: 'image' },
-          { label: 'Fieldwork Assignments', to: '/assignments', icon: 'map' },
-        ],
-      },
+      { label: 'Fieldwork', items: [{ label: 'Fieldwork Assignments', to: '/assignments', icon: 'image' }] },
       ACCOUNT,
     ],
   },

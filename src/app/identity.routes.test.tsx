@@ -248,6 +248,31 @@ describe('role-based access', () => {
     expect(await screen.findByText('EST-002')).toBeInTheDocument()
   })
 
+  it('shows personal information read-only, with no way to edit or save it', async () => {
+    signInAs('SUPERVISOR')
+    renderFixtureApp('/profile')
+    const card = (await screen.findByRole('heading', { name: 'Personal information' })).closest('section') as HTMLElement
+    expect(within(card).getByText('Full name')).toBeInTheDocument()
+    expect(within(card).getByText('Email')).toBeInTheDocument()
+    expect(within(card).getByText('Role')).toBeInTheDocument()
+    expect(within(card).getByText('English')).toBeInTheDocument()
+    expect(within(card).queryAllByRole('textbox')).toHaveLength(0)
+    expect(within(card).queryAllByRole('combobox')).toHaveLength(0)
+    expect(within(card).queryAllByRole('button')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: /Save details|Update details|Edit/ })).not.toBeInTheDocument()
+  })
+
+  it('keeps password change and notification preferences working on the profile', async () => {
+    signInAs('SUPERVISOR')
+    const user = userEvent.setup()
+    renderFixtureApp('/profile')
+    expect(await screen.findByRole('button', { name: 'Update password' })).toBeEnabled()
+    const weekly = await screen.findByLabelText(/Weekly summary email/)
+    const before = (weekly as HTMLInputElement).checked
+    await user.click(weekly)
+    await waitFor(() => expect((screen.getByLabelText(/Weekly summary email/) as HTMLInputElement).checked).toBe(!before))
+  })
+
   it('shows the session-expired screen after a 401', async () => {
     signInAs('ADMINISTRATOR')
     const { router, store } = renderFixtureApp('/admin/users')
@@ -317,7 +342,7 @@ describe('identity administration screens', () => {
     signInAs('ADMINISTRATOR')
     renderFixtureApp('/admin')
     const active = await screen.findByRole('region', { name: 'Active users' })
-    expect(within(active).getByText('13')).toBeInTheDocument()
+    expect(within(active).getByText('16')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Active device sessions' })).getByText('1 session revoked this week')).toBeInTheDocument()
     expect(screen.getByText('Session revoked')).toBeInTheDocument()
   })
@@ -326,12 +351,12 @@ describe('identity administration screens', () => {
     signInAs('ADMINISTRATOR')
     const user = userEvent.setup()
     renderFixtureApp('/admin/users')
-    expect(await screen.findByText('Showing 1–13 of 13 demo users')).toBeInTheDocument()
+    expect(await screen.findByText('Showing 1–15 of 16 demo users')).toBeInTheDocument()
     await user.type(screen.getByRole('searchbox', { name: 'Search users' }), 'hiruni')
     expect(await screen.findByText('Showing 1–1 of 1 demo users')).toBeInTheDocument()
     expect(screen.getByText('Hiruni Nadeesha')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reset filters' }))
-    expect(await screen.findByText('Showing 1–13 of 13 demo users')).toBeInTheDocument()
+    expect(await screen.findByText('Showing 1–15 of 16 demo users')).toBeInTheDocument()
   })
 
   it('lists users without an Email column; the name opens the details, where the email is shown (ID-03)', async () => {
@@ -363,7 +388,7 @@ describe('identity administration screens', () => {
     const divisionsKpi = await screen.findByRole('region', { name: 'Total divisions' }, { timeout: 5000 })
     expect(within(divisionsKpi).getByText('3')).toBeInTheDocument()
     expect(within(divisionsKpi).getByText('3 active')).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Assigned employees' })).getByText('4')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Assigned employees' })).getByText('7')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Estate status' })).getByText('Active')).toBeInTheDocument()
     for (const removed of ['Observations', 'Pending review', 'Corrections requested', 'Expert-confirmed cases']) {
       expect(screen.queryByRole('region', { name: removed })).not.toBeInTheDocument()
@@ -405,9 +430,9 @@ describe('identity administration screens', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Create user' }))
 
     expect(await screen.findByText('User created')).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/admin/users/USR-014')
+    expect(router.state.location.pathname).toBe('/admin/users/USR-017')
     expect(screen.getByRole('heading', { name: 'Test Worker', level: 1 })).toBeInTheDocument()
-    expect(screen.getByText(/Test Worker was created with Company User ID USR-014\. Account status: Active\./)).toBeInTheDocument()
+    expect(screen.getByText(/Test Worker was created with Company User ID USR-017\. Account status: Active\./)).toBeInTheDocument()
     // The invitation status comes from the create result: fixture mode never sends one.
     expect(screen.getByText(/No invitation was sent \(demonstration data\)\./)).toBeInTheDocument()
     expect(screen.queryByText(/Invitation sent/)).not.toBeInTheDocument()
@@ -679,7 +704,7 @@ describe('identity administration screens', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Create user' }))
 
     expect(await screen.findByText('User created')).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/admin/users/USR-014')
+    expect(router.state.location.pathname).toBe('/admin/users/USR-017')
     expect(router.state.location.search).toBe('')
     const personal = screen.getByRole('heading', { name: 'Personal details' }).closest('section') as HTMLElement
     expect(within(personal).getByText('19•••••••••8')).toBeInTheDocument()

@@ -5,6 +5,7 @@
  */
 import type {
   ApproveCorrectionInput,
+  ExpertDiagnosisInput,
   Correction,
   CorrectionRequestInput,
   CorrectionStatus,
@@ -18,15 +19,6 @@ import type {
 
 export type FieldErrors = Record<string, string>
 
-/**
- * REV-03: the four decisions are offered on a record that is "In review" (claimed).
- * REV-06: "RevisionApplied — only then does review return to in_review", i.e. in_review
- * is the decision state. Other statuses are read-only here.
- */
-export function canDecide(status: ReviewStatus): boolean {
-  return status === 'in_review'
-}
-
 /** Status after each observation decision (REV-04/05/06/12 "Resulting status"). */
 export const RESULTING_STATUS = {
   verify: 'verified',
@@ -34,6 +26,85 @@ export const RESULTING_STATUS = {
   requestCorrection: 'correction_requested',
   refer: 'referred',
 } as const satisfies Record<string, ReviewStatus>
+
+export type ObservationDecision = keyof typeof RESULTING_STATUS
+
+/**
+ * Observation review lifecycle. This table is the single source of truth for every status change:
+ * the data layer, the screens and the tests all ask it, so no button decides a transition on its own.
+ *
+ *   Submitted → In Review → Verified | Flagged
+ *   Verified  → Referred | History          Flagged → Correction Requested | History
+ *   Correction Requested → Resubmitted → (Review) In Review
+ *   Referred  → Decision (only once the expert has confirmed)      Decision → History
+ *
+ * `history` is the existing Observation History (End Process); it is terminal and is not a review status.
+ * The review status, the correction status and the referral status are separate state machines; this table
+ * is the review one. Applying a correction (RevisionApplied) and the expert's confirmation are events the
+ * other modules deliver, and they are the only way to enter In Review again or Decision.
+ */
+export type WorkflowAction =
+  | 'startReview'
+  | 'verify'
+  | 'flag'
+  | 'requestCorrection'
+  | 'refer'
+  | 'resubmit'
+  | 'startResubmittedReview'
+  | 'recordExpertDecision'
+  | 'endProcess'
+
+export type WorkflowTarget = ReviewStatus | 'history'
+
+export const WORKFLOW_TRANSITIONS: Readonly<Record<ReviewStatus, Readonly<Partial<Record<WorkflowAction, WorkflowTarget>>>>> = {
+  submitted: { startReview: 'in_review' },
+  in_review: { verify: 'verified', flag: 'flagged' },
+  verified: { refer: 'referred', endProcess: 'history' },
+  flagged: { requestCorrection: 'correction_requested', endProcess: 'history' },
+  correction_requested: { resubmit: 'resubmitted' },
+  resubmitted: { startResubmittedReview: 'in_review' },
+  referred: { recordExpertDecision: 'decision' },
+  decision: { endProcess: 'history' },
+}
+
+/** The status (or History) the action leads to from `status`, or null when the action is not allowed there. */
+export function transitionTarget(status: ReviewStatus, action: WorkflowAction): WorkflowTarget | null {
+  return WORKFLOW_TRANSITIONS[status][action] ?? null
+}
+export const canTransition = (status: ReviewStatus, action: WorkflowAction): boolean => transitionTarget(status, action) !== null
+
+const DECISIONS: readonly ObservationDecision[] = ['verify', 'flag', 'requestCorrection', 'refer']
+
+/** The Supervisor decisions (those with a decision form) the lifecycle allows in `status`. */
+export function allowedDecisions(status: ReviewStatus): readonly ObservationDecision[] {
+  return DECISIONS.filter((decision) => canTransition(status, decision))
+}
+
+/** Whether `decision` (or, without one, any decision) may be recorded in `status`. */
+export function canDecide(status: ReviewStatus, decision?: ObservationDecision): boolean {
+  return decision ? canTransition(status, decision) : allowedDecisions(status).length > 0
+}
+
+/** Submitted (Review) and Resubmitted (Review) move to In Review only when the Supervisor starts the review, never on opening. */
+export function canStartReview(status: ReviewStatus): boolean {
+  return canTransition(status, 'startReview') || canTransition(status, 'startResubmittedReview')
+}
+/** Kept for callers: claiming is the same as starting the review. */
+export const canClaim = canStartReview
+
+/** The action that starts the review from `status` (Submitted or Resubmitted), or null. */
+export const startReviewAction = (status: ReviewStatus): WorkflowAction | null =>
+  canTransition(status, 'startReview') ? 'startReview' : canTransition(status, 'startResubmittedReview') ? 'startResubmittedReview' : null
+
+/** The expert's diagnosis can be received while the observation is Referred and its case has no diagnosis yet. */
+export function canRecordDiagnosis(status: ReviewStatus): boolean {
+  return canTransition(status, 'recordExpertDecision')
+}
+
+/** End Process (to History) is offered from Verified, Flagged and Decision, and only once. */
+export function canEndProcess(status: ReviewStatus, processEndedAt: string | null): boolean {
+  return processEndedAt === null && canTransition(status, 'endProcess')
+}
 
 /** REV-10: only a resubmitted revision can be compared and approved. */
 export function canApproveCorrection(status: CorrectionStatus): boolean {
@@ -55,20 +126,35 @@ export function isOpenCorrection(status: CorrectionStatus): boolean {
   return status === 'requested' || status === 'resubmitted' || status === 'approved'
 }
 
-/** REV-01 "Pending = submitted or in review." */
+/** REV-01 "Pending = submitted or in review." A resubmitted revision also waits for a review decision. */
 export function isPending(status: ReviewStatus): boolean {
-  return status === 'submitted' || status === 'in_review'
+  return status === 'submitted' || status === 'resubmitted' || status === 'in_review'
+}
+
+/** A Field Worker can resubmit only while the correction is requested and the observation waits for it. */
+export function canResubmit(status: CorrectionStatus, reviewStatus: ReviewStatus): boolean {
+  return status === 'requested' && reviewStatus === 'correction_requested'
+}
+
+/** Fixture-only stand-in input for the Capture mobile app's corrected resubmission. */
+export interface ResubmissionInput {
+  note: string
+  retakePhoto: boolean
+}
+
+export function resubmissionErrors(input: ResubmissionInput): FieldErrors {
+  return blank(input.note) ? { note: 'Enter the corrected field note' } : {}
 }
 
 const blank = (value: string) => value.trim() === ''
 
-/** REV-04: every checklist item must be confirmed before verifying. */
-export function verifyErrors(input: VerifyInput, checklistLength: number): FieldErrors {
-  const errors: FieldErrors = {}
-  if (input.checklist.length !== checklistLength || input.checklist.some((item) => !item)) {
-    errors.checklist = 'Confirm every checklist item before verifying'
-  }
-  return errors
+/**
+ * Verification has no mandatory checklist: the Supervisor decides from the evidence shown.
+ * The optional note needs no validation; the status rule is checked by the data layer.
+ */
+export function verifyErrors(input: VerifyInput): FieldErrors {
+  void input
+  return {}
 }
 
 /** REV-05: Reason * and Explanation * are required. */
@@ -84,6 +170,20 @@ export function correctionRequestErrors(input: CorrectionRequestInput): FieldErr
   const errors: FieldErrors = {}
   if (input.items.length === 0) errors.items = 'Select what the field worker should correct'
   if (blank(input.message)) errors.message = 'Enter a message to the field worker'
+  return errors
+}
+
+const SEVERITIES: readonly string[] = ['Low', 'Moderate', 'High', 'Critical']
+
+/** Diagnosis form: disease, symptoms, severity, clinical findings, reasoning and recommended action are required; the follow-up plan is optional. */
+export function expertDiagnosisErrors(input: ExpertDiagnosisInput): FieldErrors {
+  const errors: FieldErrors = {}
+  if (blank(input.diseaseId)) errors.diseaseId = 'Select the confirmed disease'
+  if (blank(input.symptomsConfirmed)) errors.symptomsConfirmed = 'Describe the symptoms confirmed'
+  if (!SEVERITIES.includes(input.severity)) errors.severity = 'Select a severity level'
+  if (blank(input.clinicalFindings)) errors.clinicalFindings = 'Enter the clinical findings'
+  if (blank(input.reasoning)) errors.reasoning = 'Enter the reasoning behind the diagnosis'
+  if (blank(input.recommendedAction)) errors.recommendedAction = 'Enter the recommended action'
   return errors
 }
 
@@ -141,6 +241,10 @@ export function attentionItems(workspace: ReviewWorkspace): AttentionItem[] {
     if (observation.reviewStatus === 'flagged' && workspace.followUpObservationIds.includes(observation.id)) {
       items.push({ id: observation.id, title: `${observation.id} flagged`, detail: `${observation.division.name} · follow-up needed`, to: `/review/observations/${observation.id}` })
     }
+  }
+  for (const item of workspace.divisionQuarantines.filter((row) => row.status === 'Active')) {
+    const open = item.assignments.filter((row) => ['draft', 'assigned', 'in_progress'].includes(row.status)).length
+    items.push({ id: item.id, title: `${item.id} · ${item.division.name} restricted`, detail: `Restricted Operations · ${open ? `${open} open quarantine assignment${open === 1 ? '' : 's'}` : 'no quarantine assignment yet'}`, to: `/review/quarantine/divisions/${item.id}` })
   }
   for (const item of workspace.quarantine) {
     const to = `/review/quarantine/${item.id}`

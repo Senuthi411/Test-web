@@ -97,7 +97,7 @@ for (const width of [320, 375, 430]) {
     const drawer = page.getByRole('dialog', { name: 'Navigation' })
     await expect(drawer).toBeVisible()
     await expect(page.locator('body')).toHaveCSS('overflow', 'hidden')
-    await expect(drawer.getByRole('link', { name: 'Review Queue' })).toHaveCount(0)
+    await expect(drawer.getByRole('link', { name: 'Observation Review' })).toHaveCount(0)
     for (let i = 0; i < 14; i++) {
       await page.keyboard.press('Tab')
       expect(await drawer.evaluate((node) => node.contains(document.activeElement))).toBe(true)
@@ -175,6 +175,7 @@ test('320px assignment editing, evidence controls and correction approval remain
   await page.getByRole('dialog', { name: 'Navigation' }).getByRole('link', { name: 'Fieldwork Assignments' }).click()
   await page.getByRole('link', { name: 'Create assignment', exact: true }).click()
   await page.getByRole('button', { name: 'Assign task', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Review assignment' }).getByRole('button', { name: /^Confirm and assign/ }).click()
   await page.getByRole('link', { name: 'Edit / reassign' }).click()
   await page.getByRole('textbox', { name: 'Reason for change (required)' }).fill('Task details clarified after site walk')
   expect((await layout(page)).scroll).toBeLessThanOrEqual(320)

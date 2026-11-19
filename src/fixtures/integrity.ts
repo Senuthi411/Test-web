@@ -103,6 +103,7 @@ export function findIntegrityProblems(db: FixtureDatabase): string[] {
     if (!division || division.estateId !== item.estateId) problems.push(`${item.id} has inconsistent estate/division context`)
     if (userById.get(item.createdBy)?.role !== 'SUPERVISOR') problems.push(`${item.id} creator is not a Supervisor`)
     if (item.fieldWorkerId && userById.get(item.fieldWorkerId)?.role !== 'FIELD_WORKER') problems.push(`${item.id} worker is not a Field Worker`)
+    if (item.acceptedAt && (!item.fieldWorkerId || item.status === 'draft')) problems.push(`${item.id} is accepted without an assigned Field Worker`)
     for (const id of item.observationIds) {
       const observation = observationById.get(id)
       if (!observation || observation.divisionId !== item.divisionId) problems.push(`${item.id} observation ${id} is outside its division`)
@@ -111,7 +112,8 @@ export function findIntegrityProblems(db: FixtureDatabase): string[] {
   for (const item of db.cases) {
     const observation = observationById.get(item.observationId)
     if (!observation) problems.push(`${item.id} references unknown observation ${item.observationId}`)
-    else if (observation.reviewStatus !== 'referred') problems.push(`${item.id} is for ${observation.id}, which was not referred`)
+    // An expert-confirmed case may be finalised by the Supervisor afterwards (Verified or Flagged).
+    else if (!['referred', 'verified', 'flagged'].includes(observation.reviewStatus)) problems.push(`${item.id} is for ${observation.id}, which was not referred`)
   }
 
   for (const credential of db.credentials) {
@@ -173,18 +175,41 @@ function checkReview(
   for (const correction of db.corrections) {
     const observation = observationById.get(correction.observationId)
     if (!observation) problems.push(`${correction.id} references unknown observation ${correction.observationId}`)
-    else if (['requested', 'resubmitted', 'approved'].includes(correction.status) && observation.reviewStatus !== 'correction_requested') {
-      problems.push(`${correction.id} is open but ${observation.id} is not correction_requested`)
+    else if (correction.status === 'requested' && observation.reviewStatus !== 'correction_requested') {
+      problems.push(`${correction.id} is requested but ${observation.id} is not correction_requested`)
+    } else if (['resubmitted', 'approved'].includes(correction.status) && !['resubmitted', 'in_review'].includes(observation.reviewStatus)) {
+      problems.push(`${correction.id} has a resubmitted revision but ${observation.id} is neither resubmitted nor in review`)
     }
     if (userById.get(correction.requestedBy)?.role !== 'SUPERVISOR') problems.push(`${correction.id} requester is not a Supervisor`)
-    if (correction.status === 'resubmitted' && !db.captureEvidence.some((item) => item.observationId === correction.observationId && item.revisionId === correction.revisionId)) {
-      problems.push(`${correction.id} revision ${correction.revisionId} is missing from capture evidence`)
+    if (correction.status !== 'requested' && correction.revisionId !== null) {
+      const revision = db.observationRevisions.find((item) => item.id === correction.revisionId)
+      if (!revision || revision.observationId !== correction.observationId || revision.correctionId !== correction.id || revision.number !== correction.requestedRevision) {
+        problems.push(`${correction.id} revision ${correction.revisionId} is not a stored revision answering it`)
+      }
+    }
+    if (['resubmitted', 'approved', 'applied'].includes(correction.status) && correction.revisionId === null) problems.push(`${correction.id} is ${correction.status} without a revision`)
+  }
+  // Revisions: unique IDs, numbered 1, 2, 3… per observation, each correction answered once.
+  unique('observation revision', db.observationRevisions.map((r) => r.id))
+  for (const observation of db.observations) {
+    const stored = db.observationRevisions.filter((item) => item.observationId === observation.id).sort((a, b) => a.number - b.number)
+    if (stored.length === 0) continue
+    stored.forEach((revision, index) => {
+      if (revision.number !== index + 1) problems.push(`${observation.id} revisions are not numbered 1…${stored.length}`)
+      if ((revision.number === 1) !== (revision.correctionId === null)) problems.push(`${revision.id} must answer a correction exactly when it is not the original`)
+      if (revision.correctionId && db.corrections.find((item) => item.id === revision.correctionId)?.observationId !== observation.id) problems.push(`${revision.id} answers a correction of another observation`)
+    })
+  }
+  for (const observation of db.observations) {
+    if (observation.reviewStatus === 'resubmitted' && !db.corrections.some((item) => item.observationId === observation.id && ['resubmitted', 'approved'].includes(item.status))) {
+      problems.push(`${observation.id} is resubmitted without an open resubmitted correction`)
     }
   }
   for (const referral of db.referrals) {
     const observation = observationById.get(referral.observationId)
     if (!observation) problems.push(`${referral.id} references unknown observation ${referral.observationId}`)
-    else if (observation.reviewStatus !== 'referred') problems.push(`${referral.id} is for ${observation.id}, which is not referred`)
+    // After the expert decision, the Supervisor finalises the referred observation (Verified or Flagged).
+    else if (observation.reviewStatus !== 'referred' && !(referral.diagnosis && ['verified', 'flagged'].includes(observation.reviewStatus))) problems.push(`${referral.id} is for ${observation.id}, which is not referred`)
     const expert = userById.get(referral.expertId)
     if (expert?.role !== 'DISEASE_EXPERT') problems.push(`${referral.id} expert ${referral.expertId} is not a Disease Expert`)
     else if (!expert.estateIds.includes(estateOf(referral.observationId) ?? '')) problems.push(`${referral.id} expert is outside the observation's estate`)
@@ -201,7 +226,7 @@ function checkReview(
     const decider = userById.get(decision.decidedBy)
     if (decider?.role !== 'SUPERVISOR') problems.push(`${decision.id} decided by a non-Supervisor`)
     else if (!decider.estateIds.includes(decision.estateId)) problems.push(`${decision.id} decided outside the Supervisor's scope`)
-    const targetEstate = decision.type === 'quarantine' ? db.quarantineItems.find((item) => item.id === decision.targetId)?.estateId : estateOf(decision.targetId)
+    const targetEstate = decision.type === 'quarantine' ? (db.quarantineItems.find((item) => item.id === decision.targetId)?.estateId ?? db.divisionQuarantines?.find((item) => item.id === decision.targetId)?.estateId) : estateOf(decision.targetId)
     if (targetEstate !== decision.estateId) problems.push(`${decision.id} target ${decision.targetId} is not in ${decision.estateId}`)
   }
   for (const detail of db.reviewObservationDetails) {
@@ -209,14 +234,23 @@ function checkReview(
   }
   // Replays each observation's recorded decisions through the approved Review transitions
   // (REV-04/05/06/10/11/12 and RevisionApplied) and checks the stored status agrees.
+  // A flagged observation may still request a correction; a verified one may still be referred.
+  // A resubmitted revision is reviewed exactly like an observation in review.
   const STEP: Record<string, { from: string[]; to: string | null }> = {
-    verified: { from: ['in_review'], to: 'verified' },
-    flagged: { from: ['in_review'], to: 'flagged' },
-    correction_requested: { from: ['in_review'], to: 'correction_requested' },
-    referred: { from: ['in_review'], to: 'referred' },
-    correction_approved: { from: ['correction_requested'], to: null },
-    correction_rejected: { from: ['correction_requested'], to: null },
-    revision_applied: { from: ['correction_requested'], to: 'in_review' },
+    // Referred → Verified/Flagged is the Supervisor finalising a received expert decision.
+    verified: { from: ['in_review', 'resubmitted', 'referred'], to: 'verified' },
+    flagged: { from: ['in_review', 'resubmitted', 'referred'], to: 'flagged' },
+    correction_requested: { from: ['in_review', 'flagged', 'resubmitted'], to: 'correction_requested' },
+    referred: { from: ['in_review', 'verified', 'resubmitted'], to: 'referred' },
+    correction_approved: { from: ['correction_requested', 'resubmitted'], to: null },
+    correction_rejected: { from: ['correction_requested', 'resubmitted'], to: 'correction_requested' },
+    revision_applied: { from: ['correction_requested', 'resubmitted'], to: 'in_review' },
+    // Lifecycle events recorded in the decision log: starting a review (Submitted or Resubmitted → In Review), the worker's
+    // resubmission, the expert's confirmation (the stored status stays Referred; Decision is derived) and End Process (to History).
+    review_started: { from: ['in_review', 'resubmitted'], to: 'in_review' },
+    resubmitted: { from: ['correction_requested', 'resubmitted'], to: 'resubmitted' },
+    expert_decision: { from: ['referred'], to: null },
+    process_ended: { from: ['in_review', 'verified', 'flagged', 'referred', 'resubmitted', 'correction_requested'], to: null },
   }
   for (const observation of db.observations) {
     const decisions = db.reviewDecisions.filter((item) => item.type !== 'quarantine' && item.targetId === observation.id)
@@ -229,10 +263,16 @@ function checkReview(
         break
       }
       status = step.to ?? status
+      // The Field Worker's resubmission is a Capture event, not a decision: once the requested
+      // correction has a stored revision, the review continues from Resubmitted.
+      if (decision.outcome === 'correction_requested' && db.corrections.find((item) => item.id === decision.recordId)?.revisionId) status = 'resubmitted'
       // RevisionApplied is a system event, not a supervisor decision: an approved
       // correction that is now Applied returns the review to in_review at that point.
       if (decision.outcome === 'correction_approved' && db.corrections.find((item) => item.id === decision.recordId)?.status === 'applied') status = 'in_review'
     }
+    // Starting the review of a resubmitted revision moves it to In review without a decision.
+    const started = (db.reviewRecords.find((item) => item.observationId === observation.id)?.reviewStarts ?? []).length > 0
+    if (status === 'resubmitted' && observation.reviewStatus === 'in_review' && started) status = 'in_review'
     if (status !== observation.reviewStatus) problems.push(`${observation.id} is ${observation.reviewStatus} but its decisions lead to ${status}`)
   }
   for (const item of db.captureEvidence) {

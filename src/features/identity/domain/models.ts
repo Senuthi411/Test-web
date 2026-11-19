@@ -145,6 +145,7 @@ export interface EstateDetail {
 
 export type ObservationReviewStatus =
   | 'submitted'
+  | 'resubmitted'
   | 'in_review'
   | 'flagged'
   | 'correction_requested'
