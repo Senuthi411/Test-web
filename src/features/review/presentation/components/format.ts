@@ -56,6 +56,6 @@ export const reviewPaths = {
   quarantineAssignment: (id: string) => `/assignments/new?quarantine=${encodeURIComponent(id)}`,
   quarantineItem: (id: string) => `/review/quarantine/${encodeURIComponent(id)}`,
   history: '/review/history',
-  evidence: (id: string) => `/observations/${encodeURIComponent(id)}/evidence`,
+  evidence: (id: string) => `/observations/${encodeURIComponent(id)}/evidence?from=review`,
   assignments: '/assignments',
 }

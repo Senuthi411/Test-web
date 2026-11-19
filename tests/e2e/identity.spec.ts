@@ -122,9 +122,9 @@ test('revokes a device session and opens controlled recovery', async ({ page }) 
 test('profile updates, notifications and password changes remain functional until reload', async ({ page }) => {
   await signIn(page)
   await page.goto('/profile')
-  await page.getByRole('textbox', { name: 'Full name', exact: true }).fill('Anika Identity Test')
-  await page.getByRole('button', { name: 'Save details' }).click()
-  await expect(page.getByText('Personal details saved', { exact: true })).toBeVisible()
+  // Personal information is read-only: no inputs and no save action.
+  await expect(page.getByRole('textbox', { name: 'Full name', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Save details' })).toHaveCount(0)
   const weekly = page.getByRole('switch', { name: 'Weekly summary email' })
   await page.getByText('Weekly summary email', { exact: true }).click()
   await expect(weekly).toBeChecked()

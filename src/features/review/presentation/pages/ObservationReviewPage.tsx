@@ -306,9 +306,11 @@ function ExpertDiagnosisActions({ review }: { review: ObservationReview }) {
           {errorText(failure)}
         </Banner>
       )}
-      <ButtonLink variant="secondary" icon="eye" fullWidth to={`${reviewPaths.observation(o.id)}/diagnosis`}>
-        {o.reviewStatus === 'decision' ? 'View Decision' : 'View Expert Diagnosis'}
-      </ButtonLink>
+      {o.reviewStatus === 'decision' && !o.processEndedAt && (
+        <ButtonLink variant="secondary" icon="eye" fullWidth to={`${reviewPaths.observation(o.id)}/diagnosis`}>
+          View Decision
+        </ButtonLink>
+      )}
       {canEndProcess(o.reviewStatus, o.processEndedAt) && (
         <Button icon="check" fullWidth onClick={() => { setReason(''); setReasonError(null); setConfirming(true) }}>
           End Process

@@ -65,10 +65,10 @@ describe('REV-03 / REV-04 decisions', () => {
   it('no longer offers Verify on the Decision Observation page', async () => {
     renderReview('/review/observations/OBS-014')
     expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-014' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Open evidence viewer' })).toHaveAttribute('href', '/observations/OBS-014/evidence')
+    expect(screen.getByRole('link', { name: 'Open evidence viewer' })).toHaveAttribute('href', '/observations/OBS-014/evidence?from=review')
     expect(screen.queryByRole('link', { name: 'Verify observation' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Reject observation' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'View Expert Diagnosis' })).toHaveAttribute('href', '/review/observations/OBS-014/diagnosis')
+    expect(screen.queryByRole('link', { name: /View (Expert Diagnosis|Decision)/ })).not.toBeInTheDocument()
     // In review has not been decided yet: End Process is not offered.
     expect(screen.queryByRole('button', { name: 'End Process' })).not.toBeInTheDocument()
   })
@@ -237,7 +237,7 @@ describe('Supervisor sidebar navigation', () => {
 
   it('keeps the evidence viewer reachable from the observation review', async () => {
     renderReview('/review/observations/OBS-014')
-    expect(await screen.findByRole('link', { name: 'Open evidence viewer' })).toHaveAttribute('href', '/observations/OBS-014/evidence')
+    expect(await screen.findByRole('link', { name: 'Open evidence viewer' })).toHaveAttribute('href', '/observations/OBS-014/evidence?from=review')
   })
 })
 
@@ -420,7 +420,8 @@ describe('Expert diagnosis, division quarantine, assignment and End Process', ()
     // Referred: only View Expert Diagnosis; End Process waits for the expert's decision.
     expect(screen.queryByRole('link', { name: 'Verify Observation' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'End Process' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('link', { name: 'View Expert Diagnosis' }))
+    expect(screen.queryByRole('link', { name: /View (Expert Diagnosis|Decision)/ })).not.toBeInTheDocument()
+    await act(() => router.navigate('/review/observations/OBS-023/diagnosis'))
     await user.click(await screen.findByRole('link', { name: 'Simulate expert decision' }))
 
     // Sections A–I, validation, then submit.
@@ -790,5 +791,114 @@ describe('Review Queue lifecycle sections', () => {
     const retry = await screen.findByRole('button', { name: 'Try again' })
     await second.user.click(retry)
     expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-013' })).toBeInTheDocument()
+  })
+})
+
+describe('View Decision / expert diagnosis button visibility', () => {
+  const PATTERN = /View (Expert Diagnosis|Decision)/
+  // Decision is derived (a referral with a recorded diagnosis), so it is read from the queue's own data.
+  function visibleId(store: FixtureStore, status: string) {
+    return store.read((db) => {
+      const estates = USERS['USR-003'].estateIds
+      const ended = new Set(db.reviewRecords.filter((r) => r.processEndedAt).map((r) => r.observationId))
+      const ids = db.observations.filter((o) => estates.includes(db.divisions.find((d) => d.id === o.divisionId)?.estateId ?? '') && !ended.has(o.id)).map((o) => o.id)
+      const diagnosed = new Set(db.referrals.filter((r) => r.diagnosis).map((r) => r.observationId))
+      const effective = (o: (typeof db.observations)[number]) => (o.reviewStatus === 'referred' && diagnosed.has(o.id) ? 'decision' : o.reviewStatus)
+      return db.observations.find((o) => ids.includes(o.id) && effective(o) === status)?.id
+    })
+  }
+  const statuses = ['submitted', 'in_review', 'verified', 'flagged', 'correction_requested', 'resubmitted', 'referred', 'decision'] as const
+
+  for (const status of statuses) {
+    it(`is ${status === 'decision' ? 'shown' : 'hidden'} for ${status} observations`, async () => {
+      const { store, router } = renderReview('/review/queue')
+      const id = visibleId(store, status)
+      expect(id, `a seeded ${status} observation`).toBeTruthy()
+      await act(() => router.navigate(`/review/observations/${id}`))
+      expect(await screen.findByRole('heading', { name: `Observation Review · ${id}` })).toBeInTheDocument()
+      if (status === 'decision') {
+        expect(screen.getByRole('link', { name: 'View Decision' })).toHaveAttribute('href', `/review/observations/${id}/diagnosis`)
+      } else {
+        expect(screen.queryByRole('link', { name: PATTERN })).not.toBeInTheDocument()
+      }
+    })
+  }
+
+  it('is hidden once the process has ended (History)', async () => {
+    const { store, router } = renderReview('/review/queue')
+    const id = visibleId(store, 'decision') as string
+    store.write((db) => { const r = db.reviewRecords.find((row) => row.observationId === id); if (r) r.processEndedAt = '2026-10-21T10:00:00+05:30' })
+    await act(() => router.navigate(`/review/observations/${id}`))
+    expect(await screen.findByRole('heading', { name: `Observation Review · ${id}` })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: PATTERN })).not.toBeInTheDocument()
+  })
+
+  it('still opens the read-only decision for a Decision observation', async () => {
+    const { store, router, user } = renderReview('/review/queue')
+    const id = visibleId(store, 'decision') as string
+    await act(() => router.navigate(`/review/observations/${id}`))
+    await user.click(await screen.findByRole('link', { name: 'View Decision' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/review/observations/${id}/diagnosis`))
+  })
+})
+
+describe('Evidence viewer back navigation', () => {
+  async function openViewer(id: string) {
+    const ctx = renderReview(`/review/observations/${id}`)
+    await ctx.user.click(await screen.findByRole('link', { name: 'Open evidence viewer' }))
+    expect(await screen.findByRole('heading', { name: /Evidence (Viewer|Unavailable)/ })).toBeInTheDocument()
+    return ctx
+  }
+
+  for (const id of ['OBS-022', 'OBS-014']) {
+    it(`returns to the originating review page for ${id}`, async () => {
+      const { router, user } = await openViewer(id)
+      expect(router.state.location.pathname).toBe(`/observations/${id}/evidence`)
+      const back = screen.getByRole('link', { name: 'Back to observation review' })
+      expect(back).toHaveAttribute('href', `/review/observations/${id}`)
+      await user.click(back)
+      expect(await screen.findByRole('heading', { name: `Observation Review · ${id}` })).toBeInTheDocument()
+      expect(router.state.location.pathname).toBe(`/review/observations/${id}`)
+    })
+  }
+
+  it('keeps the origin when switching observations before opening the viewer', async () => {
+    const { router, user } = renderReview('/review/observations/OBS-022')
+    expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-022' })).toBeInTheDocument()
+    await act(() => router.navigate('/review/observations/OBS-014'))
+    await user.click(await screen.findByRole('link', { name: 'Open evidence viewer' }))
+    expect(await screen.findByRole('heading', { name: /Evidence (Viewer|Unavailable)/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to observation review' })).toHaveAttribute('href', '/review/observations/OBS-014')
+  })
+
+  it('browser Back from the viewer lands on the same observation', async () => {
+    const { router } = await openViewer('OBS-022')
+    await act(() => router.navigate(-1))
+    expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-022' })).toBeInTheDocument()
+  })
+
+  it('falls back to the capture observation page when opened directly, never another observation', async () => {
+    const { router } = renderReview('/observations/OBS-022/evidence')
+    expect(await screen.findByRole('heading', { name: /Evidence (Viewer|Unavailable)/ })).toBeInTheDocument()
+    const back = screen.getByRole('link', { name: 'Back to observation' })
+    expect(back).toHaveAttribute('href', '/observations/OBS-022')
+    expect(router.state.location.pathname).toBe('/observations/OBS-022/evidence')
+    expect(screen.queryByRole('link', { name: 'Back to observation review' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Dashboard Observation Review button', () => {
+  it('is labelled Observation Review and opens the existing Observation Review page', async () => {
+    const { router, user } = renderReview('/review')
+    const button = await screen.findByRole('link', { name: 'Observation Review' })
+    expect(button).toHaveAttribute('href', '/review/queue')
+    expect(screen.queryByRole('link', { name: 'Open review queue' })).not.toBeInTheDocument()
+    await user.click(button)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/review/queue'))
+  })
+
+  it('is not offered to a role that cannot open the review area', async () => {
+    renderReview('/review', 'USR-001')
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Observation Review' })).not.toBeInTheDocument())
   })
 })

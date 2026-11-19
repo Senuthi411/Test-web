@@ -51,7 +51,7 @@ export function ReviewDashboardPage() {
                     Fieldwork Assignments
                   </ButtonLink>
                   <ButtonLink icon="inbox" to={reviewPaths.queue}>
-                    Open review queue
+                    Observation Review
                   </ButtonLink>
                 </>
               }

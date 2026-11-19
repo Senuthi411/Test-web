@@ -248,6 +248,31 @@ describe('role-based access', () => {
     expect(await screen.findByText('EST-002')).toBeInTheDocument()
   })
 
+  it('shows personal information read-only, with no way to edit or save it', async () => {
+    signInAs('SUPERVISOR')
+    renderFixtureApp('/profile')
+    const card = (await screen.findByRole('heading', { name: 'Personal information' })).closest('section') as HTMLElement
+    expect(within(card).getByText('Full name')).toBeInTheDocument()
+    expect(within(card).getByText('Email')).toBeInTheDocument()
+    expect(within(card).getByText('Role')).toBeInTheDocument()
+    expect(within(card).getByText('English')).toBeInTheDocument()
+    expect(within(card).queryAllByRole('textbox')).toHaveLength(0)
+    expect(within(card).queryAllByRole('combobox')).toHaveLength(0)
+    expect(within(card).queryAllByRole('button')).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: /Save details|Update details|Edit/ })).not.toBeInTheDocument()
+  })
+
+  it('keeps password change and notification preferences working on the profile', async () => {
+    signInAs('SUPERVISOR')
+    const user = userEvent.setup()
+    renderFixtureApp('/profile')
+    expect(await screen.findByRole('button', { name: 'Update password' })).toBeEnabled()
+    const weekly = await screen.findByLabelText(/Weekly summary email/)
+    const before = (weekly as HTMLInputElement).checked
+    await user.click(weekly)
+    await waitFor(() => expect((screen.getByLabelText(/Weekly summary email/) as HTMLInputElement).checked).toBe(!before))
+  })
+
   it('shows the session-expired screen after a 401', async () => {
     signInAs('ADMINISTRATOR')
     const { router, store } = renderFixtureApp('/admin/users')
