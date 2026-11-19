@@ -248,18 +248,26 @@ describe('role-based access', () => {
     expect(await screen.findByText('EST-002')).toBeInTheDocument()
   })
 
-  it('shows personal information read-only, with no way to edit or save it', async () => {
+  it('saves only the signed-in Supervisor name/language without changing Review scope', async () => {
     signInAs('SUPERVISOR')
-    renderFixtureApp('/profile')
+    const user = userEvent.setup()
+    const { store } = renderFixtureApp('/profile')
+    const before = store.read((db) => ({ users: db.users, observations: db.observations, assignments: db.assignments }))
     const card = (await screen.findByRole('heading', { name: 'Personal information' })).closest('section') as HTMLElement
-    expect(within(card).getByText('Full name')).toBeInTheDocument()
-    expect(within(card).getByText('Email')).toBeInTheDocument()
-    expect(within(card).getByText('Role')).toBeInTheDocument()
-    expect(within(card).getByText('English')).toBeInTheDocument()
-    expect(within(card).queryAllByRole('textbox')).toHaveLength(0)
-    expect(within(card).queryAllByRole('combobox')).toHaveLength(0)
-    expect(within(card).queryAllByRole('button')).toHaveLength(0)
-    expect(screen.queryByRole('button', { name: /Save details|Update details|Edit/ })).not.toBeInTheDocument()
+    expect(within(card).getByLabelText('Email')).toHaveAttribute('readonly')
+    expect(within(card).getByLabelText('Role')).toHaveAttribute('readonly')
+    expect(within(card).getByLabelText('Language')).toHaveValue('en')
+    const name = within(card).getByRole('textbox', { name: /Full name/ })
+    await user.clear(name)
+    await user.click(within(card).getByRole('button', { name: 'Save details' }))
+    expect(await within(card).findByText('Full name is required')).toBeInTheDocument()
+    await user.type(name, 'Updated Supervisor')
+    await user.click(within(card).getByRole('button', { name: 'Save details' }))
+    await waitFor(() => expect(createBrowserSessionPersistence().load()?.user.fullName).toBe('Updated Supervisor'))
+    expect(store.read((db) => db.users.filter((u) => u.id !== 'USR-003'))).toEqual(before.users.filter((u) => u.id !== 'USR-003'))
+    expect(store.read((db) => db.users.find((u) => u.id === 'USR-003')?.estateIds)).toEqual(['EST-002'])
+    expect(store.read((db) => db.observations)).toEqual(before.observations)
+    expect(store.read((db) => db.assignments)).toEqual(before.assignments)
   })
 
   it('keeps password change and notification preferences working on the profile', async () => {
