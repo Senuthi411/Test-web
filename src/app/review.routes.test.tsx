@@ -48,13 +48,13 @@ describe('REV-01 / REV-02', () => {
 
   it('filters the queue by status tab and search, labelled as demo data', async () => {
     const { user } = renderReview('/review/queue')
-    // Five finalised observations (verified or flagged more than 24 hours ago) are in Observation History.
-    expect(await screen.findByText('10 observations in EST-002 · 5 in Observation History · demo data')).toBeInTheDocument()
+    // Verified and Flagged are no longer archived automatically: every observation is in the queue until End Process.
+    expect(await screen.findByText('15 observations in EST-002 · demo data')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: /Decision/ }))
     const table = screen.getByRole('table', { name: /Observations/ })
     expect(within(table).getAllByRole('link', { name: /^OBS-/ }).map((link) => link.textContent)).toEqual(['OBS-006', 'OBS-042'])
     await user.click(screen.getByRole('tab', { name: /All/ }))
-    expect(within(table).queryByText('OBS-004')).not.toBeInTheDocument()
+    expect(within(table).getByText('OBS-004')).toBeInTheDocument()
     await user.type(screen.getByRole('searchbox', { name: 'Search observations' }), 'Ravindu')
     await waitFor(() => expect(within(table).queryByText('OBS-005')).not.toBeInTheDocument())
     expect(within(table).getByText('OBS-006')).toBeInTheDocument()
@@ -80,9 +80,10 @@ describe('REV-03 / REV-04 decisions', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm verification' }))
     expect(await screen.findByText('OBS-014 verified')).toBeInTheDocument()
     expect(await screen.findByText(/REV-014 · version 2/)).toBeInTheDocument()
-    // Verified is final: no further decision is offered.
-    for (const name of ['Verify observation', 'Flag observation', 'Request correction', 'Refer to expert']) expect(screen.queryByRole('link', { name })).not.toBeInTheDocument()
-    expect(screen.getByText('Final decision recorded: Verified.')).toBeInTheDocument()
+    // Verified leads on to Refer to Expert or End Process; no other verdict or correction is offered.
+    for (const name of ['Verify Observation', 'Flag Observation', 'Request Correction']) expect(screen.queryByRole('link', { name })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Refer to Expert' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'End Process' })).toBeInTheDocument()
   })
 
   it('keeps the form and shows no success when the decision fails', async () => {
@@ -102,12 +103,13 @@ describe('REV-03 / REV-04 decisions', () => {
   })
 
   it('refers OBS-014 and shows REF-014 with a pending case link', async () => {
-    const { user } = renderReview('/review/observations/OBS-014/refer')
+    // Referral is a step from Verified (OBS-015); an In Review observation cannot be referred.
+    const { user } = renderReview('/review/observations/OBS-015/refer')
     expect(await screen.findByText('CASE-011, CASE-023, CASE-047')).toBeInTheDocument()
-    await user.type(screen.getByRole('textbox', { name: /Referral note/ }), 'Confirm grey blight')
+    await user.type(screen.getByRole('textbox', { name: /Referral note/ }), 'Confirm brown blight')
     await user.click(screen.getByRole('button', { name: 'Send referral' }))
-    expect(await screen.findByText('Referral REF-014 sent')).toBeInTheDocument()
-    const row = screen.getByRole('button', { name: 'REF-014' }).closest('tr')!
+    expect(await screen.findByText('Referral REF-015 sent')).toBeInTheDocument()
+    const row = screen.getByRole('button', { name: 'REF-015' }).closest('tr')!
     expect(within(row).getByText('Pending case link')).toBeInTheDocument()
     expect(within(row).getByText('Not yet created')).toBeInTheDocument()
   })
@@ -120,7 +122,7 @@ describe('REV-03 / REV-04 decisions', () => {
 })
 
 describe('REV-02 / REV-03 claim on open and status-dependent decisions', () => {
-  const DECISIONS = ['Flag observation', 'Request correction', 'Refer to expert']
+  const DECISIONS = ['Verify Observation', 'Flag Observation', 'Request Correction', 'Refer to Expert']
   const decisionLinks = () => DECISIONS.filter((name) => screen.queryByRole('link', { name }))
   const statusInObservationCard = () => screen.getByText('Review status').parentElement!
 
@@ -132,50 +134,62 @@ describe('REV-02 / REV-03 claim on open and status-dependent decisions', () => {
     expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-013' })).toBeInTheDocument()
     expect(within(statusInObservationCard()).getByText('Submitted')).toBeInTheDocument()
     expect(decisionLinks()).toEqual([])
-    await user.click(screen.getByRole('button', { name: 'Start review' }))
-    expect(await within(statusInObservationCard()).findByText('In review')).toBeInTheDocument()
-    expect(decisionLinks()).toEqual(DECISIONS)
+    // Start Review asks for confirmation; Cancel changes nothing.
+    await user.click(screen.getByRole('button', { name: 'Start Review' }))
+    const confirm = await screen.findByRole('dialog', { name: 'Start the review?' })
+    await user.click(within(confirm).getByRole('button', { name: 'Cancel' }))
+    expect(within(statusInObservationCard()).getByText('Submitted')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Start Review' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Start the review?' })).getByRole('button', { name: 'Confirm Review' }))
+    expect(await within(statusInObservationCard()).findByText('In Review')).toBeInTheDocument()
+    // In Review leads only to Verified or Flagged.
+    expect(decisionLinks()).toEqual(['Verify Observation', 'Flag Observation'])
     expect(screen.getByText(/Claimed for review/)).toBeInTheDocument()
     await act(() => router.navigate('/review/queue'))
     const updated = (await screen.findByRole('link', { name: 'OBS-013' })).closest('tr')!
-    expect(within(updated).getByText('In review')).toBeInTheDocument()
+    expect(within(updated).getByText('In Review')).toBeInTheDocument()
   })
 
-  it('offers no decision on a final (Flagged or Verified) observation, shown as archived history', async () => {
+  it('offers Request Correction or End Process on a Flagged observation and Refer to Expert or End Process on a Verified one', async () => {
     renderReview('/review/observations/OBS-004')
     expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-004' })).toBeInTheDocument()
     expect(within(statusInObservationCard()).getByText('Flagged')).toBeInTheDocument()
-    expect(decisionLinks()).toEqual([])
-    expect(screen.getByText('Observation History · read-only')).toBeInTheDocument()
+    expect(decisionLinks()).toEqual(['Request Correction'])
+    expect(screen.getByRole('button', { name: 'End Process' })).toBeInTheDocument()
+    expect(screen.queryByText('Observation History · read-only')).not.toBeInTheDocument()
     cleanup()
     renderReview('/review/observations/OBS-015')
-    expect(await screen.findByText('Final decision recorded: Verified.')).toBeInTheDocument()
-    expect(decisionLinks()).toEqual([])
+    expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-015' })).toBeInTheDocument()
+    expect(within(statusInObservationCard()).getByText('Verified')).toBeInTheDocument()
+    expect(decisionLinks()).toEqual(['Refer to Expert'])
+    expect(screen.getByRole('button', { name: 'End Process' })).toBeInTheDocument()
   })
 
   it('Referred waits for the expert; Decision shows the expert decision with Verify and Flag', async () => {
     renderReview('/review/observations/OBS-023')
-    expect(await screen.findByText('Referred to a disease expert. Waiting for the expert decision.')).toBeInTheDocument()
+    expect(await screen.findByText('Referred to a disease expert. Waiting for the expert to confirm a diagnosis.')).toBeInTheDocument()
     expect(decisionLinks()).toEqual([])
+    // A referral alone is not a decision, and End Process is not offered while the expert has not confirmed.
+    expect(screen.queryByRole('button', { name: 'End Process' })).not.toBeInTheDocument()
     cleanup()
     renderReview('/review/observations/OBS-006')
     const expert = await screen.findByRole('generic', { name: 'Expert decision' })
     expect(within(expert).getByText('Grey blight (DIS-002)')).toBeInTheDocument()
     expect(within(expert).getByText('Dr Tara Wijesinghe')).toBeInTheDocument()
     expect(within(statusInObservationCard()).getByText('Decision')).toBeInTheDocument()
-    // The expert decision is in: Flag observation is no longer offered; View Expert Diagnosis and End Process remain.
+    // The expert decision is in (read-only): no verdict or correction; View Decision and End Process remain.
     expect(decisionLinks()).toEqual([])
-    expect(screen.getByText('The expert decision is in. Review it with View Expert Diagnosis, then use End Process.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'View Expert Diagnosis' })).toBeInTheDocument()
+    expect(screen.getByText('The expert decision is in (read-only). View the decision, then use End Process.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View Decision' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'End Process' })).toBeInTheDocument()
   })
 
-  it('refuses decision forms on a final observation', async () => {
-    renderReview('/review/observations/OBS-004/request-correction')
-    expect(await screen.findByText('No decision can be recorded')).toBeInTheDocument()
-    cleanup()
-    renderReview('/review/observations/OBS-004/verify')
-    expect(await screen.findByText('No decision can be recorded')).toBeInTheDocument()
+  it('refuses decision forms the lifecycle does not allow in the current status', async () => {
+    for (const path of ['/review/observations/OBS-004/verify', '/review/observations/OBS-004/refer', '/review/observations/OBS-015/request-correction', '/review/observations/OBS-015/flag', '/review/observations/OBS-006/verify']) {
+      renderReview(path)
+      expect(await screen.findByText('No decision can be recorded')).toBeInTheDocument()
+      cleanup()
+    }
   })
 })
 
@@ -322,7 +336,7 @@ describe('Resubmitted observations in the Review Queue', () => {
     expect(within(submitted).getByText('Submitted')).toBeInTheDocument()
   })
 
-  it('opens a resubmitted observation unchanged; Start review moves it to In review with the same four decisions', async () => {
+  it('opens a resubmitted observation unchanged; Start Review moves it to In Review, where it can be verified or flagged', async () => {
     const { user, store } = renderReview('/review/observations/OBS-005')
     expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-005' })).toBeInTheDocument()
     // The page has the Submitted observation structure (latest data); the comparison is on its own page.
@@ -333,11 +347,14 @@ describe('Resubmitted observations in the Review Queue', () => {
     expect(screen.getByRole('link', { name: 'Compare Versions' })).toHaveAttribute('href', '/review/observations/OBS-005/compare')
     // Opening does not change the status; no decision is offered until the review is started.
     expect(store.read((db) => db.observations.find((o) => o.id === 'OBS-005')?.reviewStatus)).toBe('resubmitted')
-    expect(screen.queryByRole('link', { name: 'Verify observation' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Start review' }))
-    for (const name of ['Flag observation', 'Request correction', 'Refer to expert']) {
+    expect(screen.queryByRole('link', { name: 'Verify Observation' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Compare' })).toHaveAttribute('href', '/review/observations/OBS-005/compare')
+    await user.click(screen.getByRole('button', { name: 'Start Review' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Start the review?' })).getByRole('button', { name: 'Confirm Review' }))
+    for (const name of ['Verify Observation', 'Flag Observation']) {
       expect(await screen.findByRole('link', { name })).toBeInTheDocument()
     }
+    expect(screen.queryByRole('link', { name: 'Refer to Expert' })).not.toBeInTheDocument()
     expect(store.read((db) => db.observations.find((o) => o.id === 'OBS-005')?.reviewStatus)).toBe('in_review')
     expect(screen.getByText('Decision applies to version 2 (OBSR-005-2).')).toBeInTheDocument()
     expect(screen.getByText('Review started on version 2')).toBeInTheDocument()
@@ -400,14 +417,14 @@ describe('Expert diagnosis, division quarantine, assignment and End Process', ()
   it('records the diagnosis for OBS-023, quarantines the division, prefills the assignment form and ends the process into history', async () => {
     const { store, router, user } = renderReview('/review/observations/OBS-023')
     expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-023' })).toBeInTheDocument()
-    // Referred: View Expert Diagnosis and End Process are both offered; Verify is not.
-    expect(screen.queryByRole('link', { name: 'Verify observation' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'End Process' })).toBeInTheDocument()
+    // Referred: only View Expert Diagnosis; End Process waits for the expert's decision.
+    expect(screen.queryByRole('link', { name: 'Verify Observation' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'End Process' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'View Expert Diagnosis' }))
-    await user.click(await screen.findByRole('link', { name: 'Record expert diagnosis' }))
+    await user.click(await screen.findByRole('link', { name: 'Simulate expert decision' }))
 
     // Sections A–I, validation, then submit.
-    expect(await screen.findByRole('heading', { name: 'Record Expert Diagnosis · OBS-023' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Expert Decision (demonstration) · OBS-023' })).toBeInTheDocument()
     for (const title of ['A. Case and reference details (auto-linked)', 'B. Decision status (auto-updated)', 'C. Confirmed disease details', 'D. Symptoms verification', 'E. Severity', 'F. Expert notes', 'G. Recommended action', 'H. Follow-up plan (Phase 2 / P1)', 'I. Submission']) {
       expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
     }
@@ -462,6 +479,7 @@ describe('Expert diagnosis, division quarantine, assignment and End Process', ()
 
     // End Process records one history entry, keeps the status and the diagnosis, and moves the observation to history.
     await router.navigate('/review/observations/OBS-023')
+    // The expert's decision is in, so the observation is in Decision and can be ended.
     await user.click(await screen.findByRole('button', { name: 'End Process' }))
     // A confirmation names the observation; Cancel changes nothing.
     let endDialog = await screen.findByRole('dialog', { name: 'End the process for this observation?' })
@@ -470,6 +488,11 @@ describe('Expert diagnosis, division quarantine, assignment and End Process', ()
     expect(store.read((db) => db.reviewRecords.find((r) => r.observationId === 'OBS-023')?.processEndedAt ?? null)).toBeNull()
     await user.click(screen.getByRole('button', { name: 'End Process' }))
     endDialog = await screen.findByRole('dialog', { name: 'End the process for this observation?' })
+    // The completion reason is required.
+    await user.click(within(endDialog).getByRole('button', { name: 'Confirm End Process' }))
+    expect(await within(endDialog).findByText('Enter the reason for ending the process')).toBeInTheDocument()
+    expect(store.read((db) => db.reviewRecords.find((r) => r.observationId === 'OBS-023')?.processEndedAt ?? null)).toBeNull()
+    await user.type(within(endDialog).getByLabelText(/Completion reason/), 'Diagnosis acknowledged')
     await user.click(within(endDialog).getByRole('button', { name: 'Confirm End Process' }))
     await waitFor(() => expect(store.read((db) => db.reviewRecords.find((r) => r.observationId === 'OBS-023')?.processEndedAt)).toBeTruthy())
     expect(store.read((db) => db.observations.find((o) => o.id === 'OBS-023')?.reviewStatus)).toBe('referred')
@@ -486,7 +509,8 @@ describe('Expert diagnosis, division quarantine, assignment and End Process', ()
   it('lists the ended observation in Observation History with its division and field worker, and refuses further processing', async () => {
     const { store, router, user } = renderReview('/review/observations/OBS-006')
     await user.click(await screen.findByRole('button', { name: 'End Process' }))
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Confirm End Process' }))
+    await user.type(within(await screen.findByRole('dialog')).getByLabelText(/Completion reason/), 'Expert decision acknowledged')
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirm End Process' }))
     await waitFor(() => expect(store.read((db) => db.reviewDecisions.some((d) => d.targetId === 'OBS-006' && d.outcome === 'process_ended'))).toBe(true))
     // The status is unchanged and End Process cannot be repeated.
     expect(store.read((db) => db.observations.find((o) => o.id === 'OBS-006')?.reviewStatus)).toBe('referred')
@@ -710,4 +734,61 @@ describe('Releasing a quarantined division', () => {
     expect(await screen.findByRole('heading', { name: 'Division Quarantine DQ-001' })).toBeInTheDocument()
     cleanup()
   }, 20_000)
+})
+
+describe('Review Queue lifecycle sections', () => {
+  it('shows the lifecycle sections in order with live counts, a hint per section and no extra navigation', async () => {
+    const { user } = renderReview('/review/queue')
+    const tabs = await screen.findAllByRole('tab')
+    expect(tabs.map((tab) => tab.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+      'All15', 'Submitted3', 'In Review2', 'Verified2', 'Flagged3', 'Referred1', 'Resubmitted1', 'Decision2', 'Correction Requested1',
+    ])
+    // No separate sidebar entries for the statuses.
+    const nav = screen.getByRole('navigation', { name: 'Main' })
+    for (const label of ['Submitted', 'In Review', 'Verified', 'Flagged', 'Referred', 'Resubmitted', 'Decision']) expect(within(nav).queryByRole('link', { name: label })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: /^Verified/ }))
+    expect(screen.getByText('Open an observation to Refer to Expert or End Process.')).toBeInTheDocument()
+    expect(within(screen.getByRole('table', { name: /Observations/ })).getAllByRole('link', { name: /^OBS-/ }).map((link) => link.textContent)).toEqual(['OBS-015', 'OBS-032'])
+    await user.click(screen.getByRole('tab', { name: /^Flagged/ }))
+    expect(screen.getByText('Open an observation to Request Correction or End Process.')).toBeInTheDocument()
+  })
+
+  it('the Resubmitted section offers Compare and Review; other sections do not add action buttons', async () => {
+    const { user } = renderReview('/review/queue?status=resubmitted')
+    const table = await screen.findByRole('table', { name: /Observations/ })
+    expect(within(table).getAllByRole('columnheader').map((cell) => cell.textContent?.replace('↕', '').trim())).toEqual(['Observation', 'Division', 'Field worker', 'Review status', 'Actions'])
+    const row = within(table).getByRole('link', { name: 'OBS-005' }).closest('tr')!
+    expect(within(row).getByRole('link', { name: 'Compare OBS-005' })).toHaveAttribute('href', '/review/observations/OBS-005/compare')
+    expect(within(row).getByRole('link', { name: 'Review OBS-005' })).toHaveAttribute('href', '/review/observations/OBS-005')
+    await user.click(screen.getByRole('tab', { name: /^Submitted/ }))
+    expect(within(screen.getByRole('table', { name: /Observations/ })).getAllByRole('columnheader')).toHaveLength(4)
+  })
+
+  it('moves an observation between sections and keeps the counts in step with the data', async () => {
+    const { router, user } = renderReview('/review/observations/OBS-013')
+    await user.click(await screen.findByRole('button', { name: 'Start Review' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Start the review?' })).getByRole('button', { name: 'Confirm Review' }))
+    await screen.findByRole('link', { name: 'Verify Observation' })
+    await user.click(screen.getByRole('link', { name: 'Verify Observation' }))
+    await user.click(await screen.findByRole('button', { name: 'Confirm verification' }))
+    await act(() => router.navigate('/review/queue'))
+    const tabs = await screen.findAllByRole('tab')
+    expect(tabs.map((tab) => tab.textContent?.replace(/\s+/g, ' ').trim())).toEqual(expect.arrayContaining(['Submitted2', 'In Review2', 'Verified3']))
+    await user.click(screen.getByRole('tab', { name: /^Verified/ }))
+    expect(within(screen.getByRole('table', { name: /Observations/ })).getByRole('link', { name: 'OBS-013' })).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: /^Submitted/ }))
+    expect(within(screen.getByRole('table', { name: /Observations/ })).queryByRole('link', { name: 'OBS-013' })).not.toBeInTheDocument()
+  })
+
+  it('shows an empty state when a search matches nothing, and an error state with a retry when loading fails', async () => {
+    const first = renderReview('/review/queue')
+    await first.user.type(await screen.findByRole('searchbox', { name: 'Search observations' }), 'zzz-no-match')
+    expect(await screen.findByText('No observations match these filters')).toBeInTheDocument()
+    cleanup()
+    const second = renderReview('/review/observations/OBS-013')
+    second.store.failNext('conflict')
+    const retry = await screen.findByRole('button', { name: 'Try again' })
+    await second.user.click(retry)
+    expect(await screen.findByRole('heading', { name: 'Observation Review · OBS-013' })).toBeInTheDocument()
+  })
 })

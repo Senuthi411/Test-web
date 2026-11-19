@@ -19,9 +19,9 @@ export const REVIEW_STATUSES: readonly ReviewStatus[] = ['submitted', 'resubmitt
 export const REVIEW_STATUS_LABEL: Record<ReviewStatus, string> = {
   submitted: 'Submitted',
   resubmitted: 'Resubmitted',
-  in_review: 'In review',
+  in_review: 'In Review',
   flagged: 'Flagged',
-  correction_requested: 'Correction requested',
+  correction_requested: 'Correction Requested',
   referred: 'Referred',
   decision: 'Decision',
   verified: 'Verified',
@@ -45,7 +45,7 @@ export const CORRECTION_ITEMS = ['Retake a clearer image', 'Confirm symptom deta
 export type CorrectionItem = (typeof CORRECTION_ITEMS)[number]
 
 /** REV-17 decision types (tabs). */
-export type DecisionType = 'verification' | 'flag' | 'correction' | 'referral' | 'quarantine'
+export type DecisionType = 'verification' | 'flag' | 'correction' | 'referral' | 'quarantine' | 'review'
 
 export const DECISION_TYPE_LABEL: Record<DecisionType, string> = {
   verification: 'Verification',
@@ -53,6 +53,7 @@ export const DECISION_TYPE_LABEL: Record<DecisionType, string> = {
   correction: 'Correction',
   referral: 'Referral',
   quarantine: 'Quarantine',
+  review: 'Review',
 }
 
 /** REV-17 "Decision" column values. Approval and RevisionApplied follow REV-10/REV-06 wording. */
@@ -69,6 +70,9 @@ export type DecisionOutcome =
   | 'quarantined'
   | 'quarantine_assignment'
   | 'quarantine_released'
+  | 'review_started'
+  | 'resubmitted'
+  | 'expert_decision'
 
 export const DECISION_OUTCOME_LABEL: Record<DecisionOutcome, string> = {
   verified: 'Verified',
@@ -83,6 +87,19 @@ export const DECISION_OUTCOME_LABEL: Record<DecisionOutcome, string> = {
   quarantined: 'Quarantined',
   quarantine_assignment: 'Quarantine assignment',
   quarantine_released: 'Quarantine released',
+  review_started: 'Review started',
+  resubmitted: 'Resubmitted',
+  expert_decision: 'Expert decision received',
+}
+
+/** Where a workflow action leads: a review status, or the existing Observation History (End Process). */
+export const WORKFLOW_TARGET_LABEL = { ...REVIEW_STATUS_LABEL, history: 'History' } as const
+export type WorkflowTargetKey = keyof typeof WORKFLOW_TARGET_LABEL
+
+/** The status change a decision-log entry recorded, and who did it (role). */
+export interface DecisionTransition {
+  from: WorkflowTargetKey
+  to: WorkflowTargetKey
 }
 
 /** REV-13 link status and case status. */
@@ -211,7 +228,7 @@ export interface ExpertDecision {
 export interface ReviewRevision extends ObservationRevision {
   /** Review status of the latest revision; for earlier revisions, the last decision recorded on them. */
   statusLabel: string
-  decisions: Array<{ id: string; outcome: DecisionOutcome; decidedAt: string; decidedBy: string; note: string | null }>
+  decisions: Array<{ id: string; outcome: DecisionOutcome; decidedAt: string; decidedBy: string; note: string | null; transition: DecisionTransition | null; actorRole: string | null }>
 }
 
 /** A correction request as shown beside the revision that answers it. */
@@ -351,6 +368,10 @@ export interface ReviewDecision {
   revision: { id: string; number: number } | null
   /** Division of the observation or quarantine item. */
   divisionId: string | null
+  /** Previous and new status of the action, when it changed one. */
+  transition: DecisionTransition | null
+  /** Role of the actor ("SUPERVISOR", or a simulated worker/expert event in fixture mode). */
+  actorRole: string | null
 }
 
 export interface ReviewWorkspace {
@@ -389,6 +410,11 @@ export interface ExpertDiagnosisInput {
   inspectionFocus: string
   /** Close Case: records the diagnosis as Closed with its closing time; otherwise the case stays Diagnosed. */
   closeCase: boolean
+}
+
+export interface EndProcessInput {
+  /** Why the process is ended (kept in the decision log). */
+  reason: string
 }
 
 export interface ReleaseDivisionInput {

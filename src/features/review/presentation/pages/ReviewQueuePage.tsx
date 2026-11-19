@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
   Button,
+  ButtonLink,
   Card,
   DataTable,
   EmptyState,
@@ -15,6 +16,21 @@ import {
 import { useDebouncedValue } from '@/shared/hooks'
 import { paginate } from '@/shared/utilities/pagination'
 import { REVIEW_STATUSES, REVIEW_STATUS_LABEL, type ReviewObservation, type ReviewStatus } from '../../domain/models'
+
+/** Review Queue sections in lifecycle order (Correction Requested, which waits for the worker, follows them). */
+const TAB_ORDER: readonly ReviewStatus[] = ['submitted', 'in_review', 'verified', 'flagged', 'referred', 'resubmitted', 'decision', 'correction_requested']
+
+/** What the Supervisor does next with an observation in each section (the actions are on its details page). */
+const TAB_HINT: Partial<Record<Tab, string>> = {
+  submitted: 'Open an observation and choose Start Review to move it to In Review.',
+  in_review: 'Open an observation to Verify Observation or Flag Observation.',
+  verified: 'Open an observation to Refer to Expert or End Process.',
+  flagged: 'Open an observation to Request Correction or End Process.',
+  referred: 'Waiting for the disease expert to confirm a diagnosis.',
+  resubmitted: 'The field worker sent a corrected revision. Compare it with the original, or Review it.',
+  decision: 'The expert decision is in (read-only). Open an observation to View Decision or End Process.',
+  correction_requested: 'Waiting for the field worker to send a corrected revision.',
+}
 import { countBy } from '../../domain/rules'
 import { QueryBoundary, ReviewStatusBadge } from '../components/badges'
 import { reviewPaths } from '../components/format'
@@ -123,8 +139,9 @@ function Queue({ observations, archived, estateIds, divisions }: { observations:
         label="Review status"
         value={tab}
         onChange={changeTab}
-        items={[{ id: 'all', label: 'All', count: observations.length }, ...REVIEW_STATUSES.map((status) => ({ id: status, label: REVIEW_STATUS_LABEL[status], count: counts[status] }))]}
+        items={[{ id: 'all', label: 'All', count: observations.length }, ...TAB_ORDER.map((status) => ({ id: status, label: REVIEW_STATUS_LABEL[status], count: counts[status] }))]}
       />
+      {TAB_HINT[tab] && <p className={styles.note}>{TAB_HINT[tab]}</p>}
       <Card>
         <div className={styles.filterBar}>
           <SearchInput label="Search observations" placeholder="Search by observation ID or field worker" width={420} value={search} onChange={(event) => withReset(setSearch)(event.target.value)} />
@@ -172,6 +189,24 @@ function Queue({ observations, archived, estateIds, divisions }: { observations:
             { id: 'division', header: 'Division', sortable: true, cell: (row) => row.division.name },
             { id: 'worker', header: 'Field worker', sortable: true, cell: (row) => <Person name={row.fieldWorker.fullName} /> },
             { id: 'status', header: 'Review status', sortable: true, cell: (row) => <ReviewStatusBadge status={row.reviewStatus} /> },
+            // Resubmitted section: the two actions for a corrected revision. Other sections open the details page.
+            ...(tab === 'resubmitted'
+              ? [{
+                  id: 'actions',
+                  header: 'Actions',
+                  align: 'end' as const,
+                  cell: (row: ReviewObservation) => (
+                    <span className={styles.rowActions}>
+                      <ButtonLink variant="secondary" to={reviewPaths.versions(row.id)} aria-label={`Compare ${row.id}`}>
+                        Compare
+                      </ButtonLink>
+                      <ButtonLink to={reviewPaths.observation(row.id)} aria-label={`Review ${row.id}`}>
+                        Review
+                      </ButtonLink>
+                    </span>
+                  ),
+                }]
+              : []),
           ]}
         />
         {filtered.length > 0 && <Pagination page={currentPage} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} itemLabel="observations" />}

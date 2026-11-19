@@ -3,6 +3,7 @@ import type {
   ExpertDiagnosisInput,
   QuarantineDivisionInput,
   ReleaseDivisionInput,
+  EndProcessInput,
   DivisionQuarantine,
   Correction,
   CorrectionRequestInput,
@@ -75,7 +76,7 @@ export interface ReviewPort {
    */
   releaseDivisionQuarantine(quarantineId: string, input: ReleaseDivisionInput, meta: DecisionMeta): Promise<DivisionQuarantine>
   /** End Process: completes the decision process, keeps the review status and diagnosis, and moves the observation to history. */
-  endProcess(observationId: string, meta: DecisionMeta): Promise<DecisionResult>
+  endProcess(observationId: string, input: EndProcessInput, meta: DecisionMeta): Promise<DecisionResult>
   /** Export of a Review list. Fixture mode produces no file and says so (`simulated`). */
   exportList(kind: ReviewExportKind): Promise<{ simulated: boolean }>
 }

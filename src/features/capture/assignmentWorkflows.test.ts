@@ -174,7 +174,9 @@ describe('Inspection assignments and observation review', () => {
     await expect(capture.acceptAssignment(created.id, 3)).rejects.toMatchObject({ kind: 'conflict', message: expect.stringContaining('OBS-049') })
     // Referred is not a final review: the inspection still cannot be completed.
     const started = await review.claim('OBS-049')
-    await review.refer('OBS-049', { expertId: 'USR-005', note: 'Confirm' }, meta(started.version))
+    // The lifecycle: In Review → Verified → Referred (Verified alone would already be a final outcome for completion).
+    await review.verify('OBS-049', { note: '' }, meta(started.version))
+    await review.refer('OBS-049', { expertId: 'USR-005', note: 'Confirm' }, meta(started.version + 1))
     await expect(capture.acceptAssignment(created.id, 3)).rejects.toMatchObject({ kind: 'conflict' })
     expect(store.read((db) => findIntegrityProblems(db as FixtureDatabase))).toEqual([])
   })

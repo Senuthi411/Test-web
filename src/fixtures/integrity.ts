@@ -245,6 +245,12 @@ function checkReview(
     correction_approved: { from: ['correction_requested', 'resubmitted'], to: null },
     correction_rejected: { from: ['correction_requested', 'resubmitted'], to: 'correction_requested' },
     revision_applied: { from: ['correction_requested', 'resubmitted'], to: 'in_review' },
+    // Lifecycle events recorded in the decision log: starting a review (Submitted or Resubmitted → In Review), the worker's
+    // resubmission, the expert's confirmation (the stored status stays Referred; Decision is derived) and End Process (to History).
+    review_started: { from: ['in_review', 'resubmitted'], to: 'in_review' },
+    resubmitted: { from: ['correction_requested', 'resubmitted'], to: 'resubmitted' },
+    expert_decision: { from: ['referred'], to: null },
+    process_ended: { from: ['in_review', 'verified', 'flagged', 'referred', 'resubmitted', 'correction_requested'], to: null },
   }
   for (const observation of db.observations) {
     const decisions = db.reviewDecisions.filter((item) => item.type !== 'quarantine' && item.targetId === observation.id)

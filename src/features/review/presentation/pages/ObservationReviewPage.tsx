@@ -1,8 +1,8 @@
 import { useEffect, useState, type ComponentProps } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { EvidenceImage } from '@/features/capture'
-import { Badge, Banner, Button, ButtonLink, Card, DataTable, Modal, PageHeader, Skeleton, Timeline, usePageBreadcrumbs, useToast } from '@/shared/components'
-import { REVIEW_STATUS_LABEL, type ObservationReview, type ReviewRevision } from '../../domain/models'
+import { Badge, Banner, Button, ButtonLink, Card, DataTable, Modal, PageHeader, Skeleton, TextAreaField, Timeline, usePageBreadcrumbs, useToast } from '@/shared/components'
+import { REVIEW_STATUS_LABEL, WORKFLOW_TARGET_LABEL, type ObservationReview, type ReviewRevision } from '../../domain/models'
 import { newIdempotencyKey } from '@/shared/api'
 import { allowedDecisions, canEndProcess, canStartReview, type ObservationDecision } from '../../domain/rules'
 import { OutcomeBadge, QueryBoundary, ReviewStatusBadge } from '../components/badges'
@@ -13,11 +13,12 @@ import styles from '../components/review.module.css'
 
 type ButtonLinkProps = ComponentProps<typeof ButtonLink>
 
-/** Decision panel buttons, in the REV-03 order; only those the review status allows are shown. */
+/** Decision panel buttons; only those the lifecycle table allows in the observation's status are shown. */
 const DECISION_BUTTONS: Array<{ decision: ObservationDecision; label: string; route: Parameters<typeof reviewPaths.decision>[1]; icon: ButtonLinkProps['icon']; variant?: ButtonLinkProps['variant'] }> = [
-  { decision: 'flag', label: 'Flag observation', route: 'flag', icon: 'flag', variant: 'destructiveOutline' },
-  { decision: 'requestCorrection', label: 'Request correction', route: 'request-correction', icon: 'edit', variant: 'secondary' },
-  { decision: 'refer', label: 'Refer to expert', route: 'refer', icon: 'send', variant: 'secondary' },
+  { decision: 'verify', label: 'Verify Observation', route: 'verify', icon: 'check' },
+  { decision: 'flag', label: 'Flag Observation', route: 'flag', icon: 'flag', variant: 'destructiveOutline' },
+  { decision: 'requestCorrection', label: 'Request Correction', route: 'request-correction', icon: 'edit' },
+  { decision: 'refer', label: 'Refer to Expert', route: 'refer', icon: 'send' },
 ]
 
 /** REV-03 Observation Review. */
@@ -60,10 +61,9 @@ function ClaimedReview({ observationId }: { observationId: string }) {
 function ReviewView({ review, claimError, starting, onStart }: { review: ObservationReview; claimError: string | null; starting: boolean; onStart: () => void }) {
   const { observation: o, evidence } = review
   const decisions = allowedDecisions(o.reviewStatus)
-  // Verify is no longer offered on this page: the decision process is completed with End Process.
-  // Flag observation is not offered once the expert's decision is in (status Decision); the other statuses keep it.
   // Once the process has ended no further processing action is offered.
-  const buttons = DECISION_BUTTONS.filter((button) => !o.processEndedAt && decisions.includes(button.decision) && !(o.reviewStatus === 'decision' && button.decision === 'flag'))
+  const buttons = DECISION_BUTTONS.filter((button) => !o.processEndedAt && decisions.includes(button.decision))
+  const [confirmingStart, setConfirmingStart] = useState(false)
   // A corrected observation has more than one revision; decisions apply to the latest one.
   const current = review.revisions[review.revisions.length - 1]
   const corrected = review.revisions.length > 1
@@ -210,9 +210,46 @@ function ReviewView({ review, claimError, starting, onStart }: { review: Observa
                 {REVIEW_STATUS_LABEL[o.reviewStatus]}
                 {corrected ? ` · version ${current.number}` : ''}
               </p>
-              <Button icon="eye" fullWidth loading={starting} onClick={onStart}>
-                Start review
+              {o.reviewStatus === 'resubmitted' && (
+                <ButtonLink variant="secondary" icon="columns" fullWidth to={reviewPaths.versions(o.id)}>
+                  Compare
+                </ButtonLink>
+              )}
+              <Button icon="eye" fullWidth loading={starting} onClick={() => setConfirmingStart(true)}>
+                Start Review
               </Button>
+              <Modal
+                open={confirmingStart}
+                title="Start the review?"
+                onClose={() => setConfirmingStart(false)}
+                dismissible={!starting}
+                footer={
+                  <>
+                    <Button variant="secondary" onClick={() => setConfirmingStart(false)} disabled={starting}>
+                      Cancel
+                    </Button>
+                    <Button
+                      loading={starting}
+                      onClick={() => {
+                        setConfirmingStart(false)
+                        onStart()
+                      }}
+                    >
+                      Confirm Review
+                    </Button>
+                  </>
+                }
+              >
+                <Fields
+                  items={[
+                    { label: 'Observation ID', value: o.id },
+                    { label: 'Division', value: `${o.division.name} (${o.division.id})` },
+                    { label: 'Field worker', value: o.fieldWorker.fullName },
+                    { label: 'Status', value: <ReviewStatusBadge status={o.reviewStatus} /> },
+                  ]}
+                />
+                <p>The observation moves to In Review. Its submitted evidence is not changed.</p>
+              </Modal>
             </div>
           ) : buttons.length > 0 ? (
             <>
@@ -236,7 +273,7 @@ function ReviewView({ review, claimError, starting, onStart }: { review: Observa
   )
 }
 
-/** View Expert Diagnosis (always) and End Process (once the observation is Verified or Referred). */
+/** View Decision / View Expert Diagnosis, and End Process (from Verified, Flagged or Decision, once). */
 function ExpertDiagnosisActions({ review }: { review: ObservationReview }) {
   const o = review.observation
   const actions = useReviewActions()
@@ -244,11 +281,18 @@ function ExpertDiagnosisActions({ review }: { review: ObservationReview }) {
   const [idempotencyKey] = useState(newIdempotencyKey)
   const [failure, setFailure] = useState<unknown>(null)
   const [confirming, setConfirming] = useState(false)
+  const [reason, setReason] = useState('')
+  const [reasonError, setReasonError] = useState<string | null>(null)
   async function endProcess() {
+    if (!reason.trim()) {
+      setReasonError('Enter the reason for ending the process')
+      return
+    }
     setFailure(null)
     try {
-      await actions.endProcess.mutateAsync({ id: o.id, meta: { expectedVersion: review.version, idempotencyKey } })
+      await actions.endProcess.mutateAsync({ id: o.id, input: { reason }, meta: { expectedVersion: review.version, idempotencyKey } })
       setConfirming(false)
+      setReason('')
       toast.show({ tone: 'success', title: `${o.id} process ended`, message: 'Added to Observation History. Its status, diagnosis and history are unchanged.' })
     } catch (error) {
       setConfirming(false)
@@ -263,10 +307,10 @@ function ExpertDiagnosisActions({ review }: { review: ObservationReview }) {
         </Banner>
       )}
       <ButtonLink variant="secondary" icon="eye" fullWidth to={`${reviewPaths.observation(o.id)}/diagnosis`}>
-        View Expert Diagnosis
+        {o.reviewStatus === 'decision' ? 'View Decision' : 'View Expert Diagnosis'}
       </ButtonLink>
       {canEndProcess(o.reviewStatus, o.processEndedAt) && (
-        <Button icon="check" fullWidth onClick={() => setConfirming(true)}>
+        <Button icon="check" fullWidth onClick={() => { setReason(''); setReasonError(null); setConfirming(true) }}>
           End Process
         </Button>
       )}
@@ -298,6 +342,7 @@ function ExpertDiagnosisActions({ review }: { review: ObservationReview }) {
         <p>
           Ending the process closes further processing of this observation and adds it to Observation History. Its status, expert diagnosis and history are kept unchanged, and nothing is verified, rejected or approved.
         </p>
+        <TextAreaField label="Completion reason" required rows={3} value={reason} error={reasonError ?? undefined} onChange={(event) => { setReason(event.target.value); setReasonError(null) }} />
       </Modal>
     </div>
   )
@@ -319,7 +364,8 @@ function ObservationDecisions({ revisions }: { revisions: ReviewRevision[] }) {
           { id: 'date', header: 'Date', cell: (row) => formatDateTime(row.decidedAt) },
           { id: 'revision', header: 'Revision', cell: (row) => `V${row.revision.number} · ${row.revision.id}` },
           { id: 'decision', header: 'Decision', cell: (row) => <OutcomeBadge outcome={row.outcome} /> },
-          { id: 'by', header: 'Decided by', cell: (row) => row.decidedBy },
+          { id: 'change', header: 'Status change', cell: (row) => (row.transition ? `${WORKFLOW_TARGET_LABEL[row.transition.from]} → ${WORKFLOW_TARGET_LABEL[row.transition.to]}` : '—') },
+          { id: 'by', header: 'Decided by', cell: (row) => (row.actorRole ? `${row.decidedBy} · ${row.actorRole}` : row.decidedBy) },
           { id: 'comment', header: 'Comment', cell: (row) => row.note ?? '—' },
         ]}
       />
@@ -332,13 +378,13 @@ function DecisionUnavailable({ review }: { review: ObservationReview }) {
   return (
     <div className={styles.decisionButtons}>
       <p className={styles.note}>
-        {status === 'verified' || status === 'flagged'
-          ? `Final decision recorded: ${REVIEW_STATUS_LABEL[status]}.`
+        {review.observation.processEndedAt
+          ? 'The process has ended. This observation is in Observation History and cannot be processed further.'
           : status === 'correction_requested'
             ? 'A correction has been requested. Waiting for the field worker to resubmit.'
             : status === 'decision'
-              ? 'The expert decision is in. Review it with View Expert Diagnosis, then use End Process.'
-              : 'Referred to a disease expert. Waiting for the expert decision.'}
+              ? 'The expert decision is in (read-only). View the decision, then use End Process.'
+              : 'Referred to a disease expert. Waiting for the expert to confirm a diagnosis.'}
       </p>
       {review.correctionId && status === 'correction_requested' && (
         <p className={styles.note}>

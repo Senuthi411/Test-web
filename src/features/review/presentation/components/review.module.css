@@ -582,3 +582,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.rowActions {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

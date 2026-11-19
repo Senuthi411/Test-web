@@ -64,16 +64,6 @@ function DiagnosisView({ review }: { review: ObservationReview }) {
     }
   }
 
-  async function closeCase() {
-    setFailure(null)
-    try {
-      await actions.closeCase.mutateAsync({ id: o.id, meta })
-      toast.show({ tone: 'success', title: `${d?.caseId ?? 'Case'} closed` })
-    } catch (error) {
-      setFailure(error)
-    }
-  }
-
   return (
     <div className={styles.page}>
       <PageHeader
@@ -140,15 +130,15 @@ function DiagnosisView({ review }: { review: ObservationReview }) {
           title="No expert diagnosis yet"
           message={
             <>
-              No diagnosis has been recorded for {o.id}{review.referralId ? ` (referral ${review.referralId})` : ''}. The observation is <ReviewStatusBadge status={o.reviewStatus} />.
-              {canRecordDiagnosis(o.reviewStatus) ? '' : ' A diagnosis can be recorded once the observation has been referred to an expert.'}
+              The expert has not confirmed a diagnosis for {o.id}{review.referralId ? ` (referral ${review.referralId})` : ''}. The observation is <ReviewStatusBadge status={o.reviewStatus} />.
+              {canRecordDiagnosis(o.reviewStatus) ? ' In this demonstration the expert\'s confirmation can be simulated.' : ' An expert decision is available once the observation has been referred to an expert.'}
             </>
           }
           icon="info"
           action={
             canRecordDiagnosis(o.reviewStatus) ? (
               <ButtonLink to={recordPath(o.id)} icon="edit">
-                Record expert diagnosis
+                Simulate expert decision
               </ButtonLink>
             ) : undefined
           }
@@ -206,13 +196,6 @@ function DiagnosisView({ review }: { review: ObservationReview }) {
             />
             <p className={styles.note}>The Supervisor assigns any follow-up inspection; none is created from this plan automatically.</p>
           </Card>
-          {d.caseStatus === 'Diagnosed' && d.catalogVersion !== null && (
-            <div>
-              <Button variant="secondary" icon="check" loading={actions.closeCase.isPending} onClick={() => void closeCase()}>
-                Close Case
-              </Button>
-            </div>
-          )}
         </>
       )}
       <Modal
@@ -283,7 +266,7 @@ function DiagnosisForm({ review }: { review: ObservationReview }) {
   if (!canRecordDiagnosis(o.reviewStatus)) {
     return (
       <div className={styles.page}>
-        <PageHeader back={{ to: back, label: 'Back to Expert Diagnosis' }} title="Record Expert Diagnosis" subtitle={o.id} />
+        <PageHeader back={{ to: back, label: 'Back to Expert Diagnosis' }} title="Expert Decision" subtitle={o.id} />
         <EmptyState
           title="A diagnosis cannot be recorded"
           message={
@@ -323,8 +306,11 @@ function DiagnosisForm({ review }: { review: ObservationReview }) {
 
   const pending = actions.recordDiagnosis.isPending
   return (
-    <form className={styles.page} onSubmit={onSubmit} noValidate aria-label="Record Expert Diagnosis">
-      <PageHeader back={{ to: back, label: 'Back to Expert Diagnosis' }} title={`Record Expert Diagnosis · ${o.id}`} subtitle="Recorded by the Supervisor on the expert's behalf" />
+    <form className={styles.page} onSubmit={onSubmit} noValidate aria-label="Expert Decision">
+      <PageHeader back={{ to: back, label: 'Back to Expert Diagnosis' }} title={`Expert Decision (demonstration) · ${o.id}`} subtitle="Fixture-only stand-in for the Disease Expert's confirmation" />
+      <Banner tone="info" title="Demonstration only">
+        In production the Disease Expert confirms the diagnosis in the Cases workspace, and the Supervisor receives it read-only. This form stands in for that event so the Referred → Decision step can be tried.
+      </Banner>
       {failure !== null && (
         <Banner tone="error" title="The diagnosis was not recorded">
           {errorText(failure)} Your entries are kept; you can try again.

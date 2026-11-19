@@ -20,6 +20,8 @@ function setup(actor: string | null = 'USR-003') {
 
 const meta = (expectedVersion = 1, idempotencyKey = crypto.randomUUID()) => ({ expectedVersion, idempotencyKey })
 const ALL_CHECKED = [true, true, true, true]
+const VERIFY_NOTE = { note: 'Corrected revision accepted' }
+const FLAG_INPUT = { reason: 'Image quality issue', category: 'Evidence', explanation: 'Blurred', notifyFieldWorker: true }
 
 async function kindOf(promise: Promise<unknown>) {
   try {
@@ -130,7 +132,10 @@ describe('Observation decisions (REV-04, REV-05, REV-06, REV-12)', () => {
 
   it('creates a requested correction and blocks a second open one', async () => {
     const { port } = setup()
-    const result = await port.requestCorrection('OBS-033', { items: ['Retake a clearer image'], message: 'Please retake' }, meta())
+    // The lifecycle: In Review → Flagged → Correction Requested (a correction cannot be requested straight from In Review).
+    expect(await kindOf(port.requestCorrection('OBS-033', { items: ['Retake a clearer image'], message: 'Too early' }, meta()))).toBe('conflict')
+    await port.flag('OBS-033', FLAG_INPUT, meta())
+    const result = await port.requestCorrection('OBS-033', { items: ['Retake a clearer image'], message: 'Please retake' }, meta(2))
     expect(result.correction).toMatchObject({ id: 'COR-033', status: 'requested', requestedRevision: 2 })
     expect((await port.getObservationReview('OBS-033')).observation.reviewStatus).toBe('correction_requested')
   })
@@ -138,13 +143,18 @@ describe('Observation decisions (REV-04, REV-05, REV-06, REV-12)', () => {
   it('refers with a pending case link and creates no case', async () => {
     const { port, store } = setup()
     const cases = store.read((db) => db.cases.length)
-    const result = await port.refer('OBS-014', { expertId: 'USR-005', note: 'Confirm grey blight' }, meta())
+    // The lifecycle: In Review → Verified → Referred.
+    expect(await kindOf(port.refer('OBS-014', { expertId: 'USR-005', note: 'Too early' }, meta()))).toBe('conflict')
+    await port.verify('OBS-014', { note: '' }, meta())
+    const result = await port.refer('OBS-014', { expertId: 'USR-005', note: 'Confirm grey blight' }, meta(2))
     expect(result.referral).toMatchObject({ id: 'REF-014', linkStatus: 'pending_case_link', caseId: null })
     expect(store.read((db) => db.cases.length)).toBe(cases)
   })
 
   it('refuses an expert who does not cover the estate', async () => {
-    expect(await kindOf(setup().port.refer('OBS-014', { expertId: 'USR-006', note: 'x' }, meta()))).toBe('validation')
+    const { port } = setup()
+    await port.verify('OBS-014', { note: '' }, meta())
+    expect(await kindOf(port.refer('OBS-014', { expertId: 'USR-006', note: 'x' }, meta(2)))).toBe('validation')
   })
 })
 
@@ -155,11 +165,11 @@ describe('Claim on open and status-dependent decisions', () => {
   const REFERRAL = { expertId: 'USR-005', note: 'Please confirm' }
 
   it('lists the decisions each status allows', () => {
-    expect(allowedDecisions('in_review')).toEqual(['verify', 'flag', 'requestCorrection', 'refer'])
-    // The expert decision is finalised by the Supervisor: verify or flag.
-    expect(allowedDecisions('decision')).toEqual(['verify', 'flag'])
-    // Submitted and Resubmitted need Start review; Verified and Flagged are final; the rest wait.
-    for (const status of ['submitted', 'resubmitted', 'flagged', 'verified', 'correction_requested', 'referred'] as const) expect(allowedDecisions(status)).toEqual([])
+    expect(allowedDecisions('in_review')).toEqual(['verify', 'flag'])
+    expect(allowedDecisions('verified')).toEqual(['refer'])
+    expect(allowedDecisions('flagged')).toEqual(['requestCorrection'])
+    // Submitted and Resubmitted need Start Review; Correction Requested, Referred and Decision wait (Decision only ends in History).
+    for (const status of ['submitted', 'resubmitted', 'correction_requested', 'referred', 'decision'] as const) expect(allowedDecisions(status)).toEqual([])
   })
 
   it('opening (reading) an observation never changes its status; only Start review does', async () => {
@@ -180,6 +190,9 @@ describe('Claim on open and status-dependent decisions', () => {
     const { port, store } = setup()
     const decisions = store.read((db) => db.reviewDecisions.length)
     const claimed = await port.claim('OBS-013')
+    // Starting the review is itself recorded (Submitted → In Review), once.
+    expect(store.read((db) => db.reviewDecisions.filter((d) => d.targetId === 'OBS-013' && d.outcome === 'review_started').map((d) => d.details)))
+      .toMatchObject([{ fromStatus: 'submitted', toStatus: 'in_review', actorRole: 'SUPERVISOR' }])
     expect(claimed.observation.reviewStatus).toBe('in_review')
     expect(claimed.version).toBe(2)
     expect(claimed.history.map((step) => step.title)).toEqual(['Submitted', 'Claimed for review', 'Decision pending'])
@@ -188,7 +201,7 @@ describe('Claim on open and status-dependent decisions', () => {
     expect(reopened.version).toBe(2)
     expect(reopened.history.filter((step) => step.title === 'Claimed for review')).toHaveLength(1)
     expect((await port.getWorkspace()).observations.find((o) => o.id === 'OBS-013')?.reviewStatus).toBe('in_review')
-    expect(store.read((db) => db.reviewDecisions.length)).toBe(decisions)
+    expect(store.read((db) => db.reviewDecisions.length)).toBe(decisions + 1)
   })
 
   it('leaves non-Submitted observations unchanged and never claims outside the estate scope', async () => {
@@ -198,17 +211,21 @@ describe('Claim on open and status-dependent decisions', () => {
     expect(await kindOf(port.claim('OBS-001'))).toBe('not_found')
   })
 
-  it('Verified and Flagged are final: no further decision is accepted', async () => {
+  it('Verified leads only to Refer or History, Flagged only to Request Correction or History; neither accepts another verdict', async () => {
     const { port } = setup()
-    for (const id of ['OBS-004', 'OBS-015']) {
-      const review = await port.getObservationReview(id)
-      expect(review.history.at(-1)?.title).not.toBe('Decision pending')
-      const v = review.version
-      expect(await kindOf(port.verify(id, VERIFY, meta(v)))).toBe('conflict')
-      expect(await kindOf(port.flag(id, FLAG, meta(v)))).toBe('conflict')
-      expect(await kindOf(port.requestCorrection(id, CORRECTION, meta(v)))).toBe('conflict')
-      expect(await kindOf(port.refer(id, REFERRAL, meta(v)))).toBe('conflict')
+    const verified = await port.getObservationReview('OBS-015')
+    const flagged = await port.getObservationReview('OBS-004')
+    expect(verified.history.at(-1)).toMatchObject({ title: 'Decision pending', detail: 'Refer to Expert' })
+    expect(flagged.history.at(-1)).toMatchObject({ title: 'Decision pending', detail: 'Request Correction' })
+    for (const review of [verified, flagged]) {
+      const id = review.observation.id
+      expect(await kindOf(port.verify(id, VERIFY, meta(review.version)))).toBe('conflict')
+      expect(await kindOf(port.flag(id, FLAG, meta(review.version)))).toBe('conflict')
     }
+    expect(await kindOf(port.requestCorrection('OBS-015', CORRECTION, meta(verified.version)))).toBe('conflict')
+    expect(await kindOf(port.refer('OBS-004', REFERRAL, meta(flagged.version)))).toBe('conflict')
+    await expect(port.refer('OBS-015', REFERRAL, meta(verified.version))).resolves.toMatchObject({ referral: { id: 'REF-015' } })
+    await expect(port.requestCorrection('OBS-004', CORRECTION, meta(flagged.version))).resolves.toMatchObject({ correction: { status: 'requested' } })
   })
 
   it('Referred means sent to an expert; Decision shows the expert decision, which the Supervisor finalises', async () => {
@@ -222,36 +239,48 @@ describe('Claim on open and status-dependent decisions', () => {
     const decided = await port.getObservationReview('OBS-006')
     expect(decided.observation.reviewStatus).toBe('decision')
     expect(decided.expertDecision).toMatchObject({ referralId: 'REF-006', caseId: 'CASE-006', expert: 'Dr Tara Wijesinghe', disease: 'Grey blight (DIS-002)' })
-    expect(await kindOf(port.requestCorrection('OBS-006', CORRECTION, meta(decided.version)))).toBe('conflict')
-    expect(await kindOf(port.refer('OBS-006', REFERRAL, meta(decided.version)))).toBe('conflict')
-    await port.verify('OBS-006', { note: 'Expert diagnosis confirmed' }, meta(decided.version))
+    // The expert's decision is read-only for the Supervisor: no verdict, correction or referral; the only step is End Process.
+    for (const attempt of [port.verify('OBS-006', VERIFY, meta(decided.version)), port.flag('OBS-006', FLAG, meta(decided.version)), port.requestCorrection('OBS-006', CORRECTION, meta(decided.version)), port.refer('OBS-006', REFERRAL, meta(decided.version))]) {
+      expect(await kindOf(attempt)).toBe('conflict')
+    }
+    await port.endProcess('OBS-006', { reason: 'Expert diagnosis acknowledged' }, meta(decided.version))
     const finalised = (await port.getWorkspace()).observations.find((o) => o.id === 'OBS-006')
-    expect(finalised).toMatchObject({ reviewStatus: 'verified', finalisedAt: '2026-10-21T10:00:00+05:30', archivedAt: null })
+    expect(finalised).toMatchObject({ reviewStatus: 'decision', processEndedAt: '2026-10-21T10:00:00+05:30', archivedAt: '2026-10-21T10:00:00+05:30' })
     expect(findIntegrityProblems(store.read((db) => db) as FixtureDatabase)).toEqual([])
   })
 
-  it('moves finalised observations to Observation History 24 hours after the final decision; others stay', async () => {
+  it('only End Process moves an observation to History (Verified and Flagged stay active); History keeps every decision', async () => {
     const { port, store } = setup()
     const today = (await port.getWorkspace()).observations
-    // Verified 16 Oct and 14 Oct, flagged 3–6 Oct: archived. Referred, in review and correction stay.
-    expect(today.filter((o) => o.archivedAt).map((o) => o.id).sort()).toEqual(['OBS-004', 'OBS-015', 'OBS-024', 'OBS-032', 'OBS-040'])
+    expect(today.filter((o) => o.archivedAt)).toEqual([])
     await port.verify('OBS-014', VERIFY, meta(1))
-    const later = createReviewUseCases(createFixtureReviewAdapter(store, { clock: fixedClock('2026-10-22T11:00:00+05:30'), actorId: () => 'USR-003' }))
-    const next = (await later.getWorkspace()).observations
-    expect(next.find((o) => o.id === 'OBS-014')?.archivedAt).toBe('2026-10-22T04:30:00.000Z')
-    for (const id of ['OBS-023', 'OBS-041', 'OBS-005', 'OBS-006', 'OBS-013']) expect(next.find((o) => o.id === id)?.archivedAt).toBeNull()
-    // Archived records keep their decisions and revisions.
-    expect((await later.getObservationReview('OBS-014')).revisions[0].decisions.map((d) => d.outcome)).toEqual(['verified'])
+    const later = createReviewUseCases(createFixtureReviewAdapter(store, { clock: fixedClock('2026-10-25T11:00:00+05:30'), actorId: () => 'USR-003' }))
+    // Days later a Verified observation is still in the queue: there is no automatic archiving.
+    expect((await later.getWorkspace()).observations.find((o) => o.id === 'OBS-014')).toMatchObject({ reviewStatus: 'verified', archivedAt: null })
+    // Not from In Review, Submitted, Referred or Correction Requested.
+    for (const id of ['OBS-033', 'OBS-013', 'OBS-023', 'OBS-041']) expect(await kindOf(later.endProcess(id, { reason: 'x' }, meta((await later.getObservationReview(id)).version)))).toBe('conflict')
+    const v = (await later.getObservationReview('OBS-014')).version
+    expect(await kindOf(later.endProcess('OBS-014', { reason: '   ' }, meta(v)))).toBe('validation')
+    await later.endProcess('OBS-014', { reason: 'Verified, no expert needed' }, meta(v))
+    const ended = (await later.getWorkspace()).observations.find((o) => o.id === 'OBS-014')
+    expect(ended).toMatchObject({ reviewStatus: 'verified', archivedAt: '2026-10-25T11:00:00+05:30' })
+    expect((await later.getObservationReview('OBS-014')).revisions[0].decisions.map((d) => [d.outcome, d.transition?.to])).toEqual([['verified', 'verified'], ['process_ended', 'history']])
+    // The same action cannot be repeated.
+    expect(await kindOf(later.endProcess('OBS-014', { reason: 'Again' }, meta((await later.getObservationReview('OBS-014')).version)))).toBe('conflict')
   })
 
   it('keeps the dataset consistent after start review → correction, verify, flag and referral', async () => {
     const { port, store } = setup()
     const claimed = await port.claim('OBS-013')
-    await port.requestCorrection('OBS-013', CORRECTION, meta(claimed.version))
+    const flagged = await port.flag('OBS-013', FLAG, meta(claimed.version))
+    await port.requestCorrection('OBS-013', CORRECTION, meta((await port.getObservationReview('OBS-013')).version))
+    void flagged
     await port.verify('OBS-014', VERIFY, meta(1))
     await port.flag('OBS-033', FLAG, meta(1))
     const other = await port.claim('OBS-022')
-    await port.refer('OBS-022', REFERRAL, meta(other.version))
+    const verifiedOther = await port.verify('OBS-022', VERIFY, meta(other.version))
+    void verifiedOther
+    await port.refer('OBS-022', REFERRAL, meta((await port.getObservationReview('OBS-022')).version))
     expect(findIntegrityProblems(store.read((db) => db) as FixtureDatabase)).toEqual([])
   })
 
@@ -379,13 +408,15 @@ describe('Observation revisions, resubmission and revision-aware decisions', () 
     expect(started.observation.reviewStatus).toBe('in_review')
     expect(started.version).toBe(review.version + 1)
     expect(started.history.map((step) => step.title)).toContain('Review started on version 2')
-    expect(allowedDecisions('in_review')).toEqual(['verify', 'flag', 'requestCorrection', 'refer'])
-    expect((await port.getWorkspace()).corrections.find((c) => c.id === 'COR-005')?.status).toBe('resubmitted')
+    expect(allowedDecisions('in_review')).toEqual(['verify', 'flag'])
+    // Review of the corrected revision starts once it has reached the server: the answered correction is applied.
+    expect((await port.getWorkspace()).corrections.find((c) => c.id === 'COR-005')?.status).toBe('applied')
   })
 
   it('runs request, resubmit, request again, resubmit, verify, recording each decision on its revision', async () => {
     const { port, store } = setup()
     // Request a correction on OBS-033 (version 1).
+    await port.flag('OBS-033', FLAG_INPUT, meta(await version(port, 'OBS-033')))
     await port.requestCorrection('OBS-033', { items: ['Retake a clearer image'], message: 'Retake please' }, meta(await version(port, 'OBS-033')))
     expect((await port.getObservationReview('OBS-033')).observation.reviewStatus).toBe('correction_requested')
     const original = store.read((db) => db.observations.find((o) => o.id === 'OBS-033'))
@@ -404,7 +435,8 @@ describe('Observation revisions, resubmission and revision-aware decisions', () 
     // Start the review of version 2, request another correction; version 3 then arrives.
     review = await port.claim('OBS-033')
     expect(review.observation.reviewStatus).toBe('in_review')
-    await port.requestCorrection('OBS-033', { items: ['Confirm symptom details'], message: 'Confirm symptoms' }, meta(review.version))
+    await port.flag('OBS-033', FLAG_INPUT, meta(review.version))
+    await port.requestCorrection('OBS-033', { items: ['Confirm symptom details'], message: 'Confirm symptoms' }, meta(await version(port, 'OBS-033')))
     const corrections = (await port.getWorkspace()).corrections.filter((c) => c.observation.id === 'OBS-033')
     expect(corrections.map((c) => [c.id, c.status, c.requestedRevision])).toEqual([['COR-033', 'applied', 2], ['COR-033-001', 'requested', 3]])
     await port.simulateResubmission('COR-033-001', resubmit('Symptoms confirmed', false), 1)
@@ -419,7 +451,15 @@ describe('Observation revisions, resubmission and revision-aware decisions', () 
     // Every revision is still available, and each decision is tied to its revision.
     expect(review.revisions.map((r) => [r.number, r.statusLabel])).toEqual([[1, 'Correction requested'], [2, 'Correction requested'], [3, 'Verified']])
     const history = (await port.getWorkspace()).decisions.filter((d) => d.targetId === 'OBS-033').reverse()
-    expect(history.map((d) => [d.outcome, d.revision?.id])).toEqual([['correction_requested', 'OBSR-033-1'], ['correction_requested', 'OBSR-033-2'], ['verified', 'OBSR-033-3']])
+    // Every lifecycle action is logged on its own revision: flag, correction, resubmission, review start, and so on.
+    expect(history.map((d) => [d.outcome, d.revision?.id])).toEqual([
+      ['flagged', 'OBSR-033-1'], ['correction_requested', 'OBSR-033-1'],
+      ['resubmitted', 'OBSR-033-2'], ['review_started', 'OBSR-033-2'], ['flagged', 'OBSR-033-2'], ['correction_requested', 'OBSR-033-2'],
+      ['resubmitted', 'OBSR-033-3'], ['review_started', 'OBSR-033-3'], ['verified', 'OBSR-033-3'],
+    ])
+    expect(history.map((d) => d.transition && `${d.transition.from}>${d.transition.to}`)).toEqual([
+      'in_review>flagged', 'flagged>correction_requested', 'correction_requested>resubmitted', 'resubmitted>in_review', 'in_review>flagged', 'flagged>correction_requested', 'correction_requested>resubmitted', 'resubmitted>in_review', 'in_review>verified',
+    ])
     // The capture record and the original submission are unchanged; the dataset stays consistent.
     expect(store.read((db) => db.observations.find((o) => o.id === 'OBS-033'))).toEqual({ ...original, reviewStatus: 'verified' })
     expect(store.read((db) => db.observationRevisions.find((r) => r.id === 'OBSR-033-1')?.values)).toMatchObject({ imageId: null, note: null })
@@ -433,7 +473,10 @@ describe('Observation revisions, resubmission and revision-aware decisions', () 
     const { port, store } = setup()
     const v = (await port.claim('OBS-005')).version
     if (kind === 'flag') await port.flag('OBS-005', { reason: 'Evidence unclear', category: 'Image quality', explanation: 'Still unclear', notifyFieldWorker: false }, meta(v))
-    else await port.refer('OBS-005', { expertId: 'USR-005', note: 'Expert view needed' }, meta(v))
+    else {
+      await port.verify('OBS-005', VERIFY_NOTE, meta(v))
+      await port.refer('OBS-005', { expertId: 'USR-005', note: 'Expert view needed' }, meta(v + 1))
+    }
     const workspace = await port.getWorkspace()
     expect(workspace.observations.find((o) => o.id === 'OBS-005')?.reviewStatus).toBe(status)
     expect(workspace.corrections.find((c) => c.id === 'COR-005')?.status).toBe('applied')

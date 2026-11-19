@@ -55,6 +55,9 @@ const OUTCOME_TONE: Record<DecisionOutcome, BadgeTone> = {
   quarantined: 'danger',
   quarantine_assignment: 'warning',
   quarantine_released: 'success',
+  review_started: 'info',
+  resubmitted: 'teal',
+  expert_decision: 'lime',
 }
 
 export function OutcomeBadge({ outcome }: { outcome: DecisionOutcome }) {

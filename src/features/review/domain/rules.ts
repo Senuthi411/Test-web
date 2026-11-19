@@ -30,71 +30,80 @@ export const RESULTING_STATUS = {
 export type ObservationDecision = keyof typeof RESULTING_STATUS
 
 /**
- * Decisions a Supervisor may record in each review status.
- * - In review (claimed, REV-03): all four decisions.
- * - Flagged: the concern is followed up by requesting a correction from the field worker.
- * - Verified: the observation may still be referred to a disease expert for confirmation.
- * - Submitted is claimed (moved to In review) when the Supervisor opens it; Correction
- *   requested and Referred wait for the field worker or the expert, so nothing is offered.
+ * Observation review lifecycle. This table is the single source of truth for every status change:
+ * the data layer, the screens and the tests all ask it, so no button decides a transition on its own.
+ *
+ *   Submitted → In Review → Verified | Flagged
+ *   Verified  → Referred | History          Flagged → Correction Requested | History
+ *   Correction Requested → Resubmitted → (Review) In Review
+ *   Referred  → Decision (only once the expert has confirmed)      Decision → History
+ *
+ * `history` is the existing Observation History (End Process); it is terminal and is not a review status.
+ * The review status, the correction status and the referral status are separate state machines; this table
+ * is the review one. Applying a correction (RevisionApplied) and the expert's confirmation are events the
+ * other modules deliver, and they are the only way to enter In Review again or Decision.
  */
-// Resubmitted (a corrected revision) is reviewed like any other observation once the
-// Supervisor starts the review (Resubmitted → In review); decisions apply to the latest revision.
-// Submitted and Resubmitted wait for the Supervisor to start the review. Verified and Flagged
-// are final. Referred waits for the expert; once the expert decision is in (Decision) the
-// Supervisor finalises it by verifying or flagging.
-const ALLOWED_DECISIONS: Record<ReviewStatus, readonly ObservationDecision[]> = {
-  submitted: [],
-  resubmitted: [],
-  in_review: ['verify', 'flag', 'requestCorrection', 'refer'],
-  flagged: [],
-  verified: [],
-  correction_requested: [],
-  referred: [],
-  decision: ['verify', 'flag'],
+export type WorkflowAction =
+  | 'startReview'
+  | 'verify'
+  | 'flag'
+  | 'requestCorrection'
+  | 'refer'
+  | 'resubmit'
+  | 'startResubmittedReview'
+  | 'recordExpertDecision'
+  | 'endProcess'
+
+export type WorkflowTarget = ReviewStatus | 'history'
+
+export const WORKFLOW_TRANSITIONS: Readonly<Record<ReviewStatus, Readonly<Partial<Record<WorkflowAction, WorkflowTarget>>>>> = {
+  submitted: { startReview: 'in_review' },
+  in_review: { verify: 'verified', flag: 'flagged' },
+  verified: { refer: 'referred', endProcess: 'history' },
+  flagged: { requestCorrection: 'correction_requested', endProcess: 'history' },
+  correction_requested: { resubmit: 'resubmitted' },
+  resubmitted: { startResubmittedReview: 'in_review' },
+  referred: { recordExpertDecision: 'decision' },
+  decision: { endProcess: 'history' },
 }
 
-/** Verified and Flagged are the final review outcomes (Referred and Decision are not). */
-export function isFinalReviewStatus(status: ReviewStatus): boolean {
-  return status === 'verified' || status === 'flagged'
+/** The status (or History) the action leads to from `status`, or null when the action is not allowed there. */
+export function transitionTarget(status: ReviewStatus, action: WorkflowAction): WorkflowTarget | null {
+  return WORKFLOW_TRANSITIONS[status][action] ?? null
 }
+export const canTransition = (status: ReviewStatus, action: WorkflowAction): boolean => transitionTarget(status, action) !== null
 
-const DAY_MS = 86_400_000
-const instantOf = (iso: string) => new Date(iso.includes('T') ? iso : `${iso}T12:00:00+05:30`).getTime()
-/** A finalised observation stays in the Review Queue for 24 hours after its final decision, then moves to Observation History. */
-export function observationArchivedAt(finalisedAt: string | null, nowIso: string): string | null {
-  if (!finalisedAt) return null
-  const archive = instantOf(finalisedAt) + DAY_MS
-  return instantOf(nowIso) >= archive ? new Date(archive).toISOString() : null
-}
+const DECISIONS: readonly ObservationDecision[] = ['verify', 'flag', 'requestCorrection', 'refer']
 
+/** The Supervisor decisions (those with a decision form) the lifecycle allows in `status`. */
 export function allowedDecisions(status: ReviewStatus): readonly ObservationDecision[] {
-  return ALLOWED_DECISIONS[status]
+  return DECISIONS.filter((decision) => canTransition(status, decision))
 }
 
 /** Whether `decision` (or, without one, any decision) may be recorded in `status`. */
 export function canDecide(status: ReviewStatus, decision?: ObservationDecision): boolean {
-  const allowed = ALLOWED_DECISIONS[status]
-  return decision ? allowed.includes(decision) : allowed.length > 0
+  return decision ? canTransition(status, decision) : allowedDecisions(status).length > 0
 }
 
-/** Submitted and Resubmitted move to In review only when the Supervisor starts the review (never on opening). */
+/** Submitted (Review) and Resubmitted (Review) move to In Review only when the Supervisor starts the review, never on opening. */
 export function canStartReview(status: ReviewStatus): boolean {
-  return status === 'submitted' || status === 'resubmitted'
+  return canTransition(status, 'startReview') || canTransition(status, 'startResubmittedReview')
 }
 /** Kept for callers: claiming is the same as starting the review. */
 export const canClaim = canStartReview
 
-/** An expert diagnosis can be recorded while the observation is Referred and its case has no diagnosis yet. */
+/** The action that starts the review from `status` (Submitted or Resubmitted), or null. */
+export const startReviewAction = (status: ReviewStatus): WorkflowAction | null =>
+  canTransition(status, 'startReview') ? 'startReview' : canTransition(status, 'startResubmittedReview') ? 'startResubmittedReview' : null
+
+/** The expert's diagnosis can be received while the observation is Referred and its case has no diagnosis yet. */
 export function canRecordDiagnosis(status: ReviewStatus): boolean {
-  return status === 'referred'
+  return canTransition(status, 'recordExpertDecision')
 }
 
-/**
- * End Process completes the decision process of an observation that has been decided (Verified)
- * or referred (Referred, or Decision once the expert's diagnosis is in). It is offered once.
- */
+/** End Process (to History) is offered from Verified, Flagged and Decision, and only once. */
 export function canEndProcess(status: ReviewStatus, processEndedAt: string | null): boolean {
-  return processEndedAt === null && (status === 'verified' || status === 'referred' || status === 'decision')
+  return processEndedAt === null && canTransition(status, 'endProcess')
 }
 
 /** REV-10: only a resubmitted revision can be compared and approved. */

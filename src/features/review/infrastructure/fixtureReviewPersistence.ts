@@ -60,6 +60,12 @@ export function persistFixtureReviewState(store: FixtureStore, storage: Storage 
       db.reviewDecisions = saved.reviewDecisions
       db.corrections = saved.corrections
       db.referrals = saved.referrals
+      // Expert-confirmed cases follow the diagnosed referrals (the Cases record the expert's confirmation creates).
+      for (const referral of saved.referrals as Array<{ caseId: string | null; observationId: string; caseStatus: string | null }>) {
+        if (referral.caseStatus === 'diagnosed' && referral.caseId && !db.cases.some((item) => item.id === referral.caseId)) {
+          db.cases.push({ id: referral.caseId, observationId: referral.observationId, status: 'confirmed', provenance: 'fixture-assigned' })
+        }
+      }
       db.reviewFollowUpObservationIds = saved.reviewFollowUpObservationIds
       db.observationRevisions = saved.observationRevisions
       db.divisionQuarantines = saved.divisionQuarantines ?? []

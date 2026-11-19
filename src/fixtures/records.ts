@@ -432,8 +432,8 @@ export interface FixtureReviewRecord {
 
 export interface FixtureReviewDecision {
   id: string
-  type: 'verification' | 'flag' | 'correction' | 'referral' | 'quarantine'
-  outcome: 'verified' | 'flagged' | 'correction_requested' | 'correction_approved' | 'correction_rejected' | 'revision_applied' | 'referred' | 'released' | 'process_ended' | 'quarantined' | 'quarantine_assignment' | 'quarantine_released'
+  type: 'verification' | 'flag' | 'correction' | 'referral' | 'quarantine' | 'review'
+  outcome: 'verified' | 'flagged' | 'correction_requested' | 'correction_approved' | 'correction_rejected' | 'revision_applied' | 'referred' | 'released' | 'process_ended' | 'quarantined' | 'quarantine_assignment' | 'quarantine_released' | 'review_started' | 'resubmitted' | 'expert_decision'
   recordId: string
   targetId: string
   estateId: string

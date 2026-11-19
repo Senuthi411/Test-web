@@ -54,7 +54,8 @@ describe('unified demonstration dataset', () => {
     await container.review.port.approveCorrection('COR-005', { comparedRevisions: true, originalUnchanged: true, note: '' }, meta())
     await container.review.port.simulateRevisionApplied('COR-005', 2)
     await container.review.port.rejectCorrection('COR-041', { reason: 'Evidence still unclear', message: 'Still unclear', notifyFieldWorker: true }, meta())
-    await container.review.port.refer('OBS-033', { expertId: 'USR-005', note: 'Confirm' }, meta())
+    await container.review.port.verify('OBS-033', { note: '' }, meta())
+    await container.review.port.refer('OBS-033', { expertId: 'USR-005', note: 'Confirm' }, meta(2))
 
     expect((await container.capture.getObservation('OBS-014')).reviewStatus).toBe('verified')
     expect((await container.capture.getObservation('OBS-005')).reviewStatus).toBe('in_review')

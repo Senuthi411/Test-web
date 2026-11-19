@@ -7,6 +7,7 @@ import type {
   FlagInput,
   QuarantineDivisionInput,
   ReleaseDivisionInput,
+  EndProcessInput,
   ReferralInput,
   RejectCorrectionInput,
   ReviewStatus,
@@ -95,7 +96,7 @@ export function useReviewActions() {
     closeCase: useMutation({ mutationFn: (v: { id: string } & Meta) => port.closeExpertCase(v.id, v.meta), onSuccess: refresh }),
     quarantine: useMutation({ mutationFn: (v: { id: string; input: QuarantineDivisionInput } & Meta) => port.quarantineDivision(v.id, v.input, v.meta), onSuccess: refresh }),
     /** End Process keeps the review status: no cached status is rewritten, only the data is refreshed. */
-    endProcess: useMutation({ mutationFn: (v: { id: string } & Meta) => port.endProcess(v.id, v.meta), onSuccess: refresh }),
+    endProcess: useMutation({ mutationFn: (v: { id: string; input: EndProcessInput } & Meta) => port.endProcess(v.id, v.input, v.meta), onSuccess: refresh }),
     approve: useMutation({ mutationFn: (v: { id: string; input: ApproveCorrectionInput } & Meta) => port.approveCorrection(v.id, v.input, v.meta), onSuccess: refresh }),
     reject: useMutation({ mutationFn: (v: { id: string; input: RejectCorrectionInput } & Meta) => port.rejectCorrection(v.id, v.input, v.meta), onSuccess: refresh }),
     applyRevision: useMutation({ mutationFn: (v: { id: string; version: number }) => port.simulateRevisionApplied(v.id, v.version), onSuccess: refresh }),

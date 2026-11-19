@@ -56,6 +56,10 @@ export function createReviewUseCases(port: ReviewPort): ReviewPort {
       await guard(input.reason.trim() ? {} : { reason: 'Enter the quarantine reason' })
       return port.quarantineDivision(id, trimmed(input), meta)
     },
+    async endProcess(id, input, meta) {
+      await guard(input.reason.trim() ? {} : { reason: 'Enter the reason for ending the process' })
+      return port.endProcess(id, trimmed(input), meta)
+    },
     async releaseDivisionQuarantine(id, input, meta) {
       await guard(input.reason.trim() ? {} : { reason: 'Enter the reason for release' })
       return port.releaseDivisionQuarantine(id, trimmed(input), meta)
