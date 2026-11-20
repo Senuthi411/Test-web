@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthFlowProvider, IdentityServicesContext, SessionProvider, useSession } from '@/features/identity'
 import { ToastProvider } from '@/shared/components'
 import { CaptureContext } from '@/features/capture'
+import { CasesContext } from '@/features/cases'
 import { ReviewContext } from '@/features/review'
 import type { AppContainer } from '../composition/container'
 import { ContainerContext } from '../composition/containerContext'
@@ -31,9 +32,11 @@ export function AppProviders({ container, children }: { container: AppContainer;
           <IdentityServicesContext.Provider value={container.identity}>
             <CaptureContext.Provider value={container.capture}>
               <ReviewContext.Provider value={container.review}>
-                <ToastProvider>
-                  <AuthFlowProvider>{children}</AuthFlowProvider>
-                </ToastProvider>
+                <CasesContext.Provider value={container.cases}>
+                  <ToastProvider>
+                    <AuthFlowProvider>{children}</AuthFlowProvider>
+                  </ToastProvider>
+                </CasesContext.Provider>
               </ReviewContext.Provider>
             </CaptureContext.Provider>
           </IdentityServicesContext.Provider>

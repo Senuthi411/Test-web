@@ -35,6 +35,14 @@ import { NotFoundScreen, ScreenPending } from './PlaceholderScreens'
 import { AUTH_FLOW_SCREENS, SCREEN_GROUPS, SHARED_SCREENS } from './screens'
 import { CaptureEntryPage, ObservationPage, AssignmentsPage, AssignmentCreatePage, AssignmentDetailPage, AssignmentEditPage } from './captureScreens'
 import {
+  AssignedCasesPage,
+  CaseDetailPage,
+  CaseHistoryPage,
+  DiseaseCatalogPage,
+  DiseaseDetailPage,
+  ExpertDashboardPage,
+} from './casesScreens'
+import {
   CorrectionComparePage,
   CorrectionDecisionPage,
   CorrectionDetailPage,
@@ -61,6 +69,16 @@ function joinPath(base: string, path: string) {
 
 /** Implemented screens by full route path. Every other screen still renders its placeholder. */
 const IMPLEMENTED: Record<string, ReactNode> = {
+  '/cases': <ExpertDashboardPage />,
+  '/cases/assigned': <AssignedCasesPage />,
+  '/cases/catalog': <DiseaseCatalogPage />,
+  '/cases/catalog/:diseaseId': <DiseaseDetailPage />,
+  '/cases/history': <CaseHistoryPage />,
+  '/cases/referrals/:referralId': <CaseDetailPage />,
+  '/cases/:caseId': <CaseDetailPage />,
+  '/cases/:caseId/evidence': <CaseDetailPage />,
+  '/cases/:caseId/diagnose': <CaseDetailPage />,
+  '/cases/:caseId/diagnose/confirm': <CaseDetailPage />,
   '/review': <ReviewDashboardPage />,
   '/review/queue': <ReviewQueuePage />,
   '/review/observations/:observationId': <ObservationReviewPage />,
