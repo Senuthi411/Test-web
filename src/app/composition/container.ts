@@ -17,6 +17,7 @@ import { systemClock, type Clock } from '@/shared/utilities/clock'
 import type { AppConfig } from './config'
 import type { AdapterSet, FixtureControls } from './adapterSet'
 import { createCaptureUseCases, type CaptureReadPort } from '@/features/capture'
+import { createCasesUseCases, type CasesServices } from '@/features/cases'
 import { createReviewUseCases, type ReviewServices } from '@/features/review'
 
 export type { FixtureControls } from './adapterSet'
@@ -24,6 +25,7 @@ export type { FixtureControls } from './adapterSet'
 /** Everything the UI needs, wired to either fixture or HTTP adapters. */
 export interface AppContainer {
   capture: CaptureReadPort
+  cases: CasesServices
   review: ReviewServices
   config: AppConfig
   clock: Clock
@@ -75,6 +77,7 @@ export function assembleContainer(
   const fixtures = adapters.fixtures
   return {
     capture: createCaptureUseCases(adapters.capture),
+    cases: { port: createCasesUseCases(adapters.cases), demo: config.dataSource === 'fixtures', clock },
     review: { port: createReviewUseCases(adapters.review), demo: config.dataSource === 'fixtures', clock },
     config,
     clock,

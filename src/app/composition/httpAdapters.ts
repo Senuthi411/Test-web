@@ -3,6 +3,7 @@ import { createIdentityHttpAdapters } from '@/features/identity/http'
 import type { AppConfig } from './config'
 import type { AdapterSet } from './adapterSet'
 import { createHttpCaptureAdapter } from '@/features/capture/http'
+import { createHttpCasesAdapter } from '@/features/cases/http'
 import { createHttpReviewAdapter } from '@/features/review/http'
 
 export function createHttpAdapterSet(
@@ -16,6 +17,7 @@ export function createHttpAdapterSet(
   })
   return {
     capture: createHttpCaptureAdapter(http),
+    cases: createHttpCasesAdapter(http),
     identity: createIdentityHttpAdapters(http),
     review: createHttpReviewAdapter(http),
     fixtures: null,

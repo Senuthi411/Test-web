@@ -1,0 +1,5 @@
+export { ExpertDashboardPage } from './presentation/pages/ExpertDashboardPage'
+export { AssignedCasesPage } from './presentation/pages/AssignedCasesPage'
+export { CaseDetailPage } from './presentation/pages/CaseDetailPage'
+export { DiseaseCatalogPage, DiseaseDetailPage } from './presentation/pages/DiseaseCatalogPage'
+export { CaseHistoryPage } from './presentation/pages/CaseHistoryPage'

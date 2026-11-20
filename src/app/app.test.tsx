@@ -94,14 +94,14 @@ describe('application shell', () => {
 
   it('marks the current page and shows breadcrumbs and the screen placeholder', async () => {
     // Review (Phase 5) is implemented; Cases (Phase 6) still renders placeholders.
-    signInAs('DISEASE_EXPERT')
-    await renderApp('/cases/assigned')
+    signInAs('REPORTING_USER')
+    await renderApp('/analytics/diseases')
     const nav = await screen.findByRole('navigation', { name: 'Main' })
-    expect(within(nav).getByRole('link', { name: 'Assigned Cases' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: 'Disease Distribution' })).toHaveAttribute('aria-current', 'page')
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
-    expect(within(crumbs).getByText('Cases')).toBeInTheDocument()
-    expect(within(crumbs).getByText('Assigned Cases')).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByText(/CASE-02 Assigned Cases is scheduled for Phase 6/)).toBeInTheDocument()
+    expect(within(crumbs).getByText('Analytics')).toBeInTheDocument()
+    expect(within(crumbs).getByText('Disease Distribution')).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText(/AN-05 Disease Distribution is scheduled for Phase 7/)).toBeInTheDocument()
   })
 
   it('labels fixture mode as demonstration data', async () => {
