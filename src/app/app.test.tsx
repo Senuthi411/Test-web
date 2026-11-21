@@ -92,8 +92,8 @@ describe('application shell', () => {
     expect(within(screen.getByRole('complementary', { name: 'Sidebar' })).getByText(USERS[role].fullName)).toBeInTheDocument()
   })
 
-  it('marks the current page and shows breadcrumbs and the screen placeholder', async () => {
-    // Review (Phase 5) is implemented; Cases (Phase 6) still renders placeholders.
+  it('marks the current Analytics page and shows breadcrumbs and the implemented report', async () => {
+    // Analytics now renders its implemented report inside the existing shared shell.
     signInAs('REPORTING_USER')
     await renderApp('/analytics/diseases')
     const nav = await screen.findByRole('navigation', { name: 'Main' })
@@ -101,7 +101,10 @@ describe('application shell', () => {
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
     expect(within(crumbs).getByText('Analytics')).toBeInTheDocument()
     expect(within(crumbs).getByText('Disease Distribution')).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByText(/AN-05 Disease Distribution is scheduled for Phase 7/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Disease Distribution', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('table', { name: 'Suspected and confirmed disease distribution' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Export' })).toBeEnabled()
+    expect(screen.queryByText(/AN-05 Disease Distribution is scheduled for Phase 7/)).not.toBeInTheDocument()
   })
 
   it('labels fixture mode as demonstration data', async () => {

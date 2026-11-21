@@ -5,6 +5,7 @@ import { ToastProvider } from '@/shared/components'
 import { CaptureContext } from '@/features/capture'
 import { CasesContext } from '@/features/cases'
 import { ReviewContext } from '@/features/review'
+import { AnalyticsContext } from '@/features/analytics'
 import type { AppContainer } from '../composition/container'
 import { ContainerContext } from '../composition/containerContext'
 import { createQueryClient, createUnauthorizedSignal, type UnauthorizedSignal } from './queryClient'
@@ -33,9 +34,11 @@ export function AppProviders({ container, children }: { container: AppContainer;
             <CaptureContext.Provider value={container.capture}>
               <ReviewContext.Provider value={container.review}>
                 <CasesContext.Provider value={container.cases}>
-                  <ToastProvider>
-                    <AuthFlowProvider>{children}</AuthFlowProvider>
-                  </ToastProvider>
+                  <AnalyticsContext.Provider value={container.analytics}>
+                    <ToastProvider>
+                      <AuthFlowProvider>{children}</AuthFlowProvider>
+                    </ToastProvider>
+                  </AnalyticsContext.Provider>
                 </CasesContext.Provider>
               </ReviewContext.Provider>
             </CaptureContext.Provider>

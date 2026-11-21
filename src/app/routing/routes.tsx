@@ -31,6 +31,17 @@ import {
   UserScopePage,
   UsersPage,
 } from './identityScreens'
+import {
+  AnalyticsDashboardPage,
+  EstateOverviewPage,
+  DivisionOverviewPage,
+  ObservationStatisticsPage,
+  DiseaseDistributionPage,
+  SuspectedVsConfirmedPage,
+  ReviewBottlenecksPage,
+  ReportingFiltersPage,
+  DataFreshnessPage,
+} from './analyticsScreens'
 import { NotFoundScreen, ScreenPending } from './PlaceholderScreens'
 import { AUTH_FLOW_SCREENS, SCREEN_GROUPS, SHARED_SCREENS } from './screens'
 import { CaptureEntryPage, ObservationPage, AssignmentsPage, AssignmentCreatePage, AssignmentDetailPage, AssignmentEditPage } from './captureScreens'
@@ -69,6 +80,15 @@ function joinPath(base: string, path: string) {
 
 /** Implemented screens by full route path. Every other screen still renders its placeholder. */
 const IMPLEMENTED: Record<string, ReactNode> = {
+  '/analytics': <AnalyticsDashboardPage />,
+  '/analytics/estates': <EstateOverviewPage />,
+  '/analytics/divisions': <DivisionOverviewPage />,
+  '/analytics/observations': <ObservationStatisticsPage />,
+  '/analytics/diseases': <DiseaseDistributionPage />,
+  '/analytics/suspected-vs-confirmed': <SuspectedVsConfirmedPage />,
+  '/analytics/bottlenecks': <ReviewBottlenecksPage />,
+  '/analytics/filters': <ReportingFiltersPage />,
+  '/analytics/freshness': <DataFreshnessPage />,
   '/cases': <ExpertDashboardPage />,
   '/cases/assigned': <AssignedCasesPage />,
   '/cases/catalog': <DiseaseCatalogPage />,
