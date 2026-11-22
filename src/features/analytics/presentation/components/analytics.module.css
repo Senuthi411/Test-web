@@ -1,0 +1,716 @@
+/*
+ * Analytics screens (AN-01 – AN-09) on the shared --tl tokens. Spacing, link style and
+ * breakpoints follow the Review module (review.module.css): 16px card gaps, two KPI
+ * columns below 1280px, one content column below 900px and single KPI cards below 600px.
+ * Lists use the shared BarList and DescriptionList; filters use the shared FilterSelect.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.grow {
+  flex: 1;
+}
+
+/* KPI row: four cards (three on AN-09). */
+.kpiRow {
+  display: grid;
+  align-items: stretch;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.kpiRow3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Grid wrappers stretch already; their nested shared cards must fill them too. */
+.kpiRow > div,
+.kpiRow > a {
+  display: flex;
+  min-width: 0;
+}
+
+.kpiRow > div > section,
+.kpiRow > a > section {
+  flex: 1;
+}
+
+/* Same as Review's .kpiLink. */
+.kpiLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--tl-radius-card-lg);
+}
+
+.kpiLink:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.dashboardGrid {
+  grid-template-columns: minmax(0, 1.94fr) minmax(290px, 1fr);
+}
+
+.equalGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.diseaseGrid {
+  grid-template-columns: minmax(270px, 1fr) minmax(0, 2.06fr);
+}
+
+.trendsGrid {
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+}
+
+.bottleneckGrid {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.15fr);
+}
+
+.filtersGrid {
+  grid-template-columns: minmax(260px, 1.05fr) minmax(0, 1.94fr);
+}
+
+/* A card whose whole surface links to a related report; inner controls stay above the link. */
+.navigable {
+  position: relative;
+}
+
+.cardLink {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+}
+
+.cardLink:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+}
+
+.aboveLink {
+  position: relative;
+  z-index: 3;
+}
+
+/* Charts */
+.chart {
+  min-width: 0;
+}
+
+.chartVisual {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chartY {
+  width: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+  padding-bottom: 28px;
+  color: var(--tl-text-muted);
+  font: var(--tl-font-caption);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.chartBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.chartBody > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3.24;
+  overflow: visible;
+}
+
+.wideChart .chartBody > svg {
+  aspect-ratio: 7.8;
+}
+
+.chartX {
+  margin-top: 6px;
+  display: grid;
+  color: var(--tl-text-muted);
+  font: var(--tl-font-caption);
+  text-align: center;
+  min-height: 20px;
+  gap: 4px;
+}
+
+.chartX span {
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+
+.chartX .xMinor {
+  visibility: hidden;
+}
+
+.chartX.xThinned {
+  column-gap: 0;
+}
+
+.chartX.xThinned span {
+  white-space: nowrap;
+  justify-self: center;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  color: var(--tl-text-muted);
+  font: var(--tl-font-caption);
+  margin-top: 12px;
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
+}
+
+.chartData {
+  position: relative;
+  z-index: 3;
+  margin-top: 12px;
+  color: var(--tl-text-muted);
+  font: var(--tl-font-caption);
+}
+
+/* Stays display: list-item so the native disclosure marker remains visible. */
+.chartData summary {
+  cursor: pointer;
+  width: fit-content;
+  padding-block: 4px;
+  line-height: 16px;
+}
+
+.chartData summary:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+  border-radius: 4px;
+}
+
+.chartData table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+}
+
+.chartData td,
+.chartData th {
+  padding: 8px 4px;
+  text-align: left;
+  border-bottom: 1px solid var(--tl-border-default);
+}
+
+/* Holds the shared FilterSelect in a card header, above the card-wide link. */
+.timeControl {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+}
+
+.notice {
+  margin: -4px 0 12px;
+  font: var(--tl-font-caption);
+  color: var(--tl-text-muted);
+}
+
+.tooLong {
+  margin: 8px 0 4px;
+  padding: 24px 16px;
+  border-radius: var(--tl-radius-card);
+  background: var(--tl-bg-table-header);
+  color: var(--tl-text-ink);
+  font: var(--tl-font-body);
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Donut */
+.donut {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.donutRing {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  position: absolute;
+}
+
+.donutRing::after {
+  content: '';
+  position: absolute;
+  inset: 32px;
+  background: var(--tl-bg-surface);
+  border-radius: 50%;
+}
+
+.donutLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+}
+
+.donutLabel strong {
+  font: var(--tl-font-hero-kpi);
+  color: var(--tl-text-ink);
+}
+
+.donutLabel span {
+  color: var(--tl-text-muted);
+  font: var(--tl-font-caption);
+}
+
+.diseaseLegend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diseaseLegend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--tl-font-body);
+}
+
+.diseaseLegend li > span:nth-child(2) {
+  flex: 1;
+}
+
+/* Table links: the same look as Review's IdLink / linkButton. */
+.tableLink {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--tl-primary-500);
+  text-align: left;
+  cursor: pointer;
+  min-height: 24px;
+}
+
+.tableLink:hover {
+  text-decoration: underline;
+}
+
+.tableLink:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+  border-radius: 4px;
+}
+
+/* Keeps IDs (DIAG-042, EST-002), dates and estate names on one line; tables scroll sideways instead. */
+.nowrap {
+  white-space: nowrap;
+}
+
+.muted {
+  display: block;
+  color: var(--tl-text-muted);
+  font: var(--tl-font-caption);
+}
+
+.help {
+  margin: 0;
+  font: var(--tl-font-caption);
+  line-height: 1.6;
+  color: var(--tl-text-muted);
+}
+
+/* Same as Review's .caption under a BarList ("Pending = submitted or in review."). */
+.caption {
+  margin: 12px 0 0;
+  font: 400 13px/1.4 var(--tl-font-family);
+  color: var(--tl-text-muted);
+}
+
+.detailsBelow {
+  margin-top: 16px;
+}
+
+/* Phones: the "Group by" FilterSelect sits in the card body, above the chart. */
+.groupingRow {
+  margin-bottom: 12px;
+}
+
+/* Same as Review's .wideBars: full status labels such as "Correction requested" in BarList. */
+.wideBars {
+  --tl-bar-label-width: 165px;
+}
+
+/* Filters: the Review queue toolbar (.filterBar in review.module.css). */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dateFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 12px;
+}
+
+.dateFields label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: var(--tl-font-label);
+}
+
+.dateFields input {
+  width: 100%;
+  box-sizing: border-box;
+  font: var(--tl-font-input);
+  padding: 8px 12px;
+  border: 1px solid var(--tl-border-control);
+  border-radius: var(--tl-radius-control);
+  min-height: 40px;
+  min-width: 0;
+}
+
+.fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldset legend {
+  margin-bottom: 8px;
+  font: var(--tl-font-label);
+}
+
+.statusOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: 4px 12px;
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--tl-danger-text);
+  font: var(--tl-font-body-medium);
+}
+
+.buttonRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--tl-font-caption);
+  color: var(--tl-text-muted);
+  min-width: 0;
+}
+
+.chips > span {
+  flex-shrink: 0;
+}
+
+.chipList {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px;
+}
+
+.chipList:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+  border-radius: var(--tl-radius-control);
+}
+
+.chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: var(--tl-radius-pill);
+  background: var(--tl-mint-50);
+  color: var(--tl-forest-600);
+  padding: 5px 10px;
+  font: var(--tl-font-chip);
+}
+
+button.chip {
+  cursor: pointer;
+}
+
+button.chip:focus-visible {
+  outline: none;
+  box-shadow: var(--tl-focus-ring);
+}
+
+.activeSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font: var(--tl-font-caption);
+  color: var(--tl-text-muted);
+}
+
+.explanations {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.explanations li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.6;
+  font: var(--tl-font-body);
+}
+
+.explanations li > :first-child {
+  color: var(--tl-primary-500);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.exportOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.previewChart {
+  margin-bottom: 16px;
+}
+
+/* Laptop widths: give the AN-08 preview table more room beside the filter form. */
+@media (max-width: 1550px) {
+  .filtersGrid {
+    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 2fr);
+  }
+}
+
+@media (max-width: 1279px) {
+  .kpiRow,
+  .kpiRow3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Wide tables beside a card need the full content width earlier. */
+@media (max-width: 1199px) {
+  .diseaseGrid,
+  .filtersGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 899px) {
+  .dashboardGrid,
+  .equalGrid,
+  .trendsGrid,
+  .bottleneckGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .chartX {
+    font-size: 11px;
+  }
+
+  .chartX .xMinor {
+    visibility: visible;
+  }
+
+  .chartX .xMinorSm {
+    visibility: hidden;
+  }
+
+  .chartX.xThinnedSm {
+    column-gap: 0;
+  }
+
+  .chartX.xThinnedSm span {
+    white-space: nowrap;
+    justify-self: center;
+  }
+
+  .chartBody > svg {
+    aspect-ratio: 2.2;
+  }
+
+  .wideChart .chartBody > svg {
+    aspect-ratio: 3.5;
+  }
+
+  .chartData summary {
+    padding-block: 14px;
+  }
+
+  .tableLink {
+    min-height: 44px;
+  }
+
+  .dateFields input {
+    min-height: 48px;
+  }
+
+  button.chip {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 599px) {
+  .kpiRow,
+  .kpiRow3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media print {
+  .chartData,
+  .timeControl,
+  .filterBar {
+    display: none !important;
+  }
+
+  .grid {
+    display: block;
+  }
+
+  .grid > * {
+    margin-bottom: 16px;
+  }
+}
+
+/* Uses the latest shared teal tokens; fallbacks keep the older local shell compatible. */
+.resubmittedStage {
+  background: var(--tl-teal-bg, #d9f2ee);
+  color: var(--tl-teal-text, #0b5c55);
+}
+
+/* Review Bottlenecks only: fill each stretched grid wrapper with its KPI card. */
+.bottleneckKpis {
+  align-items: stretch;
+}
+
+.bottleneckKpis > div {
+  display: flex;
+  min-width: 0;
+}
+
+.bottleneckKpis > div > section {
+  flex: 1;
+}
+
+/* Printable reports cannot rely on horizontal scroll to reveal their data. */
+@media print {
+  .page [role='region'][tabindex='0'] {
+    overflow: visible;
+  }
+
+  .page table {
+    table-layout: auto;
+    width: 100%;
+  }
+
+  .page table th {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .page table td,
+  .page .nowrap {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+
+  .page table td > span {
+    max-width: 100%;
+    height: auto;
+    min-height: 20px;
+    white-space: normal;
+  }
+
+  .page .chipList {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}

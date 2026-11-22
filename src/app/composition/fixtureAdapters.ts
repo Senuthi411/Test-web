@@ -6,6 +6,7 @@ import type { AdapterSet } from './adapterSet'
 import { createFixtureCaptureAdapter, persistFixtureCaptureState } from '@/features/capture/fixtures'
 import { createFixtureCasesAdapter, persistFixtureCasesState } from '@/features/cases/fixtures'
 import { createFixtureReviewAdapter, persistFixtureReviewState } from '@/features/review/fixtures'
+import { createFixtureAnalyticsAdapter } from '@/features/analytics/fixtures'
 
 /** Fixture records are dated around the designs' "today" (21 Oct 2026), so the clock is pinned to it. */
 export const fixtureClock: Clock = fixedClock(FIXTURE_REFERENCE_DATE)
@@ -29,6 +30,7 @@ export function createFixtureAdapterSet(
     cases: createFixtureCasesAdapter(store, { clock, actorId }),
     identity: createIdentityFixtureAdapters(store, { clock, actorId }),
     review: createFixtureReviewAdapter(store, { clock, actorId }),
+    analytics: createFixtureAnalyticsAdapter(store, { actorId }),
     fixtures: {
       reset: () => store.reset(),
       failNext: (kind) => store.failNext(kind),

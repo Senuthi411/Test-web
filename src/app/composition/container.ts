@@ -19,6 +19,7 @@ import type { AdapterSet, FixtureControls } from './adapterSet'
 import { createCaptureUseCases, type CaptureReadPort } from '@/features/capture'
 import { createCasesUseCases, type CasesServices } from '@/features/cases'
 import { createReviewUseCases, type ReviewServices } from '@/features/review'
+import { createAnalyticsUseCases, type AnalyticsServices } from '@/features/analytics'
 
 export type { FixtureControls } from './adapterSet'
 
@@ -26,6 +27,7 @@ export type { FixtureControls } from './adapterSet'
 export interface AppContainer {
   capture: CaptureReadPort
   cases: CasesServices
+  analytics: AnalyticsServices
   review: ReviewServices
   config: AppConfig
   clock: Clock
@@ -79,6 +81,7 @@ export function assembleContainer(
     capture: createCaptureUseCases(adapters.capture),
     cases: { port: createCasesUseCases(adapters.cases), demo: config.dataSource === 'fixtures', clock },
     review: { port: createReviewUseCases(adapters.review), demo: config.dataSource === 'fixtures', clock },
+    analytics: { useCases: createAnalyticsUseCases(adapters.analytics), demo: config.dataSource === 'fixtures' },
     config,
     clock,
     auth: createAuthUseCases(adapters.identity.auth, persistence, config.dataSource, remembered),

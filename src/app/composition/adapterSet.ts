@@ -3,6 +3,7 @@ import type { AppErrorKind } from '@/shared/api'
 import type { CaptureReadPort } from '@/features/capture'
 import type { CasesPort } from '@/features/cases'
 import type { ReviewPort } from '@/features/review'
+import type { AnalyticsPort } from '@/features/analytics'
 
 /** Development controls available only in fixture mode. */
 export interface FixtureControls {
@@ -26,6 +27,7 @@ export interface AdapterSet {
     auditLog: AuditLogPort
     configuration: ConfigurationPort
   }
+  analytics: AnalyticsPort
   review: ReviewPort
   fixtures: FixtureControls | null
 }
