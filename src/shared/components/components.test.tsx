@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/shared/api'
+import { iconData } from '@/shared/design-system'
 import {
   Banner,
   Button,
@@ -155,6 +156,11 @@ describe('DataTable', () => {
 })
 
 describe('form fields', () => {
+  const glyphMarkup = (name: 'eye' | 'eyeOff') => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.innerHTML = iconData[name].body
+    return svg.innerHTML
+  }
   it('links the label and error message to the input', () => {
     render(<TextField label="Email" error="Enter a valid e-mail address." />)
     const input = screen.getByRole('textbox', { name: 'Email' })
@@ -162,14 +168,30 @@ describe('form fields', () => {
     expect(input).toHaveAccessibleDescription('Enter a valid e-mail address.')
   })
 
-  it('reveals and hides the password', async () => {
+  it.each(['default', 'auth'] as const)('keeps visibility, icon and label synchronized when toggled repeatedly (%s)', async (appearance) => {
     const user = userEvent.setup()
-    render(<PasswordField label="Password" />)
+    render(<PasswordField label="Password" appearance={appearance} />)
     const input = screen.getByLabelText('Password')
-    expect(input).toHaveAttribute('type', 'password')
-    await user.click(screen.getByRole('button', { name: 'Show password' }))
-    expect(input).toHaveAttribute('type', 'text')
-    expect(screen.getByRole('button', { name: 'Hide password' })).toHaveAttribute('aria-pressed', 'true')
+    await user.type(input, 'Keep-this-value!42')
+    for (let step = 0; step <= 10; step++) {
+      const visible = step % 2 === 1
+      const button = screen.getByRole('button', { name: visible ? 'Hide password' : 'Show password' })
+      expect(input).toHaveAttribute('type', visible ? 'text' : 'password')
+      expect(input).toHaveValue('Keep-this-value!42')
+      expect(button).toHaveAttribute('aria-pressed', String(visible))
+      expect(button.querySelector('svg')?.innerHTML).toBe(glyphMarkup(visible ? 'eye' : 'eyeOff'))
+      if (step < 10) await user.click(button)
+    }
+  })
+
+  it('keeps independent password fields hidden until their own toggle is used', async () => {
+    const user = userEvent.setup()
+    render(<><PasswordField label="New password" /><PasswordField label="Confirm password" /></>)
+    const [first, second] = screen.getAllByRole('button', { name: 'Show password' })
+    await user.click(first)
+    expect(screen.getByLabelText('New password')).toHaveAttribute('type', 'text')
+    expect(screen.getByLabelText('Confirm password')).toHaveAttribute('type', 'password')
+    expect(second.querySelector('svg')?.innerHTML).toBe(glyphMarkup('eyeOff'))
   })
 })
 
