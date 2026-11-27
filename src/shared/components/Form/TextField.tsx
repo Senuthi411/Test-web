@@ -141,7 +141,7 @@ export function PasswordField({ label, hideLabel, icon = 'lock', hint, error, id
           aria-pressed={visible}
           disabled={disabled}
         >
-          <Icon name="eye" size={18} />
+          <Icon name={visible ? 'eye' : 'eyeOff'} size={18} />
         </button>
       </div>
       <FieldMessages hintId={hintId} errorId={errorId} hint={hint} error={error} />
