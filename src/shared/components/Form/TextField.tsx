@@ -116,6 +116,7 @@ export function PasswordField({ label, hideLabel, icon = 'lock', hint, error, id
   const hintId = `${inputId}-hint`
   const errorId = `${inputId}-error`
   const [visible, setVisible] = useState(false)
+  const visibilityLabel = visible ? 'Hide password' : 'Show password'
   return (
     <div className={styles.field}>
       <FieldLabel htmlFor={inputId} required={required} hidden={hideLabel}>
@@ -137,11 +138,12 @@ export function PasswordField({ label, hideLabel, icon = 'lock', hint, error, id
           type="button"
           className={styles.revealButton}
           onClick={() => setVisible((value) => !value)}
-          aria-label={visible ? 'Hide password' : 'Show password'}
+          aria-label={visibilityLabel}
+          title={visibilityLabel}
           aria-pressed={visible}
           disabled={disabled}
         >
-          <Icon name={visible ? 'eye' : 'eyeOff'} size={18} />
+          <Icon name={visible ? 'eyeOff' : 'eye'} size={18} />
         </button>
       </div>
       <FieldMessages hintId={hintId} errorId={errorId} hint={hint} error={error} />
