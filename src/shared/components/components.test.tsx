@@ -179,7 +179,8 @@ describe('form fields', () => {
       expect(input).toHaveAttribute('type', visible ? 'text' : 'password')
       expect(input).toHaveValue('Keep-this-value!42')
       expect(button).toHaveAttribute('aria-pressed', String(visible))
-      expect(button.querySelector('svg')?.innerHTML).toBe(glyphMarkup(visible ? 'eye' : 'eyeOff'))
+      expect(button).toHaveAttribute('title', visible ? 'Hide password' : 'Show password')
+      expect(button.querySelector('svg')?.innerHTML).toBe(glyphMarkup(visible ? 'eyeOff' : 'eye'))
       if (step < 10) await user.click(button)
     }
   })
@@ -191,7 +192,8 @@ describe('form fields', () => {
     await user.click(first)
     expect(screen.getByLabelText('New password')).toHaveAttribute('type', 'text')
     expect(screen.getByLabelText('Confirm password')).toHaveAttribute('type', 'password')
-    expect(second.querySelector('svg')?.innerHTML).toBe(glyphMarkup('eyeOff'))
+    expect(first.querySelector('svg')?.innerHTML).toBe(glyphMarkup('eyeOff'))
+    expect(second.querySelector('svg')?.innerHTML).toBe(glyphMarkup('eye'))
   })
 })
 
